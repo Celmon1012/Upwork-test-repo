@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cinzel, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -17,6 +17,12 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Oral Evaluation | Preflight Preparation",
   description: "Aviation oral evaluation practice",
+};
+
+/** Stable layout width + scale (avoids mobile/desktop layout mismatch vs dev without explicit viewport). */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
