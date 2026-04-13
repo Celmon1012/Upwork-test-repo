@@ -5,7 +5,12 @@
   --font-serif: var(--font-cinzel), "Times New Roman", ui-serif, serif;
 }
 
+/*
+ * Lock root typography so production (Vercel) matches dev: avoids “zoomed” UI
+ * when rem or font metrics differ between environments.
+ */
 html {
+  font-size: 16px;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }

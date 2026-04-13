@@ -6,12 +6,14 @@ const cinzel = Cinzel({
   variable: "--font-cinzel",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+  adjustFontFallback: true,
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {
@@ -23,6 +25,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Avoid iOS/Android auto-zoom feeling different from desktop localhost
+  maximumScale: 5,
 };
 
 export default function RootLayout({

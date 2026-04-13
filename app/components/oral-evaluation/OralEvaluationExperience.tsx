@@ -130,7 +130,7 @@ export function OralEvaluationExperience() {
         />
       </div>
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-14 sm:px-10 sm:py-16">
+      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-6 py-12 sm:px-10 sm:py-14">
         {phase === "input" && (
           <div
             className={`flex w-full max-w-[min(100%,960px)] flex-col transition-[opacity,filter] motion-safe:duration-500 motion-safe:ease-out ${
@@ -140,7 +140,7 @@ export function OralEvaluationExperience() {
             }`}
             aria-busy={awaitingFeedback}
           >
-            <h1 className="text-center font-serif text-[clamp(1.85rem,4.2vw,3.25rem)] font-medium tracking-[0.32em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)]">
+            <h1 className="text-center font-serif text-[2rem] font-medium tracking-[0.32em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] sm:text-[2.25rem] lg:text-[2.75rem] xl:text-[3rem]">
               ORAL EVALUATION
             </h1>
             <div
