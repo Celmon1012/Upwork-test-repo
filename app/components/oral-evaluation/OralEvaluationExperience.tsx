@@ -97,7 +97,7 @@ export function OralEvaluationExperience() {
       <BackgroundStack intensify={evaluating} />
 
       {flow === "landing" && (
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto oral-scrollbar-none">
+        <div className="relative z-10 flex min-h-full w-full flex-1 flex-col justify-center overflow-y-auto oral-scrollbar-none">
           <LandingHero onBegin={beginSession} />
         </div>
       )}
@@ -131,9 +131,9 @@ export function OralEvaluationExperience() {
                   <textarea
                     ref={answerRef}
                     id="oral-answer"
-                    rows={2}
+                    rows={3}
                     placeholder="Speak as you would to the examiner…"
-                    className="oral-input box-border min-h-[3.5rem] max-h-[min(32vh,10rem)] w-full resize-y rounded-none border-0 border-b border-white/22 bg-transparent px-0 py-2 text-[0.88rem] leading-[1.55] text-white outline-none placeholder:text-white/28 focus:border-b-amber-400/50 focus:ring-0 sm:min-h-[3.75rem] sm:text-[0.9rem]"
+                    className="oral-input box-border min-h-[8.5rem] max-h-[min(42vh,18rem)] w-full resize-none rounded-none border-0 border-b border-white/22 bg-[rgba(6,9,16,0.65)] px-3 py-3 text-[0.88rem] leading-[1.55] text-white outline-none backdrop-blur-[2px] placeholder:text-white/28 focus:border-b-amber-400/50 focus:ring-0 sm:min-h-[9rem] sm:text-[0.9rem]"
                   />
                 </div>
 
@@ -327,10 +327,10 @@ function JudgmentBlock({
         {judgment}
       </h2>
       <div
-        className={`relative mt-3 flex h-[3.5rem] w-[3.5rem] shrink-0 items-center justify-center rounded-full border border-white/12 bg-gradient-to-b from-white/[0.08] to-white/[0.02] ${accent.ring}`}
+        className={`relative mt-3 flex h-[4rem] w-[4rem] shrink-0 items-center justify-center rounded-full border border-white/12 bg-gradient-to-b from-white/[0.08] to-white/[0.02] ${accent.ring}`}
       >
         <span
-          className="text-[2.8rem] font-light tabular-nums leading-none tracking-tight"
+          className="text-[3.15rem] font-light tabular-nums leading-none tracking-tight sm:text-[3.2rem]"
           style={{
             fontFamily: "var(--font-cormorant), var(--font-cinzel), ui-serif, serif",
             color: accent.numeral,
@@ -346,7 +346,7 @@ function JudgmentBlock({
       <p className="mt-1.5 text-[0.62rem] uppercase tracking-[0.2em] text-white/32">
         Oral score (0–3)
       </p>
-      <p className="mx-auto mt-3 max-w-[40rem] text-[0.82rem] font-normal italic leading-relaxed text-white/52">
+      <p className="mx-auto mt-3 max-w-[min(42rem,92%)] text-[0.8rem] font-normal italic leading-relaxed text-white/52">
         {examinerNote}
       </p>
     </div>
@@ -362,7 +362,7 @@ function SectionTitle({
 }) {
   return (
     <h3
-      className={`pt-[1.2rem] text-left text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-white/82 ${className}`}
+      className={`pt-[1.5rem] text-left text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-white/82 ${className}`}
     >
       {children}
     </h3>
