@@ -168,7 +168,7 @@ export function OralEvaluationExperience() {
                 aria-modal="true"
               >
                 <div
-                  className={`px-6 py-9 sm:px-10 sm:py-11 motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+                  className={`px-6 pt-12 pb-14 sm:px-10 sm:pt-14 sm:pb-16 motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
                     panelEntering
                       ? "translate-y-0 opacity-100"
                       : "translate-y-3 opacity-0"
@@ -186,7 +186,7 @@ export function OralEvaluationExperience() {
 
                   <SectionTitle>What was correct</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-2 space-y-1.5 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
+                  <ul className="mt-2 space-y-2 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
                     {EVALUATION.correct.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -204,7 +204,7 @@ export function OralEvaluationExperience() {
 
                   <SectionTitle>What was missed</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-2 space-y-1.5 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
+                  <ul className="mt-2 space-y-2 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
                     {EVALUATION.missed.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -234,7 +234,7 @@ export function OralEvaluationExperience() {
                     {EVALUATION.why}
                   </p>
 
-                  <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:flex-row sm:justify-center sm:gap-5">
+                  <div className="mt-12 flex w-full flex-col items-stretch justify-center gap-3 sm:flex-row sm:justify-center sm:gap-5">
                     <PrimaryButton
                       type="button"
                       variant="feedbackContinue"
@@ -362,7 +362,7 @@ function SectionTitle({
 }) {
   return (
     <h3
-      className={`pt-[1.5rem] text-left text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-white/82 ${className}`}
+      className={`pt-[1.85rem] text-left text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-white/82 ${className}`}
     >
       {children}
     </h3>
@@ -376,10 +376,10 @@ function Divider({
 }) {
   const margin =
     spacing === "belowScore"
-      ? "mt-4"
+      ? "mt-6"
       : spacing === "afterBlock"
-        ? "mt-4"
-        : "mt-2";
+        ? "mt-5"
+        : "mt-3";
   return (
     <div
       className={`${margin} self-stretch ${dividerLineClass}`}
