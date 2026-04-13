@@ -106,7 +106,7 @@ export function OralEvaluationExperience() {
   }, []);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#05070c]">
+    <div className="oral-eval-scale relative w-full overflow-hidden bg-[#05070c]">
       <div className="pointer-events-none fixed inset-0 z-0">
         <Image
           src="/cockpit-bg.png"
@@ -130,7 +130,7 @@ export function OralEvaluationExperience() {
         />
       </div>
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10 sm:px-10 sm:py-12">
+      <div className="relative z-10 flex min-h-[125vh] flex-col items-center justify-center px-6 py-10 sm:px-10 sm:py-12">
         {phase === "input" && (
           <div
             className={`flex w-full max-w-[min(100%,880px)] flex-col transition-[opacity,filter] motion-safe:duration-500 motion-safe:ease-out ${
