@@ -220,10 +220,17 @@ export function OralEvaluationExperience() {
               </div>
             )}
 
-            <p className="mt-8 text-center text-[0.75rem] font-medium uppercase tracking-[0.28em] text-white/45">
-              Submit for feedback · Skip without scoring · Mark to flag for
-              later
-            </p>
+            <div className="mt-11 flex w-full flex-col gap-2 sm:flex-row sm:items-start sm:justify-center sm:gap-5">
+              <p className="flex-1 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white/45 sm:min-w-0">
+                Submit for feedback
+              </p>
+              <p className="flex-1 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white/45 sm:min-w-0">
+                Skip without scoring
+              </p>
+              <p className="flex-1 text-center text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white/45 sm:min-w-0">
+                Mark to flag for later
+              </p>
+            </div>
 
             <div className="mt-5 flex w-full flex-wrap items-stretch justify-center gap-4 sm:flex-nowrap sm:gap-5">
               <GlassButton type="button" onClick={handleSubmit}>
