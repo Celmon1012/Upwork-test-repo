@@ -60,6 +60,7 @@ export function OralEvaluationExperience() {
   const [flow, setFlow] = useState<Flow>("landing");
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("respond");
   const [panelEntering, setPanelEntering] = useState(false);
+  const [answerError, setAnswerError] = useState<string | null>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
 
@@ -69,6 +70,13 @@ export function OralEvaluationExperience() {
   }, []);
 
   const runEvaluation = useCallback(() => {
+    const answer = answerRef.current?.value.trim() ?? "";
+    if (!answer) {
+      setAnswerError("Please enter your response before submitting.");
+      answerRef.current?.focus();
+      return;
+    }
+    setAnswerError(null);
     setSessionPhase("evaluating");
     window.setTimeout(() => {
       setSessionPhase("feedback");
@@ -87,6 +95,7 @@ export function OralEvaluationExperience() {
   const backToRespond = useCallback(() => {
     setSessionPhase("respond");
     setPanelEntering(false);
+    setAnswerError(null);
     if (answerRef.current) answerRef.current.value = "";
   }, []);
 
@@ -94,6 +103,7 @@ export function OralEvaluationExperience() {
     setFlow("landing");
     setSessionPhase("respond");
     setPanelEntering(false);
+    setAnswerError(null);
     if (answerRef.current) answerRef.current.value = "";
   }, []);
 
@@ -143,8 +153,24 @@ export function OralEvaluationExperience() {
                     id="oral-answer"
                     rows={3}
                     placeholder="Speak as you would to the examiner…"
-                    className="oral-input box-border min-h-[8.5rem] max-h-[min(42vh,18rem)] w-full resize-none rounded-none border-0 border-b border-white/22 bg-[rgba(6,9,16,0.65)] px-3 py-3 text-[0.88rem] leading-[1.55] text-white outline-none backdrop-blur-[2px] placeholder:text-white/28 focus:border-b-amber-400/50 focus:ring-0 sm:min-h-[9rem] sm:text-[0.9rem]"
+                    aria-invalid={Boolean(answerError)}
+                    aria-describedby={answerError ? "oral-answer-error" : undefined}
+                    onChange={() => {
+                      if (answerError) setAnswerError(null);
+                    }}
+                    className={`oral-input box-border min-h-[8.5rem] max-h-[min(42vh,18rem)] w-full resize-none rounded-none border-0 border-b bg-[rgba(6,9,16,0.65)] px-3 py-3 text-[0.88rem] leading-[1.55] text-white outline-none backdrop-blur-[2px] placeholder:text-white/28 focus:border-b-amber-400/50 focus:ring-0 sm:min-h-[9rem] sm:text-[0.9rem] ${
+                      answerError ? "border-b-rose-400/70" : "border-white/22"
+                    }`}
                   />
+                  {answerError && (
+                    <p
+                      id="oral-answer-error"
+                      className="mt-2 text-[0.74rem] text-rose-300/90"
+                      role="alert"
+                    >
+                      {answerError}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mx-auto mt-10 w-full max-w-xs">
