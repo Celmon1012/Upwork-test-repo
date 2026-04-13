@@ -22,23 +22,23 @@ const dividerLineClass =
 
 const scoreAccent = {
   0: {
-    glow: "text-[#f0a8a8]",
-    ring: "shadow-[0_0_60px_rgba(244,67,54,0.35)]",
+    numeral: "#d48a8a",
+    ring: "shadow-[0_0_36px_rgba(244,67,54,0.22)]",
     bar: "from-rose-400/90 to-orange-300/80",
   },
   1: {
-    glow: "text-[#f5c77a]",
-    ring: "shadow-[0_0_56px_rgba(245,158,11,0.35)]",
+    numeral: "#c9a050",
+    ring: "shadow-[0_0_36px_rgba(245,158,11,0.22)]",
     bar: "from-amber-400/90 to-yellow-300/75",
   },
   2: {
-    glow: "text-[#f0d080]",
-    ring: "shadow-[0_0_64px_rgba(229,169,89,0.45)]",
-    bar: "from-[#e8b84c] to-[#c9a050]",
+    numeral: "#c8922a",
+    ring: "shadow-[0_0_40px_rgba(200,146,42,0.28)]",
+    bar: "from-[#c8922a]/80 to-[#a67a20]/90",
   },
   3: {
-    glow: "text-[#9ae6b4]",
-    ring: "shadow-[0_0_56px_rgba(74,222,128,0.4)]",
+    numeral: "#7dcca0",
+    ring: "shadow-[0_0_36px_rgba(74,222,128,0.22)]",
     bar: "from-emerald-400/95 to-teal-400/85",
   },
 } as const;
@@ -162,13 +162,13 @@ export function OralEvaluationExperience() {
 
             {sessionPhase === "feedback" && (
               <div
-                className="oral-glass-panel feedback-outcome relative z-20 my-auto w-full max-w-[min(100%,800px)] shrink-0 origin-center scale-90 overflow-visible"
+                className="oral-glass-panel feedback-outcome relative z-20 my-auto w-full max-w-[min(100%,880px)] shrink-0 overflow-visible"
                 role="dialog"
                 aria-labelledby={dialogLabelId}
                 aria-modal="true"
               >
                 <div
-                  className={`px-6 py-8 sm:px-10 sm:py-9 motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+                  className={`px-6 py-9 sm:px-10 sm:py-11 motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
                     panelEntering
                       ? "translate-y-0 opacity-100"
                       : "translate-y-3 opacity-0"
@@ -184,9 +184,9 @@ export function OralEvaluationExperience() {
 
                   <Divider spacing="belowScore" />
 
-                  <SectionTitle className="mt-6">What was correct</SectionTitle>
+                  <SectionTitle>What was correct</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-3 space-y-2 text-[0.9rem] leading-relaxed text-white/[0.92] sm:text-[0.95rem]">
+                  <ul className="mt-2 space-y-1.5 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
                     {EVALUATION.correct.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -202,9 +202,9 @@ export function OralEvaluationExperience() {
 
                   <Divider spacing="afterBlock" />
 
-                  <SectionTitle className="mt-6">What was missed</SectionTitle>
+                  <SectionTitle>What was missed</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-3 space-y-2 text-[0.9rem] leading-relaxed text-white/[0.92] sm:text-[0.95rem]">
+                  <ul className="mt-2 space-y-1.5 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
                     {EVALUATION.missed.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -220,24 +220,24 @@ export function OralEvaluationExperience() {
 
                   <Divider spacing="afterBlock" />
 
-                  <SectionTitle className="mt-6">Stronger answer</SectionTitle>
+                  <SectionTitle>Stronger answer</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <p className="mt-3 text-[0.9rem] leading-relaxed text-white/[0.92] sm:text-[0.95rem]">
+                  <p className="mt-2 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
                     {EVALUATION.stronger}
                   </p>
 
                   <Divider spacing="afterBlock" />
 
-                  <SectionTitle className="mt-6">Why it matters</SectionTitle>
+                  <SectionTitle>Why it matters</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <p className="mt-3 text-[0.9rem] leading-relaxed text-white/[0.92] sm:text-[0.95rem]">
+                  <p className="mt-2 text-[0.88rem] leading-snug text-white/[0.92] sm:text-[0.9rem]">
                     {EVALUATION.why}
                   </p>
 
-                  <div className="mt-10 flex w-full flex-col items-stretch justify-center gap-4 sm:flex-row sm:justify-center sm:gap-6">
+                  <div className="mt-8 flex w-full flex-col items-stretch justify-center gap-3 sm:flex-row sm:justify-center sm:gap-5">
                     <PrimaryButton
                       type="button"
-                      variant="secondary"
+                      variant="feedbackContinue"
                       className="max-w-md sm:min-w-[200px]"
                       onClick={backToRespond}
                     >
@@ -245,7 +245,7 @@ export function OralEvaluationExperience() {
                     </PrimaryButton>
                     <PrimaryButton
                       type="button"
-                      variant="ghost"
+                      variant="feedbackReview"
                       className="max-w-md sm:min-w-[200px]"
                       onClick={backToLanding}
                     >
@@ -322,16 +322,19 @@ function JudgmentBlock({
       </p>
       <h2
         id={id}
-        className="mt-4 max-w-[22rem] font-serif text-[1.65rem] font-semibold leading-tight tracking-wide text-[#f0d9a8] drop-shadow-[0_0_32px_rgba(229,169,89,0.25)] sm:max-w-xl sm:text-[1.95rem] md:text-[2.15rem]"
+        className="mt-3 max-w-[24rem] font-serif text-[1.6rem] font-semibold leading-tight tracking-wide text-[#f0d9a8] drop-shadow-[0_0_28px_rgba(229,169,89,0.22)] sm:max-w-2xl sm:text-[1.9rem] md:text-[2.05rem]"
       >
         {judgment}
       </h2>
-      {/* Score sits close under the verdict (reference layout) */}
       <div
-        className={`relative mt-4 flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full border border-white/14 bg-gradient-to-b from-white/[0.1] to-white/[0.02] sm:h-[4.5rem] sm:w-[4.5rem] ${accent.ring}`}
+        className={`relative mt-3 flex h-[3.5rem] w-[3.5rem] shrink-0 items-center justify-center rounded-full border border-white/12 bg-gradient-to-b from-white/[0.08] to-white/[0.02] ${accent.ring}`}
       >
         <span
-          className={`font-serif text-[2.1rem] font-semibold tabular-nums leading-none sm:text-[2.25rem] ${accent.glow}`}
+          className="text-[2.8rem] font-light tabular-nums leading-none tracking-tight"
+          style={{
+            fontFamily: "var(--font-cormorant), var(--font-cinzel), ui-serif, serif",
+            color: accent.numeral,
+          }}
         >
           {value}
         </span>
@@ -340,10 +343,10 @@ function JudgmentBlock({
           aria-hidden
         />
       </div>
-      <p className="mt-2 text-[0.65rem] uppercase tracking-[0.2em] text-white/35">
+      <p className="mt-1.5 text-[0.62rem] uppercase tracking-[0.2em] text-white/32">
         Oral score (0–3)
       </p>
-      <p className="mx-auto mt-4 max-w-[34rem] text-[0.92rem] font-normal italic leading-relaxed text-white/55 sm:text-[0.98rem]">
+      <p className="mx-auto mt-3 max-w-[40rem] text-[0.82rem] font-normal italic leading-relaxed text-white/52">
         {examinerNote}
       </p>
     </div>
@@ -359,7 +362,7 @@ function SectionTitle({
 }) {
   return (
     <h3
-      className={`text-left text-[0.82rem] font-semibold uppercase tracking-[0.12em] text-white/88 ${className}`}
+      className={`pt-[1.2rem] text-left text-[0.78rem] font-semibold uppercase tracking-[0.12em] text-white/82 ${className}`}
     >
       {children}
     </h3>
@@ -373,10 +376,10 @@ function Divider({
 }) {
   const margin =
     spacing === "belowScore"
-      ? "mt-6"
+      ? "mt-4"
       : spacing === "afterBlock"
-        ? "mt-6"
-        : "mt-2.5";
+        ? "mt-4"
+        : "mt-2";
   return (
     <div
       className={`${margin} self-stretch ${dividerLineClass}`}
@@ -384,6 +387,13 @@ function Divider({
     />
   );
 }
+
+type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "ghost"
+  | "feedbackContinue"
+  | "feedbackReview";
 
 function PrimaryButton({
   children,
@@ -395,18 +405,22 @@ function PrimaryButton({
   children: ReactNode;
   type?: "button" | "submit";
   onClick?: () => void;
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: ButtonVariant;
   className?: string;
 }) {
   const base =
-    "inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] px-6 text-center text-[0.8rem] font-semibold uppercase tracking-[0.18em] transition-[transform,box-shadow,border-color] active:translate-y-px";
-  const styles = {
+    "inline-flex min-h-[48px] w-full items-center justify-center rounded-[2px] px-6 text-center text-[0.8rem] font-semibold uppercase tracking-[0.18em] transition-[transform,box-shadow,border-color,background-color,color] active:translate-y-px";
+  const styles: Record<ButtonVariant, string> = {
     primary:
       "border border-amber-400/40 bg-gradient-to-b from-[#3d3830] to-[#1c1812] text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_28px_rgba(0,0,0,0.45)] hover:border-amber-300/55 hover:shadow-[0_12px_36px_rgba(0,0,0,0.5)]",
     secondary:
       "border border-white/20 bg-gradient-to-b from-[#343b4a] to-[#12151c] text-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_20px_rgba(0,0,0,0.4)] hover:border-white/30",
     ghost:
       "border border-white/12 bg-transparent text-white/75 hover:border-white/25 hover:text-white",
+    feedbackContinue:
+      "border border-[rgba(200,165,60,0.35)] bg-[rgba(200,165,60,0.08)] text-[rgba(220,195,140,0.9)] hover:border-[rgba(200,165,60,0.5)] hover:bg-[rgba(200,165,60,0.12)]",
+    feedbackReview:
+      "border border-[rgba(255,255,255,0.08)] bg-transparent text-[rgba(180,165,135,0.45)] hover:border-[rgba(255,255,255,0.14)] hover:text-[rgba(180,165,135,0.6)]",
   };
   return (
     <button

@@ -1,11 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Cinzel, Inter } from "next/font/google";
+import { Cinzel, Cormorant, Inter } from "next/font/google";
 import "./globals.css";
 
 const cinzel = Cinzel({
   variable: "--font-cinzel",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+});
+
+const cormorant = Cormorant({
+  variable: "--font-cormorant",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
 });
 
 const inter = Inter({
@@ -34,7 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cinzel.variable} ${inter.variable} h-full overflow-hidden antialiased`}
+      className={`${cinzel.variable} ${cormorant.variable} ${inter.variable} h-full overflow-hidden antialiased`}
     >
       <body className="h-full min-h-0 overflow-hidden font-sans">{children}</body>
     </html>
