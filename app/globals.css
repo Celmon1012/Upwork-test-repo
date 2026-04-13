@@ -9,20 +9,43 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-x: clip;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-x: clip;
 }
 
 /*
  * Global 80% visual scale for the oral evaluation UI (matches “zoom out” 0.8).
- * zoom affects layout in Chromium; min-height compensates so the page still fills the viewport.
+ * Do not use 125vh here — it inflated document height and caused a browser scrollbar.
  */
 .oral-eval-scale {
   zoom: 0.8;
-  min-height: 125vh;
+  min-height: 0;
+  flex: 1 1 0%;
+}
+
+/* Hide scrollbar but keep wheel/touch scroll inside the app shell (no document scroll). */
+.oral-scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.oral-scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Subtle film grain over the cockpit (environment texture). */

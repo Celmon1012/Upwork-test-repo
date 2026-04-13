@@ -4,7 +4,7 @@ import { LANDING } from "./content";
 
 export function LandingHero({ onBegin }: { onBegin: () => void }) {
   return (
-    <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-16 sm:px-10">
+    <div className="relative z-10 flex min-h-full flex-1 flex-col items-center justify-center px-6 py-16 sm:px-10">
       <div className="w-full max-w-3xl text-center">
         <p className="text-[0.7rem] font-semibold uppercase tracking-[0.35em] text-amber-200/85">
           {LANDING.eyebrow}
@@ -38,7 +38,7 @@ export function LandingHero({ onBegin }: { onBegin: () => void }) {
         <button
           type="button"
           onClick={onBegin}
-          className="mt-16 inline-flex min-h-[52px] min-w-[220px] items-center justify-center rounded-[2px] border border-amber-400/35 bg-gradient-to-b from-[#3a3530] to-[#1a1510] px-10 text-[0.88rem] font-semibold uppercase tracking-[0.2em] text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_12px_40px_rgba(0,0,0,0.5)] transition-[transform,box-shadow] hover:border-amber-300/45 hover:shadow-[0_16px_48px_rgba(0,0,0,0.55)] active:translate-y-px"
+          className="mt-16 inline-flex min-h-[46px] min-w-[260px] items-center justify-center rounded-[1px] border border-amber-200/22 bg-gradient-to-b from-[#262320] to-[#0c0b0a] px-12 text-[0.68rem] font-semibold uppercase tracking-[0.34em] text-amber-100/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.5),0_10px_36px_rgba(0,0,0,0.55)] transition-[transform,box-shadow,border-color] hover:border-amber-100/28 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_14px_44px_rgba(0,0,0,0.6)] active:translate-y-px"
         >
           {LANDING.cta}
         </button>

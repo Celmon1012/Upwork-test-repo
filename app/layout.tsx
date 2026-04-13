@@ -34,9 +34,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cinzel.variable} ${inter.variable} h-full antialiased`}
+      className={`${cinzel.variable} ${inter.variable} h-full overflow-hidden antialiased`}
     >
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="h-full min-h-0 overflow-hidden font-sans">{children}</body>
     </html>
   );
 }
