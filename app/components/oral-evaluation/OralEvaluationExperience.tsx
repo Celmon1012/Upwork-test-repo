@@ -43,6 +43,16 @@ const scoreAccent = {
   },
 } as const;
 
+const scoreBands: ReadonlyArray<{
+  value: ScoreValue;
+  label: string;
+}> = [
+  { value: 0, label: "Unsafe / unacceptable" },
+  { value: 1, label: "Partial / below standard" },
+  { value: 2, label: "Adequate / incomplete" },
+  { value: 3, label: "Complete / checkride ready" },
+] as const;
+
 type Flow = "landing" | "session";
 type SessionPhase = "respond" | "evaluating" | "feedback";
 
@@ -346,6 +356,24 @@ function JudgmentBlock({
       <p className="mt-1.5 text-[0.62rem] uppercase tracking-[0.2em] text-white/32">
         Oral score (0–3)
       </p>
+      <div className="mt-3 grid w-full max-w-[40rem] grid-cols-2 gap-2 text-left sm:grid-cols-4">
+        {scoreBands.map((band) => {
+          const active = band.value === value;
+          return (
+            <div
+              key={band.value}
+              className={`rounded-[2px] border px-2.5 py-2 text-[0.62rem] uppercase tracking-[0.08em] transition-colors ${
+                active
+                  ? "border-amber-300/45 bg-amber-200/[0.08] text-amber-100/95"
+                  : "border-white/10 bg-black/20 text-white/38"
+              }`}
+            >
+              <span className="font-semibold text-[0.68rem]">{band.value}</span>{" "}
+              {band.label}
+            </div>
+          );
+        })}
+      </div>
       <p className="mx-auto mt-3 max-w-[min(42rem,92%)] text-[0.8rem] font-normal italic leading-relaxed text-white/52">
         {examinerNote}
       </p>
