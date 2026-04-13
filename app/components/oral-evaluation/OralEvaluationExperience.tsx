@@ -130,17 +130,17 @@ export function OralEvaluationExperience() {
         />
       </div>
 
-      <div className="relative z-10 flex min-h-[100dvh] flex-col items-center justify-center px-6 py-12 sm:px-10 sm:py-14">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 py-10 sm:px-10 sm:py-12">
         {phase === "input" && (
           <div
-            className={`flex w-full max-w-[min(100%,960px)] flex-col transition-[opacity,filter] motion-safe:duration-500 motion-safe:ease-out ${
+            className={`flex w-full max-w-[min(100%,880px)] flex-col transition-[opacity,filter] motion-safe:duration-500 motion-safe:ease-out ${
               inputExiting
                 ? "pointer-events-none opacity-0 blur-[2px]"
                 : "opacity-100"
             }`}
             aria-busy={awaitingFeedback}
           >
-            <h1 className="text-center font-serif text-[2rem] font-medium tracking-[0.32em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] sm:text-[2.25rem] lg:text-[2.75rem] xl:text-[3rem]">
+            <h1 className="text-center font-serif text-[1.7rem] font-medium tracking-[0.28em] text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.45)] sm:text-[1.85rem] lg:text-[2.05rem] xl:text-[2.25rem]">
               ORAL EVALUATION
             </h1>
             <div
@@ -148,11 +148,11 @@ export function OralEvaluationExperience() {
               role="separator"
               aria-hidden
             />
-            <p className="mt-5 text-center text-[1.35rem] font-medium tracking-wide text-white/90 sm:text-[1.5rem]">
+            <p className="mt-5 text-center text-[1.2rem] font-medium tracking-wide text-white/90 sm:text-[1.3rem]">
               {CATEGORY}
             </p>
 
-            <p className="mt-14 w-full max-w-none text-center text-[1.125rem] font-light leading-[1.75] text-white/95 sm:text-[1.2rem] sm:leading-[1.8]">
+            <p className="mt-12 w-full max-w-none text-center text-[1.02rem] font-light leading-[1.7] text-white/95 sm:text-[1.08rem] sm:leading-[1.75]">
               {SCENARIO}
             </p>
 
@@ -165,7 +165,7 @@ export function OralEvaluationExperience() {
                 id="oral-answer"
                 rows={8}
                 placeholder="Type your response…"
-                className="oral-input box-border min-h-[220px] w-full resize-y rounded-[2px] border border-white/20 bg-[rgba(22,28,42,0.58)] px-5 py-5 text-[1.05rem] leading-relaxed text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.25),0_8px_40px_rgba(0,0,0,0.3)] outline-none backdrop-blur-md placeholder:text-white/35 focus:border-white/30 focus:ring-2 focus:ring-white/15 sm:text-[1.08rem]"
+                className="oral-input box-border min-h-[190px] w-full resize-y rounded-[2px] border border-white/20 bg-[rgba(22,28,42,0.58)] px-4 py-4 text-[0.95rem] leading-relaxed text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.25),0_8px_40px_rgba(0,0,0,0.3)] outline-none backdrop-blur-md placeholder:text-white/35 focus:border-white/30 focus:ring-2 focus:ring-white/15 sm:text-[0.98rem]"
               />
               <div className="mt-3 flex justify-center" aria-hidden>
                 <svg
@@ -241,13 +241,13 @@ export function OralEvaluationExperience() {
 
         {phase === "feedback" && (
           <div
-            className="oral-glass-panel w-full max-w-[min(100%,960px)]"
+            className="oral-glass-panel w-full max-w-[min(100%,880px)]"
             role="dialog"
             aria-labelledby={dialogLabelId}
             aria-modal="true"
           >
             <div
-              className={`px-7 py-9 sm:px-11 sm:py-11 motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+              className={`px-6 py-8 sm:px-9 sm:py-9 motion-safe:duration-700 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
                 panelEntering
                   ? "translate-y-0 opacity-100"
                   : "translate-y-3 opacity-0"
@@ -263,7 +263,7 @@ export function OralEvaluationExperience() {
                   <Divider spacing="belowScore" />
                   <SectionTitle className="mt-8">What was correct</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-6 space-y-3 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <ul className="mt-5 space-y-2.5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {EVALUATION.correct.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -279,7 +279,7 @@ export function OralEvaluationExperience() {
                   <Divider spacing="afterBlock" />
                   <SectionTitle className="mt-8">What was missed</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-6 space-y-3 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <ul className="mt-5 space-y-2.5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {EVALUATION.missed.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -295,13 +295,13 @@ export function OralEvaluationExperience() {
                   <Divider spacing="afterBlock" />
                   <SectionTitle className="mt-8">Stronger answer</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <p className="mt-6 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <p className="mt-5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {EVALUATION.stronger}
                   </p>
                   <Divider spacing="afterBlock" />
                   <SectionTitle className="mt-8">Why it matters</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <p className="mt-6 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <p className="mt-5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {EVALUATION.why}
                   </p>
                 </>
@@ -315,7 +315,7 @@ export function OralEvaluationExperience() {
                   <Divider spacing="belowScore" />
                   <SectionTitle className="mt-8">What was correct</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-6 space-y-3 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <ul className="mt-5 space-y-2.5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {SKIPPED_EVALUATION.correct.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -331,7 +331,7 @@ export function OralEvaluationExperience() {
                   <Divider spacing="afterBlock" />
                   <SectionTitle className="mt-8">What was missed</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <ul className="mt-6 space-y-3 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <ul className="mt-5 space-y-2.5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {SKIPPED_EVALUATION.missed.map((item) => (
                       <li key={item} className="flex gap-3">
                         <span
@@ -347,13 +347,13 @@ export function OralEvaluationExperience() {
                   <Divider spacing="afterBlock" />
                   <SectionTitle className="mt-8">Stronger answer</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <p className="mt-6 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <p className="mt-5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {SKIPPED_EVALUATION.stronger}
                   </p>
                   <Divider spacing="afterBlock" />
                   <SectionTitle className="mt-8">Why it matters</SectionTitle>
                   <Divider spacing="belowTitle" />
-                  <p className="mt-6 text-[1rem] leading-relaxed text-white/[0.93] sm:text-[1.0625rem]">
+                  <p className="mt-5 text-[0.9375rem] leading-relaxed text-white/[0.93] sm:text-[0.98rem]">
                     {SKIPPED_EVALUATION.why}
                   </p>
                 </>
@@ -391,10 +391,10 @@ function ScoreBlock({
   return (
     <div className="flex flex-col items-center gap-3">
       <div
-        className={`relative flex h-[5.25rem] w-[5.25rem] items-center justify-center rounded-full border border-white/15 bg-gradient-to-b from-white/[0.12] to-white/[0.02] ${accent.ring} sm:h-[5.75rem] sm:w-[5.75rem]`}
+        className={`relative flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-white/15 bg-gradient-to-b from-white/[0.12] to-white/[0.02] ${accent.ring} sm:h-[5rem] sm:w-[5rem]`}
       >
         <span
-          className={`font-serif text-[3rem] font-semibold tabular-nums leading-none tracking-tight sm:text-[3.35rem] ${accent.glow} drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]`}
+          className={`font-serif text-[2.5rem] font-semibold tabular-nums leading-none tracking-tight sm:text-[2.75rem] ${accent.glow} drop-shadow-[0_0_20px_rgba(255,255,255,0.15)]`}
         >
           {value}
         </span>
@@ -405,7 +405,7 @@ function ScoreBlock({
       </div>
       <p
         id={id}
-        className="max-w-[28rem] text-center text-[1.15rem] font-semibold leading-snug text-[#e8c478] sm:text-[1.35rem]"
+        className="max-w-[26rem] text-center text-[1.05rem] font-semibold leading-snug text-[#e8c478] sm:text-[1.2rem]"
       >
         {label}
       </p>
@@ -424,9 +424,9 @@ function SkippedScoreBlock({
 }) {
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <div className="flex h-[5.25rem] w-[5.25rem] items-center justify-center rounded-full border border-white/20 bg-gradient-to-b from-white/[0.08] to-white/[0.02] shadow-[0_0_48px_rgba(251,191,36,0.12)] sm:h-[5.75rem] sm:w-[5.75rem]">
+      <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-white/20 bg-gradient-to-b from-white/[0.08] to-white/[0.02] shadow-[0_0_48px_rgba(251,191,36,0.12)] sm:h-[5rem] sm:w-[5rem]">
         <span
-          className="font-serif text-[2.25rem] font-medium text-white/35 sm:text-[2.5rem]"
+          className="font-serif text-[1.9rem] font-medium text-white/35 sm:text-[2.1rem]"
           aria-hidden
         >
           —
@@ -434,11 +434,11 @@ function SkippedScoreBlock({
       </div>
       <h2
         id={id}
-        className="max-w-[26rem] text-[1.25rem] font-semibold tracking-wide text-amber-200/95 sm:text-[1.4rem]"
+        className="max-w-[24rem] text-[1.1rem] font-semibold tracking-wide text-amber-200/95 sm:text-[1.25rem]"
       >
         {headline}
       </h2>
-      <p className="max-w-[32rem] text-[0.95rem] text-white/55 sm:text-[1rem]">
+      <p className="max-w-[30rem] text-[0.875rem] text-white/55 sm:text-[0.92rem]">
         {subline}
       </p>
     </div>
@@ -454,7 +454,7 @@ function SectionTitle({
 }) {
   return (
     <h3
-      className={`text-left text-[0.95rem] font-semibold tracking-wide text-white ${className}`}
+      className={`text-left text-[0.88rem] font-semibold tracking-wide text-white ${className}`}
     >
       {children}
     </h3>
@@ -493,7 +493,7 @@ function GlassButton({
     <button
       type={type}
       onClick={onClick}
-      className="min-h-[46px] min-w-[140px] flex-1 rounded-[3px] border border-white/[0.18] bg-gradient-to-b from-[#343b4a] via-[#1c212c] to-[#12151c] px-6 py-2.5 text-center text-[0.9rem] font-medium tracking-[0.12em] text-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_20px_rgba(0,0,0,0.45)] transition-[transform,box-shadow,border-color,background-color] hover:border-white/28 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_28px_rgba(0,0,0,0.5)] active:translate-y-px sm:min-w-[160px]"
+      className="min-h-[42px] min-w-[128px] flex-1 rounded-[3px] border border-white/[0.18] bg-gradient-to-b from-[#343b4a] via-[#1c212c] to-[#12151c] px-5 py-2 text-center text-[0.82rem] font-medium tracking-[0.1em] text-white/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.11),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_20px_rgba(0,0,0,0.45)] transition-[transform,box-shadow,border-color,background-color] hover:border-white/28 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_10px_28px_rgba(0,0,0,0.5)] active:translate-y-px sm:min-w-[148px]"
     >
       {children}
     </button>
