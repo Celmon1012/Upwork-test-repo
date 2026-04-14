@@ -27,11 +27,12 @@ body {
 }
 
 /*
- * Global 80% visual scale for the oral evaluation UI (matches “zoom out” 0.8).
+ * Global visual scale for the oral evaluation UI (zoom out from full size).
  * Do not use 125vh here — it inflated document height and caused a browser scrollbar.
  */
 .oral-eval-scale {
-  zoom: 0.8;
+  /* ~native size for readability; keep slightly under 1 if question + verdict need room */
+  zoom: 0.94;
   min-height: 0;
   flex: 1 1 0%;
 }
@@ -79,50 +80,50 @@ body {
   -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
 
-/* Feedback outcome: slightly heavier presence than standard panels. */
-.feedback-outcome {
+/* Debrief: matte record — less “glass card”, more judgment sheet. */
+.oral-debrief-matte {
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background-color: rgba(5, 6, 9, 0.94);
+  background-image: linear-gradient(
+    180deg,
+    rgba(18, 16, 14, 0.35) 0%,
+    rgba(5, 6, 9, 0.2) 28%,
+    rgba(5, 6, 9, 0.95) 100%
+  );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
-    0 40px 120px rgba(0, 0, 0, 0.62),
-    0 0 0 1px rgba(0, 0, 0, 0.4),
-    0 0 80px rgba(229, 169, 89, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 48px 120px rgba(0, 0, 0, 0.75);
 }
 
-@keyframes oral-eval-overlay-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Verdict record: solid, sharp — reads as a written assessment, not a glass modal. */
+.oral-verdict-record {
+  background: linear-gradient(
+    180deg,
+    rgba(10, 9, 8, 0.98) 0%,
+    rgba(4, 4, 5, 1) 48%,
+    rgba(3, 3, 4, 1) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(168, 135, 80, 0.26);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 24px 80px rgba(0, 0, 0, 0.75);
 }
 
-@keyframes oral-eval-text-breathe {
-  0%,
-  100% {
-    opacity: 0.92;
-  }
-  50% {
-    opacity: 1;
-  }
+.feedback-outcome {
+  box-shadow: 0 0 120px rgba(0, 0, 0, 0.65);
 }
 
-.evaluating-overlay {
-  animation: oral-eval-overlay-in 0.55s ease forwards;
+/* Answer line: reads as speech on a record, not a form control */
+.oral-answer-line {
+  caret-color: rgba(232, 212, 176, 0.75);
 }
 
-.evaluating-text {
-  animation: oral-eval-text-breathe 2.4s ease-in-out infinite;
+.oral-answer-line::placeholder {
+  color: rgba(255, 255, 255, 0.12);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .evaluating-overlay {
-    animation: none;
-    opacity: 1;
-  }
-
-  .evaluating-text {
-    animation: none;
-  }
+.oral-answer-line:focus {
+  outline: none;
 }
