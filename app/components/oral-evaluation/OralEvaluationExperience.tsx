@@ -11,14 +11,13 @@ import {
   useId,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
 import {
-  DEBRIEF_LABELS,
-  EVALUATING_BEATS,
   EVALUATING_MS,
   ORAL_ITEMS,
   UI,
+  type EvaluationBlock,
+  type OralItem,
   type ScoreValue,
 } from "./content";
 
@@ -30,8 +29,47 @@ const scoreNumeralColor: Record<ScoreValue, string> = {
 };
 
 type SessionPhase = "respond" | "evaluating" | "feedback";
+type RubricPoint = { label: string; keywords: readonly string[] };
 
 const easeOut = [0.22, 1, 0.36, 1] as const;
+const cinematicEase = [0.16, 1, 0.3, 1] as const;
+const rubricByItem: Record<string, readonly RubricPoint[]> = {
+  "preflight-prep": [
+    { label: "weather interpretation", keywords: ["weather", "taf", "metar"] },
+    { label: "NOTAM and airspace review", keywords: ["notam", "tfr", "airspace"] },
+    { label: "performance and runway suitability", keywords: ["performance", "runway", "density altitude", "takeoff"] },
+    { label: "weight and balance", keywords: ["weight", "balance", "cg", "center of gravity"] },
+    { label: "fuel reserves and alternates", keywords: ["fuel", "reserve", "alternate", "divert"] },
+  ],
+  "lost-comms-vfr": [
+    { label: "transponder action", keywords: ["7600", "transponder", "squawk"] },
+    { label: "route priority", keywords: ["assigned", "expected", "filed", "route"] },
+    { label: "altitude priority", keywords: ["mea", "minimum", "altitude", "highest"] },
+    { label: "regulatory basis", keywords: ["91.185", "regulation", "rule"] },
+    { label: "practical execution order", keywords: ["first", "then", "order", "sequence"] },
+  ],
+  "stall-spin": [
+    { label: "stall cue recognition", keywords: ["buffet", "horn", "control feel", "mushy"] },
+    { label: "angle-of-attack explanation", keywords: ["angle of attack", "aoa", "critical angle"] },
+    { label: "recovery priority", keywords: ["reduce", "unload", "power", "recover"] },
+    { label: "coordination discipline", keywords: ["coordinated", "rudder", "ball", "yaw"] },
+    { label: "return to assignment", keywords: ["altitude", "configuration", "wings level", "climb"] },
+  ],
+  "night-currency": [
+    { label: "correct regulation", keywords: ["61.57", "regulation", "rule"] },
+    { label: "full-stop requirement", keywords: ["full stop", "landing", "takeoff"] },
+    { label: "night definition", keywords: ["civil twilight", "night", "sunset"] },
+    { label: "90-day window", keywords: ["90 day", "90-day", "within 90"] },
+    { label: "legal determination with dates/times", keywords: ["logbook", "date", "time", "legal"] },
+  ],
+  "crosswind-gusts": [
+    { label: "stabilized approach criteria", keywords: ["stabilized", "approach", "criteria"] },
+    { label: "gust strategy", keywords: ["gust", "spread", "add airspeed", "correction"] },
+    { label: "crosswind control inputs", keywords: ["aileron", "rudder", "slip", "crab"] },
+    { label: "touchdown technique", keywords: ["upwind wheel", "flare", "touchdown"] },
+    { label: "personal limits and go-around gates", keywords: ["personal minimum", "limit", "go around", "abort"] },
+  ],
+};
 
 function transitionMs(reduce: boolean | null, ms: number) {
   return reduce ? 0 : ms;
@@ -41,13 +79,13 @@ export function OralEvaluationExperience() {
   const reduceMotion = useReducedMotion();
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("respond");
   const [itemIndex, setItemIndex] = useState(0);
-  const [evalBeat, setEvalBeat] = useState<string>(EVALUATING_BEATS[0]!);
   const [answerError, setAnswerError] = useState<string | null>(null);
+  const [evaluated, setEvaluated] = useState<EvaluationBlock | null>(null);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
 
   const item = ORAL_ITEMS[itemIndex]!;
-  const evaluation = item.evaluation;
+  const evaluation = evaluated ?? item.evaluation;
 
   const runEvaluation = useCallback(() => {
     const answer = answerRef.current?.value.trim() ?? "";
@@ -57,20 +95,17 @@ export function OralEvaluationExperience() {
       return;
     }
     setAnswerError(null);
-    setEvalBeat(
-      EVALUATING_BEATS[
-        Math.floor(Math.random() * EVALUATING_BEATS.length)
-      ]!,
-    );
+    setEvaluated(evaluateAnswer(item, answer));
     setSessionPhase("evaluating");
     window.setTimeout(() => {
       setSessionPhase("feedback");
     }, EVALUATING_MS);
-  }, []);
+  }, [item]);
 
   const advanceFromFeedback = useCallback(() => {
     setSessionPhase("respond");
     setAnswerError(null);
+    setEvaluated(null);
     if (answerRef.current) answerRef.current.value = "";
     setItemIndex((i) => (i + 1) % ORAL_ITEMS.length);
   }, []);
@@ -83,7 +118,10 @@ export function OralEvaluationExperience() {
     <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#03050a]">
       <BackgroundStack phase={sessionPhase} />
 
-      <div className="oral-eval-scale relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <div
+        className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
+        style={{ zoom: 1.2 }}
+      >
         <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-3 py-4 sm:px-6 sm:py-5">
           <AnimatePresence mode="wait">
             {showQuestionChrome && (
@@ -94,20 +132,16 @@ export function OralEvaluationExperience() {
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={
                   reduceMotion
-                    ? { opacity: evaluating ? 0.35 : 1 }
+                    ? { opacity: evaluating ? 0.2 : 1 }
                     : {
-                        opacity: evaluating ? 0.35 : 1,
-                        filter: evaluating ? "blur(2px)" : "blur(0px)",
+                        opacity: evaluating ? 0.22 : 1,
+                        y: evaluating ? -2 : 0,
                       }
                 }
-                exit={reduceMotion ? undefined : { opacity: 0, y: -12 }}
-                transition={{ duration: transitionMs(reduceMotion, 0.55), ease: easeOut }}
-                className="relative mx-auto w-full max-w-[min(100%,32rem)]"
+                exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
+                transition={{ duration: transitionMs(reduceMotion, 0.6), ease: cinematicEase }}
+                className="relative mx-auto w-full max-w-[min(100%,35rem)]"
               >
-                <div
-                  className="pointer-events-none absolute -left-4 top-0 hidden h-[min(100%,24rem)] w-px bg-gradient-to-b from-[#8b7355]/35 via-[#8b7355]/12 to-transparent sm:block"
-                  aria-hidden
-                />
                 <div
                   className="pointer-events-none absolute -inset-x-10 -inset-y-8 bg-[radial-gradient(ellipse_85%_75%_at_40%_25%,rgba(255,245,230,0.04)_0%,transparent_58%)] opacity-90"
                   aria-hidden
@@ -118,8 +152,8 @@ export function OralEvaluationExperience() {
                   initial={reduceMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
-                    duration: transitionMs(reduceMotion, 0.45),
-                    ease: easeOut,
+                    duration: transitionMs(reduceMotion, 0.5),
+                    ease: cinematicEase,
                   }}
                 >
                   <p className="text-[0.58rem] font-medium uppercase tracking-[0.38em] text-white/[0.22]">
@@ -128,41 +162,36 @@ export function OralEvaluationExperience() {
                     <span className="text-[#9a8a72]/90">{item.contextLabel}</span>
                   </p>
 
-                  <p className="mt-3 text-[0.52rem] font-light tracking-[0.06em] text-white/[0.18]">
-                    {itemIndex === 0
-                      ? `First of ${ORAL_ITEMS.length} prompts in this set.`
-                      : itemIndex === ORAL_ITEMS.length - 1
-                        ? `Last prompt in this set (${ORAL_ITEMS.length} total).`
-                        : `Prompt ${itemIndex + 1} of ${ORAL_ITEMS.length}.`}
+                  <p className="mt-4 text-[0.58rem] font-light uppercase tracking-[0.24em] text-[#b9aa93]/80">
+                    Examiner asks
                   </p>
 
-                  <h1 className="mt-4 font-serif text-[1.45rem] font-medium leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
-                    {item.promptLine}
+                  <h1 className="mt-2 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
+                    {`"${item.promptLine}"`}
                   </h1>
 
-                  <p className="mt-3 text-[0.78rem] font-light leading-[1.55] text-white/[0.38] sm:text-[0.82rem]">
+                  <p className="mt-3 rounded-sm border border-white/[0.12] bg-white/[0.03] px-3 py-2 text-[0.78rem] font-light leading-[1.55] text-white/[0.38] sm:text-[0.82rem]">
                     {item.scenario}
                   </p>
 
                   <div className="mt-6 w-full">
+                    <p className="mb-2 text-[0.62rem] font-light uppercase tracking-[0.14em] text-[#b9aa93]/70">
+                      Respond exactly as you would in the room.
+                    </p>
                     <label htmlFor="oral-answer" className="sr-only">
                       Your answer
                     </label>
                     <textarea
                       ref={answerRef}
                       id="oral-answer"
-                      rows={3}
+                      rows={2}
                       placeholder="Answer as you would to an examiner across the table…"
                       aria-invalid={Boolean(answerError)}
                       aria-describedby={answerError ? "oral-answer-error" : undefined}
                       onChange={() => {
                         if (answerError) setAnswerError(null);
                       }}
-                      className={`oral-answer-line box-border min-h-[4.25rem] max-h-[min(22vh,9rem)] w-full resize-none border-0 border-b bg-transparent pb-2 pl-0 pr-1 pt-0.5 text-[0.88rem] leading-[1.5] text-[#ebe6dc] sm:text-[0.9rem] ${
-                        answerError
-                          ? "border-b border-rose-500/40"
-                          : "border-b border-white/[0.14] focus:border-b-[#7d6548]/55"
-                      }`}
+                      className="oral-answer-line box-border min-h-[3.5rem] max-h-[min(18vh,7rem)] w-full resize-none border-0 bg-transparent pb-2 pl-0 pr-1 pt-0.5 text-[0.9rem] leading-[1.55] text-[#ebe6dc] sm:text-[0.95rem]"
                     />
                     {answerError && (
                       <p
@@ -175,13 +204,13 @@ export function OralEvaluationExperience() {
                     )}
                   </div>
 
-                  <div className="mt-6">
+                  <div className="mt-6 flex justify-end">
                     <button
                       type="button"
                       onClick={runEvaluation}
                       className="inline-flex h-9 min-w-[12rem] max-w-full items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] hover:border-white/[0.22] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/45 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
                     >
-                      I’m finished — assess my answer
+                      I’m ready.
                     </button>
                   </div>
                 </motion.div>
@@ -198,11 +227,22 @@ export function OralEvaluationExperience() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: transitionMs(reduceMotion, 0.45), ease: easeOut }}
-                className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/38 backdrop-blur-[3px]"
+                transition={{ duration: transitionMs(reduceMotion, 0.24), ease: cinematicEase }}
+                className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[4px]"
               >
-                <p className="max-w-[min(100%,26rem)] px-8 text-center font-serif text-[0.98rem] font-normal italic leading-relaxed text-[#d4cbc0] sm:text-[1.05rem]">
-                  {evalBeat}
+                <motion.p
+                  className="max-w-[min(100%,26rem)] px-8 text-center font-serif text-[0.95rem] font-normal italic leading-relaxed text-[#d4cbc0]/94 sm:text-[1.02rem]"
+                  animate={reduceMotion ? undefined : { opacity: [0.65, 1, 0.65] }}
+                  transition={{
+                    duration: transitionMs(reduceMotion, 1.8),
+                    ease: "easeInOut",
+                    repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
+                  }}
+                >
+                  Evaluating your response…
+                </motion.p>
+                <p className="mt-5 text-[0.58rem] font-light uppercase tracking-[0.25em] text-white/[0.18]">
+                  Stand by.
                 </p>
               </motion.div>
             )}
@@ -215,58 +255,65 @@ export function OralEvaluationExperience() {
                 role="dialog"
                 aria-labelledby={dialogLabelId}
                 aria-modal="true"
-                initial={reduceMotion ? undefined : { opacity: 0, y: 12 }}
+                initial={reduceMotion ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
                 transition={{
-                  duration: transitionMs(reduceMotion, 0.4),
-                  ease: easeOut,
+                  duration: transitionMs(reduceMotion, 0.48),
+                  ease: cinematicEase,
+                  delay: reduceMotion ? 0 : 0.12,
                 }}
-                className="oral-verdict-record feedback-outcome relative z-20 my-auto w-full max-w-[min(100%,min(96vw,58rem))] shrink-0 self-center overflow-hidden rounded-sm"
+                className="relative z-20 mx-auto w-full max-w-[min(100%,35rem)] shrink-0"
               >
-                <div className="oral-scrollbar-none flex max-h-[min(90dvh,920px)] flex-col overflow-y-auto px-4 pb-4 pt-4 sm:px-7 sm:pb-5 sm:pt-5">
+                <div
+                  className="pointer-events-none absolute -inset-x-10 -inset-y-8 bg-[radial-gradient(ellipse_85%_75%_at_40%_25%,rgba(255,245,230,0.04)_0%,transparent_58%)] opacity-90"
+                  aria-hidden
+                />
+
+                <div className="oral-scrollbar-none relative z-[1] flex max-h-[min(90dvh,920px)] flex-col overflow-y-auto text-left">
+                  <p className="text-[0.58rem] font-medium uppercase tracking-[0.38em] text-white/[0.22]">
+                    {UI.oralEvaluation}
+                    <span className="text-white/[0.12]"> · </span>
+                    <span className="text-[#9a8a72]/90">{item.contextLabel}</span>
+                  </p>
+
                   <JudgmentBlock
                     id={dialogLabelId}
                     value={evaluation.score}
                     outcomeLabel={evaluation.outcomeLabel}
                     judgment={evaluation.judgment}
                     examinerNote={evaluation.examinerNote}
+                    align="immersive"
                   />
 
-                  <div
-                    className="mx-auto mt-2.5 h-px max-w-[12rem] shrink-0 bg-gradient-to-r from-transparent via-[#8b7355]/32 to-transparent sm:mt-3"
-                    aria-hidden
-                  />
+                  <p className="mt-5 text-[0.58rem] font-light uppercase tracking-[0.24em] text-[#b9aa93]/80">
+                    Examiner continues
+                  </p>
 
-                  <div className="mt-2.5 grid min-h-0 shrink grid-cols-1 gap-x-10 gap-y-2.5 md:grid-cols-2 md:gap-y-2">
-                    <section className="min-h-0">
-                      <DebriefHeading>{DEBRIEF_LABELS.correct}</DebriefHeading>
-                      <FeedbackProse items={evaluation.correct} />
-                    </section>
-                    <section className="min-h-0">
-                      <DebriefHeading>{DEBRIEF_LABELS.missed}</DebriefHeading>
-                      <FeedbackProse items={evaluation.missed} />
-                    </section>
-                  </div>
-
-                  <section className="mt-4 min-h-0 shrink rounded-sm border border-white/[0.07] bg-black/10 px-5 py-5 sm:mt-5 sm:px-7 sm:py-6">
-                    <DebriefHeading>{DEBRIEF_LABELS.stronger}</DebriefHeading>
-                    <p className="mt-4 text-[0.875rem] leading-[1.55] text-[#c4beb4]/95 sm:text-[0.9rem]">
+                  <div className="mt-3 rounded-sm border border-white/[0.12] bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-3.5">
+                    <p className="text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
+                      <span className="font-medium text-[#d8cfc4]">- What was correct: </span>
+                      {mergeNotes(evaluation.correct)}
+                    </p>
+                    <p className="mt-3 text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
+                      <span className="font-medium text-[#d8cfc4]">- What was missed: </span>
+                      {mergeNotes(evaluation.missed)}
+                    </p>
+                    <p className="mt-3 text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
+                      <span className="font-medium text-[#d8cfc4]">- Stronger answer: </span>
                       {evaluation.stronger}
                     </p>
-                  </section>
-
-                  <section className="mt-4 min-h-0 shrink rounded-sm border border-white/[0.07] bg-black/10 px-5 py-5 sm:mt-5 sm:px-7 sm:py-6">
-                    <DebriefHeading>{DEBRIEF_LABELS.why}</DebriefHeading>
-                    <p className="mt-4 text-[0.875rem] leading-[1.55] text-[#c4beb4]/95 sm:text-[0.9rem]">
+                    <p className="mt-3 text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
+                      <span className="font-medium text-[#d8cfc4]">- Why it matters: </span>
                       {evaluation.why}
                     </p>
-                  </section>
+                  </div>
 
-                  <div className="mt-2.5 flex shrink-0 justify-center border-t border-white/[0.06] pt-2.5">
+                  <div className="mt-6 flex shrink-0 justify-end pb-1">
                     <button
                       type="button"
                       onClick={advanceFromFeedback}
-                      className="inline-flex h-10 min-w-[11rem] max-w-full items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-6 text-[0.68rem] font-medium tracking-[0.12em] text-stone-200/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] hover:border-white/[0.22] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/45 active:scale-[0.99] sm:tracking-[0.14em]"
+                      className="inline-flex h-9 min-w-[11rem] max-w-full items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] hover:border-white/[0.22] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/45 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
                     >
                       Next oral item
                     </button>
@@ -351,39 +398,47 @@ function JudgmentBlock({
   outcomeLabel,
   judgment,
   examinerNote,
+  align = "centered",
 }: {
   id: string;
   value: ScoreValue;
   outcomeLabel: string;
   judgment: string;
   examinerNote: string;
+  align?: "centered" | "immersive";
 }) {
+  const immersive = align === "immersive";
+
   return (
-    <div className="flex shrink-0 flex-col items-center text-center">
+    <div
+      className={
+        immersive
+          ? "mt-4 flex shrink-0 flex-col items-stretch text-left"
+          : "flex shrink-0 flex-col items-center text-center"
+      }
+    >
       <p className="text-[0.58rem] font-normal uppercase tracking-[0.32em] text-white/[0.22]">
         Examiner record
       </p>
 
       <h2
         id={id}
-        className="mt-2.5 max-w-[99%] font-serif text-[1.5rem] font-semibold leading-[1.1] tracking-[0.01em] text-[#eee6dc] sm:text-[1.7rem]"
+        className={`mt-2.5 max-w-[99%] font-serif text-[1.5rem] font-semibold leading-[1.1] tracking-[0.01em] text-[#eee6dc] sm:text-[1.7rem] ${immersive ? "italic" : ""}`}
       >
-        {judgment}
+        {immersive ? `“${judgment}.”` : judgment}
       </h2>
 
       <div
-        className="mt-3 h-px w-[min(100%,13rem)] bg-gradient-to-r from-transparent via-[#a08050]/35 to-transparent"
+        className={`mt-3 h-px bg-gradient-to-r from-transparent via-[#a08050]/35 to-transparent ${immersive ? "w-full max-w-none" : "mx-auto w-[min(100%,13rem)]"}`}
         aria-hidden
       />
 
-      <div className="mt-3 flex flex-wrap items-baseline justify-center gap-x-2.5 gap-y-0.5">
+      <div
+        className={`mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 ${immersive ? "justify-start" : "justify-center"}`}
+      >
         <span
           className="font-serif text-[2rem] font-light tabular-nums leading-none sm:text-[2.15rem]"
-          style={{
-            fontFamily:
-              "var(--font-cormorant), var(--font-cinzel), ui-serif, serif",
-            color: scoreNumeralColor[value],
-          }}
+          style={{ color: scoreNumeralColor[value] }}
         >
           {value}
         </span>
@@ -398,34 +453,88 @@ function JudgmentBlock({
         </span>
       </div>
 
-      <blockquote className="mx-auto mt-3 w-full max-w-none border-l-2 border-[#6b5340]/35 pl-3.5 text-left sm:pl-5">
-        <p className="text-[0.875rem] font-light italic leading-[1.5] text-[#aea598]/95 sm:text-[0.9rem]">
+      <div className="mt-4 w-full rounded-sm border border-white/[0.12] bg-white/[0.03] px-3 py-2.5 sm:px-4">
+        <p className="text-[0.875rem] font-light italic leading-[1.55] text-[#aea598]/95 sm:text-[0.9rem]">
           {examinerNote}
         </p>
-      </blockquote>
+      </div>
     </div>
   );
 }
-
-function FeedbackProse({ items }: { items: readonly string[] }) {
-  return (
-    <div className="mt-2 space-y-2">
-      {items.map((line, i) => (
-        <p
-          key={`${i}-${line.slice(0, 48)}`}
-          className="border-l border-white/[0.08] pl-2.5 text-left text-[0.875rem] leading-[1.5] text-[#c4beb4]/95 sm:pl-3 sm:text-[0.9rem]"
-        >
-          {line}
-        </p>
-      ))}
-    </div>
-  );
+function mergeNotes(items: readonly string[]) {
+  return items.join(" ");
 }
 
-function DebriefHeading({ children }: { children: ReactNode }) {
-  return (
-    <h3 className="font-serif text-[0.9rem] font-medium italic leading-snug text-[#a89880]/95 sm:text-[0.95rem]">
-      {children}
-    </h3>
+function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
+  const rubric = rubricByItem[item.id] ?? [];
+  const normalized = normalize(answer);
+  const matched = rubric.filter((point) =>
+    point.keywords.some((keyword) => normalized.includes(normalize(keyword))),
   );
+  const missed = rubric.filter((point) => !matched.includes(point));
+  const coverage = rubric.length === 0 ? 0 : matched.length / rubric.length;
+
+  const verdict =
+    coverage >= 0.75
+      ? { score: 3 as ScoreValue, outcomeLabel: "Meets standard", judgment: "Adequate" }
+      : coverage >= 0.45
+        ? { score: 2 as ScoreValue, outcomeLabel: "Incomplete", judgment: "Adequate, but incomplete" }
+        : { score: 1 as ScoreValue, outcomeLabel: "Below standard", judgment: "Unsatisfactory" };
+
+  const correct =
+    matched.length > 0
+      ? [
+          `You did identify ${listToPhrase(matched.slice(0, 2).map((x) => x.label))}.`,
+          "Those points show situational awareness, but they were not enough on their own to close the item.",
+        ]
+      : ["Your response did not establish any of the required anchors for this scenario."];
+
+  const missing =
+    missed.length > 0
+      ? [
+          `What I still needed to hear was ${listToPhrase(missed.slice(0, 3).map((x) => x.label))}.`,
+          "Without those pieces, the answer does not demonstrate a defensible checkride decision process.",
+        ]
+      : ["You covered the required pillars; minor tightening is about precision and delivery under pressure."];
+
+  const stronger =
+    missed.length > 0
+      ? `A stronger answer would have explicitly walked through ${listToPhrase(
+          missed.slice(0, 4).map((x) => x.label),
+        )} in a clear sequence, without waiting for examiner prompts.`
+      : "A stronger answer would keep the same structure but tighten language and sequencing so your judgment remains clear under interruption.";
+
+  const examinerNote = buildExaminerNote(verdict.judgment, matched.length, rubric.length);
+
+  return {
+    score: verdict.score,
+    outcomeLabel: verdict.outcomeLabel,
+    judgment: verdict.judgment,
+    examinerNote,
+    correct,
+    missed: missing,
+    stronger,
+    why: item.evaluation.why,
+  };
+}
+
+function buildExaminerNote(judgment: string, matchedCount: number, total: number) {
+  if (judgment === "Adequate") {
+    return `Adequate. You covered ${matchedCount} of ${total} decision anchors with enough structure that I can follow your judgment under checkride pressure.`;
+  }
+  if (judgment === "Adequate, but incomplete") {
+    return `Adequate, but incomplete. You addressed ${matchedCount} of ${total} anchors, but the omissions are significant enough that I cannot treat this as a complete oral answer yet.`;
+  }
+  return `Unsatisfactory. You addressed ${matchedCount} of ${total} anchors, and I still cannot verify a complete, defensible decision process from your response.`;
+}
+
+function normalize(value: string) {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function listToPhrase(items: readonly string[]) {
+  if (items.length === 0) return "the expected decision points";
+  if (items.length === 1) return items[0]!;
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
 }

@@ -40,8 +40,8 @@ export type OralItem = {
 };
 
 /**
- * Multiple oral items: weight = one prompt at a time, full judgment each time.
- * (Responses are not scored dynamically in this phase — each item ships a fixed examiner record for tone QA.)
+ * Multiple oral items: one prompt at a time, with examiner-calibrated baseline copy.
+ * Runtime evaluator logic in the experience component adapts verdict text to the submitted answer.
  */
 export const ORAL_ITEMS: readonly OralItem[] = [
   {
@@ -172,13 +172,5 @@ export const ORAL_ITEMS: readonly OralItem[] = [
   },
 ] as const;
 
-/** Single lines — examiner in the room, not a system status. Shown one at random during the deliberation beat. */
-export const EVALUATING_BEATS = [
-  "Give me a second — I’m weighing what you said against the standard I’d use on the ride.",
-  "I’m sitting with your answer for a moment.",
-  "Let me apply the ACS the way I would in the aircraft.",
-  "I’m listening for whether you owned the scenario or skimmed it.",
-] as const;
-
-/** Long enough to feel like thought, not like a loading state. */
-export const EVALUATING_MS = 3200;
+/** Deliberate pause between response and examiner record. */
+export const EVALUATING_MS = 2000;
