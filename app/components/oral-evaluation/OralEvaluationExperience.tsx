@@ -77,9 +77,9 @@ function verdictLine(score: ScoreValue): string {
 /** Seconds before supporting note/debrief appear (verdict holds the screen). */
 function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number {
   if (reduce) return 0;
-  if (score <= 1) return 1.35;
-  if (score === 2) return 1.12;
-  return 0.95;
+  if (score <= 1) return 2.15;
+  if (score === 2) return 1.85;
+  return 1.55;
 }
 
 /** Blended surface — reads as depth in the cockpit, not a floating card. */
@@ -279,7 +279,7 @@ export function OralEvaluationExperience() {
                     initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 0.32),
+                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 0.7),
                       duration: transitionMs(reduceMotion, 0.78),
                       ease: cinematicEase,
                     }}
@@ -294,7 +294,7 @@ export function OralEvaluationExperience() {
                     initial={reduceMotion ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 1.12),
+                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 2.0),
                       duration: transitionMs(reduceMotion, 0.5),
                       ease: cinematicEase,
                     }}
