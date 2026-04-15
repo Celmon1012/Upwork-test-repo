@@ -15,18 +15,10 @@ import {
 import {
   EVALUATING_MS,
   ORAL_ITEMS,
-  UI,
   type EvaluationBlock,
   type OralItem,
   type ScoreValue,
 } from "./content";
-
-const scoreNumeralColor: Record<ScoreValue, string> = {
-  0: "#c97a7a",
-  1: "#b89248",
-  2: "#b8892a",
-  3: "#6bb892",
-};
 
 type SessionPhase = "respond" | "evaluating" | "feedback";
 type RubricPoint = { label: string; keywords: readonly string[] };
@@ -75,6 +67,25 @@ function transitionMs(reduce: boolean | null, ms: number) {
   return reduce ? 0 : ms;
 }
 
+/** Short disposition line — shown alone before any supporting copy. */
+function verdictLine(score: ScoreValue): string {
+  if (score >= 3) return "Satisfactory.";
+  if (score === 2) return "Adequate, but incomplete.";
+  return "Unsatisfactory.";
+}
+
+/** Seconds before supporting note/debrief appear (verdict holds the screen). */
+function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number {
+  if (reduce) return 0;
+  if (score <= 1) return 1.35;
+  if (score === 2) return 1.12;
+  return 0.95;
+}
+
+/** Blended surface — reads as depth in the cockpit, not a floating card. */
+const ATMOSPHERE_PANEL =
+  "px-1 py-2 sm:px-2 sm:py-3";
+
 export function OralEvaluationExperience() {
   const reduceMotion = useReducedMotion();
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("respond");
@@ -115,7 +126,7 @@ export function OralEvaluationExperience() {
     sessionPhase === "respond" || sessionPhase === "evaluating";
 
   return (
-    <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#03050a]">
+    <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
       <BackgroundStack phase={sessionPhase} />
 
       <div
@@ -128,7 +139,7 @@ export function OralEvaluationExperience() {
               <motion.div
                 key={item.id}
                 role="region"
-                aria-label="Oral examination question"
+                aria-label={`${item.contextLabel} — examiner question`}
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={
                   reduceMotion
@@ -142,13 +153,8 @@ export function OralEvaluationExperience() {
                 transition={{ duration: transitionMs(reduceMotion, 0.6), ease: cinematicEase }}
                 className="relative mx-auto w-full max-w-[min(100%,35rem)]"
               >
-                <div
-                  className="pointer-events-none absolute -inset-x-10 -inset-y-8 bg-[radial-gradient(ellipse_85%_75%_at_40%_25%,rgba(255,245,230,0.04)_0%,transparent_58%)] opacity-90"
-                  aria-hidden
-                />
-
                 <motion.div
-                  className="relative z-[1] flex w-full flex-col text-left"
+                  className={`relative z-[1] flex w-full flex-col text-left ${ATMOSPHERE_PANEL}`}
                   initial={reduceMotion ? false : { opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
@@ -156,13 +162,7 @@ export function OralEvaluationExperience() {
                     ease: cinematicEase,
                   }}
                 >
-                  <p className="text-[0.58rem] font-medium uppercase tracking-[0.38em] text-white/[0.22]">
-                    {UI.oralEvaluation}
-                    <span className="text-white/[0.12]"> · </span>
-                    <span className="text-[#9a8a72]/90">{item.contextLabel}</span>
-                  </p>
-
-                  <p className="mt-4 text-[0.58rem] font-light uppercase tracking-[0.24em] text-[#b9aa93]/80">
+                  <p className="text-[0.58rem] font-light uppercase tracking-[0.24em] text-[#b9aa93]/75">
                     Examiner asks
                   </p>
 
@@ -170,14 +170,11 @@ export function OralEvaluationExperience() {
                     {`"${item.promptLine}"`}
                   </h1>
 
-                  <p className="mt-3 rounded-sm border border-white/[0.12] bg-white/[0.03] px-3 py-2 text-[0.78rem] font-light leading-[1.55] text-white/[0.38] sm:text-[0.82rem]">
+                  <p className="mt-4 max-w-[min(100%,34rem)] text-[0.8rem] font-light leading-[1.62] text-white/[0.44] sm:text-[0.84rem]">
                     {item.scenario}
                   </p>
 
-                  <div className="mt-6 w-full">
-                    <p className="mb-2 text-[0.62rem] font-light uppercase tracking-[0.14em] text-[#b9aa93]/70">
-                      Respond exactly as you would in the room.
-                    </p>
+                  <div className="mt-6 w-full pt-4">
                     <label htmlFor="oral-answer" className="sr-only">
                       Your answer
                     </label>
@@ -204,11 +201,11 @@ export function OralEvaluationExperience() {
                     )}
                   </div>
 
-                  <div className="mt-6 flex justify-end">
+                  <div className="mt-6 flex justify-end pt-4">
                     <button
                       type="button"
                       onClick={runEvaluation}
-                      className="inline-flex h-9 min-w-[12rem] max-w-full items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] hover:border-white/[0.22] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/45 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
+                      className="inline-flex h-9 min-w-[12rem] max-w-full items-center justify-center rounded-full bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-sm transition-[background-color,color,transform] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/40 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
                     >
                       I’m ready.
                     </button>
@@ -228,7 +225,7 @@ export function OralEvaluationExperience() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: transitionMs(reduceMotion, 0.24), ease: cinematicEase }}
-                className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/55 backdrop-blur-[4px]"
+                className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/28 backdrop-blur-[2px]"
               >
                 <motion.p
                   className="max-w-[min(100%,26rem)] px-8 text-center font-serif text-[0.95rem] font-normal italic leading-relaxed text-[#d4cbc0]/94 sm:text-[1.02rem]"
@@ -266,58 +263,50 @@ export function OralEvaluationExperience() {
                 className="relative z-20 mx-auto w-full max-w-[min(100%,35rem)] shrink-0"
               >
                 <div
-                  className="pointer-events-none absolute -inset-x-10 -inset-y-8 bg-[radial-gradient(ellipse_85%_75%_at_40%_25%,rgba(255,245,230,0.04)_0%,transparent_58%)] opacity-90"
-                  aria-hidden
-                />
-
-                <div className="oral-scrollbar-none relative z-[1] flex max-h-[min(90dvh,920px)] flex-col overflow-y-auto text-left">
-                  <p className="text-[0.58rem] font-medium uppercase tracking-[0.38em] text-white/[0.22]">
-                    {UI.oralEvaluation}
-                    <span className="text-white/[0.12]"> · </span>
-                    <span className="text-[#9a8a72]/90">{item.contextLabel}</span>
-                  </p>
+                  className={`oral-scrollbar-none relative z-[1] flex max-h-[min(90dvh,920px)] flex-col overflow-y-auto text-left ${ATMOSPHERE_PANEL}`}
+                >
+                  <span className="sr-only">{item.contextLabel}</span>
 
                   <JudgmentBlock
                     id={dialogLabelId}
                     value={evaluation.score}
-                    outcomeLabel={evaluation.outcomeLabel}
                     judgment={evaluation.judgment}
                     examinerNote={evaluation.examinerNote}
                     align="immersive"
                   />
 
-                  <p className="mt-5 text-[0.58rem] font-light uppercase tracking-[0.24em] text-[#b9aa93]/80">
-                    Examiner continues
-                  </p>
+                  <motion.div
+                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 0.32),
+                      duration: transitionMs(reduceMotion, 0.78),
+                      ease: cinematicEase,
+                    }}
+                  >
+                    <p className="mt-6 text-[0.9rem] leading-[1.72] text-[#c4beb4]/96 sm:text-[0.95rem]">
+                      {composeContinuousEvaluation(evaluation)}
+                    </p>
+                  </motion.div>
 
-                  <div className="mt-3 rounded-sm border border-white/[0.12] bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-3.5">
-                    <p className="text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
-                      <span className="font-medium text-[#d8cfc4]">- What was correct: </span>
-                      {mergeNotes(evaluation.correct)}
-                    </p>
-                    <p className="mt-3 text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
-                      <span className="font-medium text-[#d8cfc4]">- What was missed: </span>
-                      {mergeNotes(evaluation.missed)}
-                    </p>
-                    <p className="mt-3 text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
-                      <span className="font-medium text-[#d8cfc4]">- Stronger answer: </span>
-                      {evaluation.stronger}
-                    </p>
-                    <p className="mt-3 text-[0.875rem] leading-[1.65] text-[#c4beb4]/95 sm:text-[0.9rem]">
-                      <span className="font-medium text-[#d8cfc4]">- Why it matters: </span>
-                      {evaluation.why}
-                    </p>
-                  </div>
-
-                  <div className="mt-6 flex shrink-0 justify-end pb-1">
+                  <motion.div
+                    className="mt-7 flex shrink-0 justify-end pb-0.5 pt-2"
+                    initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 1.12),
+                      duration: transitionMs(reduceMotion, 0.5),
+                      ease: cinematicEase,
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={advanceFromFeedback}
-                      className="inline-flex h-9 min-w-[11rem] max-w-full items-center justify-center rounded-full border border-white/[0.14] bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_6px_24px_rgba(0,0,0,0.35)] backdrop-blur-md transition-[border-color,background-color,color,transform] hover:border-white/[0.22] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/45 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
+                      className="inline-flex h-9 min-w-[11rem] max-w-full items-center justify-center rounded-full bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-sm transition-[background-color,color,transform] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/40 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
                     >
                       Next oral item
                     </button>
-                  </div>
+                  </motion.div>
                 </div>
               </motion.div>
             )}
@@ -343,35 +332,35 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
         unoptimized
         className={`object-cover object-center transition-all duration-[1400ms] ease-out ${
           evaluating || feedback
-            ? "scale-[1.06] brightness-[0.34] blur-[5px]"
+            ? "scale-[1.05] brightness-[0.62] blur-[2.5px]"
             : respond
-              ? "scale-[1.05] brightness-[0.32] blur-[5px]"
-              : "brightness-[0.44] blur-[4px]"
+              ? "scale-[1.04] brightness-[0.6] blur-[2px]"
+              : "brightness-[0.64] blur-[2px]"
         }`}
       />
       <div
-        className={`absolute inset-0 bg-gradient-to-b from-[#0a1020]/55 via-transparent transition-opacity duration-1000 ${
+        className={`absolute inset-0 bg-gradient-to-b from-[#0a1428]/32 via-[#050810]/10 transition-opacity duration-1000 ${
           evaluating || feedback
-            ? "to-[#020308]/96 opacity-100"
+            ? "to-[#050810]/58 opacity-100"
             : respond
-              ? "to-[#010206]/94 opacity-100"
-              : "to-[#03050a]/88 opacity-100"
+              ? "to-[#050810]/48 opacity-100"
+              : "to-[#060a12]/42 opacity-100"
         }`}
         aria-hidden
       />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_90%_70%_at_50%_40%,transparent_15%,rgba(0,0,0,0.72)_100%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_95%_75%_at_50%_38%,transparent_28%,rgba(5,8,16,0.38)_100%)]"
         aria-hidden
       />
       {respond && !evaluating && (
         <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_72%_58%_at_38%_42%,transparent_0%,rgba(0,0,0,0.52)_100%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_78%_62%_at_38%_42%,transparent_0%,rgba(5,8,16,0.22)_100%)]"
           aria-hidden
         />
       )}
       {(evaluating || feedback) && (
         <div
-          className="absolute inset-0 bg-black/25 transition-opacity duration-1000"
+          className="absolute inset-0 bg-black/10 transition-opacity duration-1000"
           aria-hidden
         />
       )}
@@ -383,11 +372,11 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
       )}
       {feedback && (
         <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_70%_55%_at_50%_38%,transparent_0%,rgba(0,0,0,0.42)_100%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_72%_58%_at_50%_38%,transparent_0%,rgba(5,8,16,0.2)_100%)]"
           aria-hidden
         />
       )}
-      <div className="oral-grain absolute inset-0 opacity-[0.045]" aria-hidden />
+      <div className="oral-grain absolute inset-0 opacity-[0.028]" aria-hidden />
     </div>
   );
 }
@@ -395,65 +384,95 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
 function JudgmentBlock({
   id,
   value,
-  outcomeLabel,
   judgment,
   examinerNote,
   align = "centered",
 }: {
   id: string;
   value: ScoreValue;
-  outcomeLabel: string;
   judgment: string;
   examinerNote: string;
   align?: "centered" | "immersive";
 }) {
   const immersive = align === "immersive";
+  const reduceMotion = useReducedMotion();
+  const followDelay = judgmentFollowDelayS(reduceMotion, value);
+
+  if (immersive) {
+    const verdictClass =
+      value <= 1
+        ? "text-[#f2cfca] sm:text-[#ecc7bf]"
+        : value === 2
+          ? "text-[#efe5cf]"
+          : "text-[#f8efe4]";
+
+    return (
+      <div className="mt-2 flex shrink-0 flex-col items-stretch text-left">
+        <motion.h2
+          id={id}
+          className={`max-w-[100%] font-serif text-[2.06rem] font-semibold leading-[1.02] tracking-[0.018em] sm:text-[2.32rem] ${verdictClass}`}
+          initial={reduceMotion ? false : { opacity: 0, y: 22, scale: 0.94 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{
+            duration: transitionMs(reduceMotion, 0.72),
+            ease: easeOut,
+          }}
+          style={{
+            textShadow:
+              value <= 1
+                ? "0 10px 34px rgba(64,16,12,0.36)"
+                : value === 2
+                  ? "0 8px 30px rgba(58,40,14,0.28)"
+                  : "0 8px 28px rgba(32,24,14,0.24)",
+          }}
+        >
+          {verdictLine(value)}
+        </motion.h2>
+
+        <motion.div
+          className="flex flex-col"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{
+            delay: followDelay,
+            duration: transitionMs(reduceMotion, 0.72),
+            ease: cinematicEase,
+          }}
+        >
+          <div
+            className="mt-6 h-px w-full max-w-[min(100%,18rem)] bg-gradient-to-r from-[#a08050]/28 via-[#a08050]/10 to-transparent"
+            aria-hidden
+          />
+
+          <div className="mt-4 w-full px-0 py-0 sm:px-0">
+            <p className="text-[0.875rem] font-light italic leading-[1.58] text-[#aea598]/95 sm:text-[0.9rem]">
+              {examinerNote}
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={
-        immersive
-          ? "mt-4 flex shrink-0 flex-col items-stretch text-left"
-          : "flex shrink-0 flex-col items-center text-center"
-      }
-    >
+    <div className="flex shrink-0 flex-col items-center text-center">
       <p className="text-[0.58rem] font-normal uppercase tracking-[0.32em] text-white/[0.22]">
         Examiner record
       </p>
 
       <h2
         id={id}
-        className={`mt-2.5 max-w-[99%] font-serif text-[1.5rem] font-semibold leading-[1.1] tracking-[0.01em] text-[#eee6dc] sm:text-[1.7rem] ${immersive ? "italic" : ""}`}
+        className="mt-2.5 max-w-[99%] font-serif text-[1.5rem] font-semibold leading-[1.1] tracking-[0.01em] text-[#eee6dc] sm:text-[1.7rem]"
       >
-        {immersive ? `“${judgment}.”` : judgment}
+        {judgment}
       </h2>
 
       <div
-        className={`mt-3 h-px bg-gradient-to-r from-transparent via-[#a08050]/35 to-transparent ${immersive ? "w-full max-w-none" : "mx-auto w-[min(100%,13rem)]"}`}
+        className="mx-auto mt-3 h-px w-[min(100%,13rem)] bg-gradient-to-r from-transparent via-[#a08050]/35 to-transparent"
         aria-hidden
       />
 
-      <div
-        className={`mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 ${immersive ? "justify-start" : "justify-center"}`}
-      >
-        <span
-          className="font-serif text-[2rem] font-light tabular-nums leading-none sm:text-[2.15rem]"
-          style={{ color: scoreNumeralColor[value] }}
-        >
-          {value}
-        </span>
-        <span className="font-serif text-[1rem] font-light tabular-nums leading-none text-white/[0.28]">
-          / 3
-        </span>
-        <span className="mx-0.5 text-[0.7rem] text-white/[0.15]" aria-hidden>
-          ·
-        </span>
-        <span className="text-[0.62rem] font-medium uppercase tracking-[0.18em] text-[#a09078]/95 sm:text-[0.65rem]">
-          {outcomeLabel}
-        </span>
-      </div>
-
-      <div className="mt-4 w-full rounded-sm border border-white/[0.12] bg-white/[0.03] px-3 py-2.5 sm:px-4">
+      <div className="mt-4 w-full max-w-xl px-3 py-2.5 sm:px-4">
         <p className="text-[0.875rem] font-light italic leading-[1.55] text-[#aea598]/95 sm:text-[0.9rem]">
           {examinerNote}
         </p>
@@ -463,6 +482,18 @@ function JudgmentBlock({
 }
 function mergeNotes(items: readonly string[]) {
   return items.join(" ");
+}
+
+function composeContinuousEvaluation(evaluation: EvaluationBlock) {
+  return [
+    mergeNotes(evaluation.correct),
+    mergeNotes(evaluation.missed),
+    evaluation.stronger,
+    evaluation.why,
+  ]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ");
 }
 
 function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
@@ -476,18 +507,18 @@ function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
 
   const verdict =
     coverage >= 0.75
-      ? { score: 3 as ScoreValue, outcomeLabel: "Meets standard", judgment: "Adequate" }
+      ? { score: 3 as ScoreValue, outcomeLabel: "Examiner assessment", judgment: "Satisfactory" }
       : coverage >= 0.45
-        ? { score: 2 as ScoreValue, outcomeLabel: "Incomplete", judgment: "Adequate, but incomplete" }
-        : { score: 1 as ScoreValue, outcomeLabel: "Below standard", judgment: "Unsatisfactory" };
+        ? { score: 2 as ScoreValue, outcomeLabel: "Examiner assessment", judgment: "Adequate, but incomplete" }
+        : { score: 1 as ScoreValue, outcomeLabel: "Examiner assessment", judgment: "Unsatisfactory" };
 
   const correct =
     matched.length > 0
       ? [
           `You did identify ${listToPhrase(matched.slice(0, 2).map((x) => x.label))}.`,
-          "Those points show situational awareness, but they were not enough on their own to close the item.",
+          "That shows situational awareness, but the answer still does not stand as a complete checkride response.",
         ]
-      : ["Your response did not establish any of the required anchors for this scenario."];
+      : ["Your response did not establish the core elements I needed to hear for this scenario."];
 
   const missing =
     missed.length > 0
@@ -495,16 +526,16 @@ function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
           `What I still needed to hear was ${listToPhrase(missed.slice(0, 3).map((x) => x.label))}.`,
           "Without those pieces, the answer does not demonstrate a defensible checkride decision process.",
         ]
-      : ["You covered the required pillars; minor tightening is about precision and delivery under pressure."];
+      : ["You covered the core decision elements; what remains is tightening precision and delivery under pressure."];
 
   const stronger =
     missed.length > 0
-      ? `A stronger answer would have explicitly walked through ${listToPhrase(
+      ? `A complete answer would explicitly walk through ${listToPhrase(
           missed.slice(0, 4).map((x) => x.label),
         )} in a clear sequence, without waiting for examiner prompts.`
-      : "A stronger answer would keep the same structure but tighten language and sequencing so your judgment remains clear under interruption.";
+      : "A complete answer would keep the same structure while tightening language and sequencing so your judgment remains clear under interruption.";
 
-  const examinerNote = buildExaminerNote(verdict.judgment, matched.length, rubric.length);
+  const examinerNote = buildExaminerNote(verdict.judgment);
 
   return {
     score: verdict.score,
@@ -518,14 +549,15 @@ function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
   };
 }
 
-function buildExaminerNote(judgment: string, matchedCount: number, total: number) {
-  if (judgment === "Adequate") {
-    return `Adequate. You covered ${matchedCount} of ${total} decision anchors with enough structure that I can follow your judgment under checkride pressure.`;
+/** Supporting copy only — verdict line is shown separately above. */
+function buildExaminerNote(judgment: string) {
+  if (judgment === "Satisfactory") {
+    return "Your response shows a complete and defensible decision process under checkride pressure.";
   }
   if (judgment === "Adequate, but incomplete") {
-    return `Adequate, but incomplete. You addressed ${matchedCount} of ${total} anchors, but the omissions are significant enough that I cannot treat this as a complete oral answer yet.`;
+    return "You are directionally correct, but key omissions prevent this from being a complete oral answer.";
   }
-  return `Unsatisfactory. You addressed ${matchedCount} of ${total} anchors, and I still cannot verify a complete, defensible decision process from your response.`;
+  return "I still cannot verify a complete, defensible decision process from your response.";
 }
 
 function normalize(value: string) {
@@ -533,7 +565,7 @@ function normalize(value: string) {
 }
 
 function listToPhrase(items: readonly string[]) {
-  if (items.length === 0) return "the expected decision points";
+  if (items.length === 0) return "the critical factors for this scenario";
   if (items.length === 1) return items[0]!;
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
   return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;

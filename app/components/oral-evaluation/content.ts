@@ -1,10 +1,5 @@
 /** Oral checkride evaluator — content only (frontend mock). Tone: DPE across the table, not product UI. */
 
-export const UI = {
-  /** Minimal chrome; presence comes from the prompt, not branding. */
-  oralEvaluation: "Oral examination",
-} as const;
-
 export type ScoreValue = 0 | 1 | 2 | 3;
 
 export const DEBRIEF_LABELS = {
@@ -30,7 +25,7 @@ export type EvaluationBlock = {
 
 export type OralItem = {
   id: string;
-  /** Shown as subtle context — topic area, not a nav label. */
+  /** Short scene context only (e.g. “Preflight preparation”) — not a course breadcrumb. */
   contextLabel: string;
   /** One clear ask; how a DPE opens the item. */
   promptLine: string;
@@ -46,7 +41,7 @@ export type OralItem = {
 export const ORAL_ITEMS: readonly OralItem[] = [
   {
     id: "preflight-prep",
-    contextLabel: "Flight planning · preflight preparation",
+    contextLabel: "Preflight preparation",
     promptLine: "Walk me through how you prepare for this flight before you untie the aircraft.",
     scenario:
       "VFR cross-country — Fort Lauderdale Executive to Orlando. Weather is MVFR at the destination at ETA, with improvement forecast after your arrival.",
@@ -71,7 +66,7 @@ export const ORAL_ITEMS: readonly OralItem[] = [
   },
   {
     id: "lost-comms-vfr",
-    contextLabel: "Regulations · lost communications",
+    contextLabel: "Lost communications",
     promptLine: "You’ve lost two-way radio communication in VFR conditions. What do you do, and in what order?",
     scenario:
       "Class E surface area, you’re VFR, flight following dropped out after your last acknowledgment. You’re not IFR.",
@@ -96,7 +91,7 @@ export const ORAL_ITEMS: readonly OralItem[] = [
   },
   {
     id: "stall-spin",
-    contextLabel: "Operations · slow flight and stalls",
+    contextLabel: "Stalls and slow flight",
     promptLine:
       "Tell me how you recognize an approach to stall in this aircraft, and what your recovery looks like.",
     scenario:
@@ -121,7 +116,7 @@ export const ORAL_ITEMS: readonly OralItem[] = [
   },
   {
     id: "night-currency",
-    contextLabel: "Currency and logging",
+    contextLabel: "Night currency",
     promptLine: "Are you legal to carry passengers for night VFR tonight? Prove it from your logbook logic.",
     scenario:
       "Night landing currency under 61.57(b) — assume sunset was three hours ago and you haven’t flown at night in six weeks.",
@@ -146,7 +141,7 @@ export const ORAL_ITEMS: readonly OralItem[] = [
   },
   {
     id: "crosswind-gusts",
-    contextLabel: "Performance and technique",
+    contextLabel: "Crosswind landing",
     promptLine:
       "Gusty crosswind on landing — how do you set up, what are you managing on short final, and what are your personal limits?",
     scenario:
