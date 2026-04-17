@@ -21,6 +21,11 @@ export type EvaluationBlock = {
   missed: readonly string[];
   stronger: string;
   why: string;
+  /**
+   * Post-feedback reinforcement — spoken-style teaching the examiner can add
+   * if the user wants to dig deeper. 2–3 short thoughts, in the same voice.
+   */
+  deeperExplanation: readonly string[];
 };
 
 export type OralItem = {
@@ -48,20 +53,25 @@ export const ORAL_ITEMS: readonly OralItem[] = [
     evaluation: {
       score: 2,
       outcomeLabel: "Incomplete",
-      judgment: "Adequate, but incomplete for the oral",
+      judgment: "Adequate — but not a complete oral answer",
       examinerNote:
-        "I’m listening for a complete preflight decision — not a list of apps you like. I still don’t have a full picture of how you’d run this trip.",
+        "I want a real preflight decision from you, not a list of apps you like. I still don’t see how you’d actually run this trip.",
       correct: [
-        "You started with weather and NOTAMs — that’s the right instinct for a cross-country brief.",
-        "You referenced the sectional for route orientation; that tells me you’re thinking in chart space, not just GPS.",
+        "Weather and NOTAMs first — good, that’s the instinct I want on a cross-country.",
+        "And you pulled the sectional for route orientation. Tells me you’re thinking in chart space, not just GPS.",
       ],
       missed: [
-        "Performance, weight and balance, and runway analysis never came out in an organized way — I shouldn’t have to drag that out of you.",
-        "Fuel with reserve, alternates, and a clear go/no-go tied to those constraints stayed implied. On the ride I need explicit.",
+        "But performance, weight and balance, runway analysis — I had to drag all of that out of you. On a checkride I shouldn’t.",
+        "Fuel with reserve, alternates, a clean go/no-go tied to all that — you left it implied. On the ride I need it said out loud.",
       ],
       stronger:
-        "I want IMSAFE, then weather and NOTAMs in enough depth to defend a go/no-go, then route, performance and W&B, runway choices, fuel with reserve, alternates, and TFRs or special use — in an order I can follow. If I interrupt with a what-if, you should still know where you are in that picture.",
-      why: "I’m not testing flashcards. I’m testing whether you can run a disciplined preflight briefing the way you’d brief a safety-critical go/no-go with another pilot in the room.",
+        "Here’s what I want. IMSAFE, then weather and NOTAMs in enough depth to defend a go/no-go. Then route, performance, W&B, runway choices, fuel with reserve, alternates, and TFRs or special use. In that order. And if I cut in with a what-if, you should still know where you are in it.",
+      why: "I’m not after flashcards. I want to see you run a real preflight brief — the way you’d brief it with another pilot sitting right there.",
+      deeperExplanation: [
+        "Think of preflight as a chain. Each link is a decision — pilot, weather, aircraft, route, fuel, alternates — and each one earns the next.",
+        "If you skip performance, I can’t trust your go/no-go. If you gloss weather, I can’t trust your route pick. That’s why the order matters out loud.",
+        "I’m not grading recall. I’m grading whether you can defend the trip under questioning.",
+      ],
     },
   },
   {
@@ -73,20 +83,25 @@ export const ORAL_ITEMS: readonly OralItem[] = [
     evaluation: {
       score: 1,
       outcomeLabel: "Partial",
-      judgment: "Partial — the sequence isn’t there yet",
+      judgment: "Partial — the sequence isn’t there",
       examinerNote:
-        "I heard pieces of 91.185, but I don’t have confidence you could execute this cold on the ramp without me coaching the order.",
+        "I heard pieces of 91.185 in there. But I don’t think you could execute this cold on the ramp without me walking you through the order.",
       correct: [
-        "You identified that 91.185 governs equipment and route — that’s the right anchor.",
-        "You mentioned squawking 7600 — that belongs in the conversation for lost comms.",
+        "You got to 91.185 — that’s your anchor, and you found it.",
+        "You mentioned 7600. Fine. That belongs in this conversation.",
       ],
       missed: [
-        "ATC route, last assigned, expected, filed — you didn’t walk me through that stack in a way I could grade.",
-        "Altitude: last assigned, minimum en route, expected, and when to use MEA — that part never landed as a sequence.",
+        "But the route priority — assigned, expected, filed — you didn’t walk me through that stack in a way I can grade.",
+        "Same on altitude. Assigned, MEA, expected, and when you take the highest of them. That never came out as a sequence.",
       ],
       stronger:
-        "Squawk 7600, then fly the route you’re supposed to fly under 91.185 in order — ATC route, last assigned, expected, filed — and altitude in the same priority. I should hear it like a checklist you’ve briefed before, not like you’re discovering it in the chair.",
-      why: "On the ride I’ll hand you a lost-comms scenario and watch whether you can verbalize a defensible, regulation-backed plan. Partial recall isn’t enough when the radios go quiet.",
+        "Here’s what I want. Squawk 7600. Then fly the route under 91.185 in order — assigned, expected, filed — and altitude in the same priority. It should sound like a checklist you’ve briefed a hundred times, not like you’re figuring it out in the chair.",
+      why: "On the ride I’ll hand you a lost-comms scenario and just watch what comes out. Partial recall doesn’t cut it when the radios go quiet.",
+      deeperExplanation: [
+        "91.185 is written as a priority list for a reason. When the radios go quiet, you don’t have time to re-derive it — you execute it.",
+        "Route priority: assigned, expected, filed. Altitude priority: the highest of assigned, MEA, expected. Memorize the shape, not just the words.",
+        "And 7600 first. Before anything else. ATC can’t help you if they don’t know you’re lost.",
+      ],
     },
   },
   {
@@ -99,19 +114,24 @@ export const ORAL_ITEMS: readonly OralItem[] = [
     evaluation: {
       score: 3,
       outcomeLabel: "Satisfactory",
-      judgment: "Satisfactory — I’d sign this segment",
+      judgment: "Satisfactory — I’d sign this",
       examinerNote:
-        "You gave me cues, priorities, and a recovery I can picture you executing. That’s what I’m looking for in the oral.",
+        "Cues, priorities, and a recovery I can picture you actually flying. That’s what I want out of this oral.",
       correct: [
-        "You tied buffet, control feel, and nose attitude to the decay of energy — not just airspeed in isolation.",
-        "Recovery: reduce angle of attack first, then add power as appropriate, roll wings level, return to assigned altitude — priorities were right.",
+        "You tied buffet, control feel, and nose attitude to energy decay. Not just airspeed in isolation. Good.",
+        "And the recovery order was right. Reduce angle of attack first, power as appropriate, wings level, back to altitude.",
       ],
       missed: [
-        "I’d still want a cleaner mention of maintaining coordinated flight on the entry and recovery — that’s where spins come from.",
+        "One thing I’d still tighten — coordinated flight on the entry and the recovery. That’s where spins come from, and I want to hear you say it.",
       ],
       stronger:
-        "Keep tying stall to angle of attack explicitly: I can stall at any airspeed if I ask the wing for too much. Then walk recovery as a reflex: unload, power, configure, climb back to the assignment.",
-      why: "Stall and spin knowledge isn’t trivia — it’s whether you respect where the airplane gives up and whether you’ll recover without improvising under stress.",
+        "Keep tying stall back to angle of attack. I can stall at any airspeed if I ask the wing for too much. Then walk recovery as a reflex — unload, power, configure, climb back to assignment.",
+      why: "This isn’t trivia. It’s whether you respect where the airplane gives up, and whether you’ll recover without improvising under stress.",
+      deeperExplanation: [
+        "Angle of attack is the variable. Airspeed is just a proxy. A pilot who can’t articulate that under pressure treats recovery as a recipe, not a reflex.",
+        "The first move is always the same — unload the wing. Then power. Then configuration. Then back to the assignment. Same order, every time.",
+        "And coordination — that’s the line between a stall and a spin. Ball in the middle on the entry, ball in the middle on the recovery. Say it, mean it.",
+      ],
     },
   },
   {
@@ -125,18 +145,23 @@ export const ORAL_ITEMS: readonly OralItem[] = [
       outcomeLabel: "Adequate",
       judgment: "Adequate — rules are there, application is loose",
       examinerNote:
-        "You’re in the right regulation, but I need tighter coupling between definition of night, takeoffs and landings, and the calendar window.",
+        "You’re in the right regulation. But I need tighter coupling — the definition of night, the landings and takeoffs, and the 90-day window all talking to each other.",
       correct: [
-        "You pointed at 61.57 for passenger carrying — correct hook.",
-        "You understood we’re talking takeoffs and landings to a full stop in the same category and class.",
+        "You got to 61.57 for passenger carrying. That’s the right hook.",
+        "And you knew we’re talking full-stop landings in the same category and class. Good.",
       ],
       missed: [
-        "Night definition (end of evening civil twilight) and how that bounds your landings didn’t come out crisply.",
-        "The 90-day window and what counts inside it needed to be explicit, not implied.",
+        "But the night definition — end of evening civil twilight — and how that bounds your landings? That never came out clean.",
+        "And the 90-day window, what counts inside it, that needed to be explicit. Not implied.",
       ],
       stronger:
-        "State the regulation, define night for the purpose of those landings, state the number and type of operations, and place yourself inside or outside the 90-day window with dates I can follow. That’s a complete oral answer.",
-      why: "I’ll ask currency questions when I’m deciding whether you treat legality as a paperwork detail or as something you can defend with numbers.",
+        "A complete answer sounds like this. State the regulation. Define night for those landings. State the number and type of operations. Then place yourself inside or outside the 90-day window with dates I can follow.",
+      why: "I ask currency questions to find out whether you treat legality as paperwork, or as something you can defend with numbers.",
+      deeperExplanation: [
+        "61.57(b) is narrow and specific. Three full-stop landings, at night, same category and class, in the preceding 90 days. All four pieces, or no passengers.",
+        "Night for those landings means end of evening civil twilight — not sunset. Get the definition wrong and the rest of the math doesn’t matter.",
+        "I don’t want a recitation. I want dates, times, and a conclusion I can hold you to.",
+      ],
     },
   },
   {
@@ -149,20 +174,25 @@ export const ORAL_ITEMS: readonly OralItem[] = [
     evaluation: {
       score: 1,
       outcomeLabel: "Insufficient depth",
-      judgment: "Insufficient depth for the conditions described",
+      judgment: "Not enough depth for these conditions",
       examinerNote:
-        "I heard generic crosswind talk. For gusty, limiting conditions I need wheel technique, energy, and a clear abort philosophy — not slogans.",
+        "That was generic crosswind talk. For gusty, limiting conditions I want wheel technique, energy management, and a clear abort philosophy. Not slogans.",
       correct: [
-        "You mentioned crab-to-side slip or a stabilized sideslip mindset — that’s directionally right.",
-        "You acknowledged going around when the picture isn’t there — good instinct to name.",
+        "Crab-to-sideslip, or the stabilized sideslip idea — directionally right. I’ll take that.",
+        "And you named going around when the picture isn’t there. Good instinct.",
       ],
       missed: [
-        "No real discussion of gust spread, adding airspeed judiciously, or touchdown on the upwind wheel first in a crosswind.",
-        "Personal limits vs book limits — I didn’t get a boundary I could hold you to.",
+        "But gust spread, adding airspeed judiciously, upwind wheel first on touchdown — none of that came out.",
+        "And personal limits versus book limits. You didn’t give me a boundary I can hold you to.",
       ],
       stronger:
-        "I want stabilized approach criteria, crosswind component vs your training and POH, rudder and aileron strategy into flare, touchdown technique, and when you walk away — with numbers or clear personal gates.",
-      why: "Crosswind days separate recipe answers from pilot judgment. I’m listening for whether you’d brief yourself out of a bad touchdown before you’re sideways in the flare.",
+        "Here’s what I want. Stabilized approach criteria. Crosswind component against your training and the POH. Rudder and aileron plan into the flare. Touchdown technique. And when you walk away — with numbers, or clear personal gates.",
+      why: "Crosswind days separate recipe answers from real pilot judgment. I want to hear you brief yourself out of a bad touchdown before you’re sideways in the flare.",
+      deeperExplanation: [
+        "Crosswind technique is energy management plus commitment. Stabilized on speed, aligned with the runway, ready to either land it or leave it.",
+        "Upwind wheel first on the touchdown. Aileron into the wind. Rudder to hold centerline. The airplane doesn’t care what you wanted — it cares what you do.",
+        "And personal limits. Numbers, not feelings. If the gust spread crosses your line, you go around. That’s the answer I want to hear.",
+      ],
     },
   },
 ] as const;
