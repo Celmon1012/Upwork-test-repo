@@ -82,6 +82,13 @@ function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number
   return 1.0;
 }
 
+function explanationRevealDelayMs(reduce: boolean | null, score: ScoreValue): number {
+  if (reduce) return 0;
+  if (score <= 1) return 2600;
+  if (score === 2) return 2400;
+  return 2200;
+}
+
 function autoAdvanceDelayMs(reduce: boolean | null, score: ScoreValue): number {
   if (reduce) return 4200;
   if (score <= 1) return 7600;
@@ -148,7 +155,7 @@ export function OralEvaluationExperience() {
     }
     const timer = window.setTimeout(() => {
       setShowExplanation(true);
-    }, judgmentFollowDelayS(reduceMotion, evaluation.score) * 1000);
+    }, explanationRevealDelayMs(reduceMotion, evaluation.score));
     return () => window.clearTimeout(timer);
   }, [evaluation.score, reduceMotion, sessionPhase]);
 
@@ -341,7 +348,9 @@ export function OralEvaluationExperience() {
                     initial={reduceMotion ? false : { opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 2.0),
+                      delay:
+                        explanationRevealDelayMs(reduceMotion, evaluation.score) / 1000 +
+                        (reduceMotion ? 0.6 : 1.0),
                       duration: transitionMs(reduceMotion, 0.5),
                       ease: cinematicEase,
                     }}
