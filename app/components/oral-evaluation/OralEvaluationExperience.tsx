@@ -113,6 +113,7 @@ export function OralEvaluationExperience() {
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [evaluated, setEvaluated] = useState<EvaluationBlock | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showTransitionCue, setShowTransitionCue] = useState(false);
   const [showThinkingCue, setShowThinkingCue] = useState(false);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
@@ -140,6 +141,7 @@ export function OralEvaluationExperience() {
     setAnswerError(null);
     setEvaluated(evaluateAnswer(item, answer));
     setShowExplanation(false);
+    setShowTransitionCue(false);
     setShowThinkingCue(false);
     setSessionPhase("evaluating");
     const pauseMs = examinerThinkingPauseMs(answer);
@@ -162,6 +164,7 @@ export function OralEvaluationExperience() {
     setAnswerError(null);
     setEvaluated(null);
     setShowExplanation(false);
+    setShowTransitionCue(false);
     setShowThinkingCue(false);
     if (answerRef.current) answerRef.current.value = "";
     setItemIndex((i) => (i + 1) % ORAL_ITEMS.length);
@@ -191,6 +194,7 @@ export function OralEvaluationExperience() {
   useEffect(() => {
     if (sessionPhase !== "feedback") {
       setShowExplanation(false);
+      setShowTransitionCue(false);
       return;
     }
     const timer = window.setTimeout(() => {
@@ -198,6 +202,18 @@ export function OralEvaluationExperience() {
     }, explanationRevealDelayMs(reduceMotion, evaluation.score));
     return () => window.clearTimeout(timer);
   }, [evaluation.score, reduceMotion, sessionPhase]);
+
+  useEffect(() => {
+    if (sessionPhase !== "feedback" || !showExplanation) {
+      setShowTransitionCue(false);
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setShowTransitionCue(true),
+      reduceMotion ? 700 : 1200,
+    );
+    return () => window.clearTimeout(timer);
+  }, [reduceMotion, sessionPhase, showExplanation]);
 
   useEffect(() => {
     if (sessionPhase !== "feedback") return;
@@ -406,22 +422,24 @@ export function OralEvaluationExperience() {
                     )}
                   </AnimatePresence>
 
-                  <motion.div
-                    className="mt-7 flex shrink-0 justify-end pb-0.5 pt-2"
-                    initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay:
-                        explanationRevealDelayMs(reduceMotion, evaluation.score) / 1000 +
-                        (reduceMotion ? 0.6 : 1.0),
-                      duration: transitionMs(reduceMotion, 0.5),
-                      ease: cinematicEase,
-                    }}
-                  >
-                    <p className="text-[0.82rem] font-medium text-[#efe4d3]/96">
-                      All right, let us move to the next scenario.
-                    </p>
-                  </motion.div>
+                  <AnimatePresence>
+                    {showTransitionCue && (
+                      <motion.div
+                        className="mt-7 flex shrink-0 justify-end pb-0.5 pt-2"
+                        initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduceMotion ? undefined : { opacity: 0, y: 4 }}
+                        transition={{
+                          duration: transitionMs(reduceMotion, 0.5),
+                          ease: cinematicEase,
+                        }}
+                      >
+                        <p className="text-[0.82rem] font-medium text-[#efe4d3]/96">
+                          All right, let us move to the next scenario.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}
