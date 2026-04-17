@@ -8,6 +8,7 @@ import {
 } from "framer-motion";
 import {
   useCallback,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -70,16 +71,22 @@ function transitionMs(reduce: boolean | null, ms: number) {
 /** Short disposition line — shown alone before any supporting copy. */
 function verdictLine(score: ScoreValue): string {
   if (score >= 3) return "Satisfactory.";
-  if (score === 2) return "Adequate, but incomplete.";
-  return "Unsatisfactory.";
+  return "Not sufficient.";
 }
 
 /** Seconds before supporting note/debrief appear (verdict holds the screen). */
 function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number {
   if (reduce) return 0;
-  if (score <= 1) return 2.15;
-  if (score === 2) return 1.85;
-  return 1.55;
+  if (score <= 1) return 1.35;
+  if (score === 2) return 1.15;
+  return 1.0;
+}
+
+function autoAdvanceDelayMs(reduce: boolean | null, score: ScoreValue): number {
+  if (reduce) return 4200;
+  if (score <= 1) return 7600;
+  if (score === 2) return 7000;
+  return 6300;
 }
 
 /** Blended surface — reads as depth in the cockpit, not a floating card. */
@@ -92,6 +99,7 @@ export function OralEvaluationExperience() {
   const [itemIndex, setItemIndex] = useState(0);
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [evaluated, setEvaluated] = useState<EvaluationBlock | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
 
@@ -107,6 +115,7 @@ export function OralEvaluationExperience() {
     }
     setAnswerError(null);
     setEvaluated(evaluateAnswer(item, answer));
+    setShowExplanation(false);
     setSessionPhase("evaluating");
     window.setTimeout(() => {
       setSessionPhase("feedback");
@@ -117,6 +126,7 @@ export function OralEvaluationExperience() {
     setSessionPhase("respond");
     setAnswerError(null);
     setEvaluated(null);
+    setShowExplanation(false);
     if (answerRef.current) answerRef.current.value = "";
     setItemIndex((i) => (i + 1) % ORAL_ITEMS.length);
   }, []);
@@ -124,6 +134,31 @@ export function OralEvaluationExperience() {
   const evaluating = sessionPhase === "evaluating";
   const showQuestionChrome =
     sessionPhase === "respond" || sessionPhase === "evaluating";
+
+  useEffect(() => {
+    if (sessionPhase === "respond") {
+      answerRef.current?.focus();
+    }
+  }, [itemIndex, sessionPhase]);
+
+  useEffect(() => {
+    if (sessionPhase !== "feedback") {
+      setShowExplanation(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setShowExplanation(true);
+    }, judgmentFollowDelayS(reduceMotion, evaluation.score) * 1000);
+    return () => window.clearTimeout(timer);
+  }, [evaluation.score, reduceMotion, sessionPhase]);
+
+  useEffect(() => {
+    if (sessionPhase !== "feedback") return;
+    const timer = window.setTimeout(() => {
+      advanceFromFeedback();
+    }, autoAdvanceDelayMs(reduceMotion, evaluation.score));
+    return () => window.clearTimeout(timer);
+  }, [advanceFromFeedback, evaluation.score, reduceMotion, sessionPhase]);
 
   return (
     <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
@@ -143,9 +178,9 @@ export function OralEvaluationExperience() {
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={
                   reduceMotion
-                    ? { opacity: evaluating ? 0.2 : 1 }
+                    ? { opacity: evaluating ? 0.38 : 1 }
                     : {
-                        opacity: evaluating ? 0.22 : 1,
+                        opacity: evaluating ? 0.38 : 1,
                         y: evaluating ? -2 : 0,
                       }
                 }
@@ -162,11 +197,7 @@ export function OralEvaluationExperience() {
                     ease: cinematicEase,
                   }}
                 >
-                  <p className="text-[0.58rem] font-light uppercase tracking-[0.24em] text-[#b9aa93]/75">
-                    Examiner asks
-                  </p>
-
-                  <h1 className="mt-2 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
+                  <h1 className="mt-1 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
                     {`"${item.promptLine}"`}
                   </h1>
 
@@ -181,12 +212,19 @@ export function OralEvaluationExperience() {
                     <textarea
                       ref={answerRef}
                       id="oral-answer"
-                      rows={2}
-                      placeholder="Answer as you would to an examiner across the table…"
+                      rows={3}
+                      readOnly={evaluating}
+                      placeholder="State your answer. Press Enter to submit."
                       aria-invalid={Boolean(answerError)}
                       aria-describedby={answerError ? "oral-answer-error" : undefined}
                       onChange={() => {
                         if (answerError) setAnswerError(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" && !event.shiftKey) {
+                          event.preventDefault();
+                          if (!evaluating) runEvaluation();
+                        }
                       }}
                       className="oral-answer-line box-border min-h-[3.5rem] max-h-[min(18vh,7rem)] w-full resize-none border-0 bg-transparent pb-2 pl-0 pr-1 pt-0.5 text-[0.9rem] leading-[1.55] text-[#ebe6dc] sm:text-[0.95rem]"
                     />
@@ -207,49 +245,45 @@ export function OralEvaluationExperience() {
                       className={
                         answerError
                           ? "mt-3 flex justify-end"
-                          : "mt-1.5 flex justify-end"
+                          : "mt-2.5 flex justify-end"
                       }
                     >
-                      <button
-                        type="button"
-                        onClick={runEvaluation}
-                        className="inline-flex h-9 min-w-[12rem] max-w-full items-center justify-center rounded-full bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-sm transition-[background-color,color,transform] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/40 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
-                      >
-                        I’m ready.
-                      </button>
+                      {evaluating ? (
+                        <div className="flex items-center gap-2.5">
+                          <span className="sr-only" role="status" aria-live="polite">
+                            Examiner is considering your response.
+                          </span>
+                          <motion.div
+                            aria-hidden
+                            className="h-px w-10 origin-right bg-gradient-to-l from-[#d3c4ad]/30 to-transparent"
+                            animate={reduceMotion ? undefined : { opacity: [0.26, 0.58, 0.26], scaleX: [0.8, 1, 0.8] }}
+                            transition={{
+                              duration: transitionMs(reduceMotion, 1.2),
+                              ease: "easeInOut",
+                              repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
+                            }}
+                          />
+                          <motion.span
+                            aria-hidden
+                            className="font-serif text-[1rem] italic leading-none text-[#d7ccbc]/74"
+                            animate={reduceMotion ? undefined : { opacity: [0.35, 0.9, 0.35], y: [0, -1.5, 0] }}
+                            transition={{
+                              duration: transitionMs(reduceMotion, 1.0),
+                              ease: "easeInOut",
+                              repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
+                            }}
+                          >
+                            …
+                          </motion.span>
+                        </div>
+                      ) : (
+                        <p className="text-[0.66rem] uppercase tracking-[0.12em] text-[#c7baa4]/56">
+                          Press Enter to submit.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {evaluating && (
-              <motion.div
-                key="evaluating"
-                role="status"
-                aria-live="polite"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: transitionMs(reduceMotion, 0.24), ease: cinematicEase }}
-                className="pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center bg-black/28 backdrop-blur-[2px]"
-              >
-                <motion.p
-                  className="max-w-[min(100%,26rem)] px-8 text-center font-serif text-[0.95rem] font-normal italic leading-relaxed text-[#d4cbc0]/94 sm:text-[1.02rem]"
-                  animate={reduceMotion ? undefined : { opacity: [0.65, 1, 0.65] }}
-                  transition={{
-                    duration: transitionMs(reduceMotion, 1.8),
-                    ease: "easeInOut",
-                    repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
-                  }}
-                >
-                  Evaluating your response…
-                </motion.p>
-                <p className="mt-5 text-[0.58rem] font-light uppercase tracking-[0.25em] text-white/[0.18]">
-                  Stand by.
-                </p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -284,21 +318,23 @@ export function OralEvaluationExperience() {
                     align="immersive"
                   />
 
-                  <motion.div
-                    initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      delay: judgmentFollowDelayS(reduceMotion, evaluation.score) + (reduceMotion ? 0 : 0.7),
-                      duration: transitionMs(reduceMotion, 0.78),
-                      ease: cinematicEase,
-                    }}
-                  >
-                    <div className="mt-6 space-y-3.5 text-[0.9rem] leading-[1.72] text-[#c4beb4]/96 sm:text-[0.95rem]">
-                      {composeContinuousEvaluationChunks(evaluation).map((chunk, index) => (
-                        <p key={`evaluation-chunk-${index}`}>{chunk}</p>
-                      ))}
-                    </div>
-                  </motion.div>
+                  <AnimatePresence>
+                    {showExplanation && (
+                      <motion.div
+                        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={reduceMotion ? undefined : { opacity: 0, y: 4 }}
+                        transition={{
+                          duration: transitionMs(reduceMotion, 0.78),
+                          ease: cinematicEase,
+                        }}
+                      >
+                        <p className="mt-6 text-[0.9rem] leading-[1.72] text-[#c4beb4]/96 sm:text-[0.95rem]">
+                          {composeContinuousEvaluationNarrative(evaluation)}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <motion.div
                     className="mt-7 flex shrink-0 justify-end pb-0.5 pt-2"
@@ -310,13 +346,9 @@ export function OralEvaluationExperience() {
                       ease: cinematicEase,
                     }}
                   >
-                    <button
-                      type="button"
-                      onClick={advanceFromFeedback}
-                      className="inline-flex h-9 min-w-[11rem] max-w-full items-center justify-center rounded-full bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-sm transition-[background-color,color,transform] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/40 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
-                    >
-                      Next oral item
-                    </button>
+                    <p className="text-[0.63rem] uppercase tracking-[0.12em] text-[#b9aa93]/52">
+                      Next item loading…
+                    </p>
                   </motion.div>
                 </div>
               </motion.div>
@@ -343,10 +375,10 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
         unoptimized
         className={`object-cover object-center transition-all duration-[1400ms] ease-out ${
           evaluating || feedback
-            ? "scale-[1.05] brightness-[0.74] blur-[2px]"
+            ? "scale-[1.03] brightness-[0.8]"
             : respond
-              ? "scale-[1.04] brightness-[0.72] blur-[1.6px]"
-              : "brightness-[0.76] blur-[1.6px]"
+              ? "scale-[1.02] brightness-[0.82]"
+              : "brightness-[0.82]"
         }`}
       />
       <div
@@ -365,7 +397,7 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
       />
       {respond && !evaluating && (
         <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_78%_62%_at_38%_42%,transparent_0%,rgba(5,8,16,0.12)_100%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_78%_62%_at_38%_42%,transparent_0%,rgba(5,8,16,0.1)_100%)]"
           aria-hidden
         />
       )}
@@ -377,7 +409,7 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
       )}
       {evaluating && (
         <div
-          className="absolute inset-0 bg-amber-950/[0.07] mix-blend-overlay"
+          className="absolute inset-0 bg-amber-950/[0.05] mix-blend-overlay"
           aria-hidden
         />
       )}
@@ -387,7 +419,7 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
           aria-hidden
         />
       )}
-      <div className="oral-grain absolute inset-0 opacity-[0.028]" aria-hidden />
+      <div className="oral-grain absolute inset-0 opacity-[0.022]" aria-hidden />
     </div>
   );
 }
@@ -454,12 +486,6 @@ function JudgmentBlock({
             className="mt-6 h-px w-full max-w-[min(100%,18rem)] bg-gradient-to-r from-[#a08050]/28 via-[#a08050]/10 to-transparent"
             aria-hidden
           />
-
-          <div className="mt-4 w-full px-0 py-0 sm:px-0">
-            <p className="text-[0.875rem] font-light italic leading-[1.58] text-[#aea598]/95 sm:text-[0.9rem]">
-              {examinerNote}
-            </p>
-          </div>
         </motion.div>
       </div>
     );
@@ -497,13 +523,19 @@ function mergeNotes(items: readonly string[]) {
 
 function composeContinuousEvaluationChunks(evaluation: EvaluationBlock) {
   return [
+    evaluation.examinerNote,
     mergeNotes(evaluation.correct),
     mergeNotes(evaluation.missed),
     evaluation.stronger,
     evaluation.why,
-  ]
+  ];
+}
+
+function composeContinuousEvaluationNarrative(evaluation: EvaluationBlock) {
+  return composeContinuousEvaluationChunks(evaluation)
     .map((part) => part.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .join(" ");
 }
 
 function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {

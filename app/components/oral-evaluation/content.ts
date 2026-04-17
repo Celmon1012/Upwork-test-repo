@@ -168,4 +168,4 @@ export const ORAL_ITEMS: readonly OralItem[] = [
 ] as const;
 
 /** Deliberate pause between response and examiner record. */
-export const EVALUATING_MS = 2000;
+export const EVALUATING_MS = 1500;
