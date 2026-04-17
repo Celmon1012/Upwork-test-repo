@@ -174,7 +174,7 @@ export function OralEvaluationExperience() {
                     {item.scenario}
                   </p>
 
-                  <div className="mt-6 w-full pt-4">
+                  <div className="mt-1 w-full pt-2">
                     <label htmlFor="oral-answer" className="sr-only">
                       Your answer
                     </label>
@@ -190,6 +190,10 @@ export function OralEvaluationExperience() {
                       }}
                       className="oral-answer-line box-border min-h-[3.5rem] max-h-[min(18vh,7rem)] w-full resize-none border-0 bg-transparent pb-2 pl-0 pr-1 pt-0.5 text-[0.9rem] leading-[1.55] text-[#ebe6dc] sm:text-[0.95rem]"
                     />
+                    <div className="pointer-events-none mt-1.5" aria-hidden>
+                      <div className="h-px w-full bg-gradient-to-r from-transparent via-[#d9ccb7]/26 to-transparent" />
+                      <div className="mx-auto mt-0.5 h-px w-[82%] bg-gradient-to-r from-transparent via-[#a99373]/16 to-transparent" />
+                    </div>
                     {answerError && (
                       <p
                         id="oral-answer-error"
@@ -199,16 +203,21 @@ export function OralEvaluationExperience() {
                         {answerError}
                       </p>
                     )}
-                  </div>
-
-                  <div className="mt-6 flex justify-end pt-4">
-                    <button
-                      type="button"
-                      onClick={runEvaluation}
-                      className="inline-flex h-9 min-w-[12rem] max-w-full items-center justify-center rounded-full bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-sm transition-[background-color,color,transform] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/40 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
+                    <div
+                      className={
+                        answerError
+                          ? "mt-3 flex justify-end"
+                          : "mt-1.5 flex justify-end"
+                      }
                     >
-                      I’m ready.
-                    </button>
+                      <button
+                        type="button"
+                        onClick={runEvaluation}
+                        className="inline-flex h-9 min-w-[12rem] max-w-full items-center justify-center rounded-full bg-white/[0.06] px-5 text-[0.62rem] font-medium tracking-[0.14em] text-stone-200/92 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] backdrop-blur-sm transition-[background-color,color,transform] hover:bg-white/[0.09] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a89878]/40 active:scale-[0.99] sm:px-6 sm:text-[0.65rem] sm:tracking-[0.16em]"
+                      >
+                        I’m ready.
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               </motion.div>
@@ -284,9 +293,11 @@ export function OralEvaluationExperience() {
                       ease: cinematicEase,
                     }}
                   >
-                    <p className="mt-6 text-[0.9rem] leading-[1.72] text-[#c4beb4]/96 sm:text-[0.95rem]">
-                      {composeContinuousEvaluation(evaluation)}
-                    </p>
+                    <div className="mt-6 space-y-3.5 text-[0.9rem] leading-[1.72] text-[#c4beb4]/96 sm:text-[0.95rem]">
+                      {composeContinuousEvaluationChunks(evaluation).map((chunk, index) => (
+                        <p key={`evaluation-chunk-${index}`}>{chunk}</p>
+                      ))}
+                    </div>
                   </motion.div>
 
                   <motion.div
@@ -332,35 +343,35 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
         unoptimized
         className={`object-cover object-center transition-all duration-[1400ms] ease-out ${
           evaluating || feedback
-            ? "scale-[1.05] brightness-[0.62] blur-[2.5px]"
+            ? "scale-[1.05] brightness-[0.74] blur-[2px]"
             : respond
-              ? "scale-[1.04] brightness-[0.6] blur-[2px]"
-              : "brightness-[0.64] blur-[2px]"
+              ? "scale-[1.04] brightness-[0.72] blur-[1.6px]"
+              : "brightness-[0.76] blur-[1.6px]"
         }`}
       />
       <div
         className={`absolute inset-0 bg-gradient-to-b from-[#0a1428]/32 via-[#050810]/10 transition-opacity duration-1000 ${
           evaluating || feedback
-            ? "to-[#050810]/58 opacity-100"
+            ? "to-[#050810]/40 opacity-100"
             : respond
-              ? "to-[#050810]/48 opacity-100"
-              : "to-[#060a12]/42 opacity-100"
+              ? "to-[#050810]/34 opacity-100"
+              : "to-[#060a12]/28 opacity-100"
         }`}
         aria-hidden
       />
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_95%_75%_at_50%_38%,transparent_28%,rgba(5,8,16,0.38)_100%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_95%_75%_at_50%_38%,transparent_32%,rgba(5,8,16,0.24)_100%)]"
         aria-hidden
       />
       {respond && !evaluating && (
         <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_78%_62%_at_38%_42%,transparent_0%,rgba(5,8,16,0.22)_100%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_78%_62%_at_38%_42%,transparent_0%,rgba(5,8,16,0.12)_100%)]"
           aria-hidden
         />
       )}
       {(evaluating || feedback) && (
         <div
-          className="absolute inset-0 bg-black/10 transition-opacity duration-1000"
+          className="absolute inset-0 bg-black/[0.05] transition-opacity duration-1000"
           aria-hidden
         />
       )}
@@ -372,7 +383,7 @@ function BackgroundStack({ phase }: { phase: SessionPhase }) {
       )}
       {feedback && (
         <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_72%_58%_at_50%_38%,transparent_0%,rgba(5,8,16,0.2)_100%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_72%_58%_at_50%_38%,transparent_0%,rgba(5,8,16,0.1)_100%)]"
           aria-hidden
         />
       )}
@@ -484,7 +495,7 @@ function mergeNotes(items: readonly string[]) {
   return items.join(" ");
 }
 
-function composeContinuousEvaluation(evaluation: EvaluationBlock) {
+function composeContinuousEvaluationChunks(evaluation: EvaluationBlock) {
   return [
     mergeNotes(evaluation.correct),
     mergeNotes(evaluation.missed),
@@ -492,8 +503,7 @@ function composeContinuousEvaluation(evaluation: EvaluationBlock) {
     evaluation.why,
   ]
     .map((part) => part.trim())
-    .filter(Boolean)
-    .join(" ");
+    .filter(Boolean);
 }
 
 function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
