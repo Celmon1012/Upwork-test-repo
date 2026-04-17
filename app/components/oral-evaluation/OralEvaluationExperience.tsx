@@ -76,14 +76,14 @@ function verdictLine(score: ScoreValue): string {
 
 /** Seconds before supporting note/debrief appear (verdict holds the screen). */
 function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 0;
+  if (reduce) return 1.2;
   if (score <= 1) return 1.35;
   if (score === 2) return 1.15;
   return 1.0;
 }
 
 function explanationRevealDelayMs(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 0;
+  if (reduce) return 2000;
   if (score <= 1) return 2600;
   if (score === 2) return 2400;
   return 2200;
