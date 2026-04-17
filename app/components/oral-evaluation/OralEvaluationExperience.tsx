@@ -83,17 +83,17 @@ function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number
 }
 
 function explanationRevealDelayMs(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 2000;
-  if (score <= 1) return 2600;
-  if (score === 2) return 2400;
-  return 2200;
+  if (reduce) return 2800;
+  if (score <= 1) return 3600;
+  if (score === 2) return 3400;
+  return 3200;
 }
 
 function autoAdvanceDelayMs(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 4200;
-  if (score <= 1) return 7600;
-  if (score === 2) return 7000;
-  return 6300;
+  if (reduce) return 5000;
+  if (score <= 1) return 8600;
+  if (score === 2) return 8000;
+  return 7300;
 }
 
 /** Blended surface — reads as depth in the cockpit, not a floating card. */
