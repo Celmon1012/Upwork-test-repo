@@ -118,7 +118,6 @@ export function OralEvaluationExperience() {
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
   const evaluationTimerRef = useRef<number | null>(null);
-  const cueTimerRef = useRef<number | null>(null);
 
   const item = ORAL_ITEMS[itemIndex]!;
   const evaluation = evaluated ?? item.evaluation;
@@ -134,28 +133,17 @@ export function OralEvaluationExperience() {
       window.clearTimeout(evaluationTimerRef.current);
       evaluationTimerRef.current = null;
     }
-    if (cueTimerRef.current) {
-      window.clearTimeout(cueTimerRef.current);
-      cueTimerRef.current = null;
-    }
     setAnswerError(null);
     setEvaluated(evaluateAnswer(item, answer));
     setShowExplanation(false);
     setShowTransitionCue(false);
-    setShowThinkingCue(false);
+    setShowThinkingCue(true);
     setSessionPhase("evaluating");
     const pauseMs = examinerThinkingPauseMs(answer);
-    cueTimerRef.current = window.setTimeout(() => {
-      setShowThinkingCue(true);
-    }, 420);
     evaluationTimerRef.current = window.setTimeout(() => {
       setSessionPhase("feedback");
       setShowThinkingCue(false);
       evaluationTimerRef.current = null;
-      if (cueTimerRef.current) {
-        window.clearTimeout(cueTimerRef.current);
-        cueTimerRef.current = null;
-      }
     }, pauseMs);
   }, [item]);
 
@@ -184,9 +172,6 @@ export function OralEvaluationExperience() {
     return () => {
       if (evaluationTimerRef.current) {
         window.clearTimeout(evaluationTimerRef.current);
-      }
-      if (cueTimerRef.current) {
-        window.clearTimeout(cueTimerRef.current);
       }
     };
   }, []);
