@@ -90,10 +90,10 @@ function explanationRevealDelayMs(reduce: boolean | null, score: ScoreValue): nu
 }
 
 function autoAdvanceDelayMs(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 5000;
-  if (score <= 1) return 8600;
-  if (score === 2) return 8000;
-  return 7300;
+  if (reduce) return 15000;
+  if (score <= 1) return 26000;
+  if (score === 2) return 24000;
+  return 22000;
 }
 
 /** Keep a consistent examiner thinking beat. */
