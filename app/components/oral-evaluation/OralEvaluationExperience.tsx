@@ -96,6 +96,12 @@ function autoAdvanceDelayMs(reduce: boolean | null, score: ScoreValue): number {
   return 7300;
 }
 
+/** Keep a consistent examiner thinking beat. */
+function examinerThinkingPauseMs(answer: string): number {
+  void answer;
+  return 2000;
+}
+
 /** Blended surface — reads as depth in the cockpit, not a floating card. */
 const ATMOSPHERE_PANEL =
   "px-1 py-2 sm:px-2 sm:py-3";
@@ -107,8 +113,11 @@ export function OralEvaluationExperience() {
   const [answerError, setAnswerError] = useState<string | null>(null);
   const [evaluated, setEvaluated] = useState<EvaluationBlock | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [showThinkingCue, setShowThinkingCue] = useState(false);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
+  const evaluationTimerRef = useRef<number | null>(null);
+  const cueTimerRef = useRef<number | null>(null);
 
   const item = ORAL_ITEMS[itemIndex]!;
   const evaluation = evaluated ?? item.evaluation;
@@ -120,13 +129,32 @@ export function OralEvaluationExperience() {
       answerRef.current?.focus();
       return;
     }
+    if (evaluationTimerRef.current) {
+      window.clearTimeout(evaluationTimerRef.current);
+      evaluationTimerRef.current = null;
+    }
+    if (cueTimerRef.current) {
+      window.clearTimeout(cueTimerRef.current);
+      cueTimerRef.current = null;
+    }
     setAnswerError(null);
     setEvaluated(evaluateAnswer(item, answer));
     setShowExplanation(false);
+    setShowThinkingCue(false);
     setSessionPhase("evaluating");
-    window.setTimeout(() => {
+    const pauseMs = examinerThinkingPauseMs(answer);
+    cueTimerRef.current = window.setTimeout(() => {
+      setShowThinkingCue(true);
+    }, 420);
+    evaluationTimerRef.current = window.setTimeout(() => {
       setSessionPhase("feedback");
-    }, EVALUATING_MS);
+      setShowThinkingCue(false);
+      evaluationTimerRef.current = null;
+      if (cueTimerRef.current) {
+        window.clearTimeout(cueTimerRef.current);
+        cueTimerRef.current = null;
+      }
+    }, pauseMs);
   }, [item]);
 
   const advanceFromFeedback = useCallback(() => {
@@ -134,6 +162,7 @@ export function OralEvaluationExperience() {
     setAnswerError(null);
     setEvaluated(null);
     setShowExplanation(false);
+    setShowThinkingCue(false);
     if (answerRef.current) answerRef.current.value = "";
     setItemIndex((i) => (i + 1) % ORAL_ITEMS.length);
   }, []);
@@ -147,6 +176,17 @@ export function OralEvaluationExperience() {
       answerRef.current?.focus();
     }
   }, [itemIndex, sessionPhase]);
+
+  useEffect(() => {
+    return () => {
+      if (evaluationTimerRef.current) {
+        window.clearTimeout(evaluationTimerRef.current);
+      }
+      if (cueTimerRef.current) {
+        window.clearTimeout(cueTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (sessionPhase !== "feedback") {
@@ -221,7 +261,7 @@ export function OralEvaluationExperience() {
                       id="oral-answer"
                       rows={3}
                       readOnly={evaluating}
-                      placeholder="State your answer. Press Enter to submit."
+                      placeholder="Answer as if we are across the table."
                       aria-invalid={Boolean(answerError)}
                       aria-describedby={answerError ? "oral-answer-error" : undefined}
                       onChange={() => {
@@ -260,32 +300,55 @@ export function OralEvaluationExperience() {
                           <span className="sr-only" role="status" aria-live="polite">
                             Examiner is considering your response.
                           </span>
-                          <motion.div
-                            aria-hidden
-                            className="h-px w-10 origin-right bg-gradient-to-l from-[#d3c4ad]/30 to-transparent"
-                            animate={reduceMotion ? undefined : { opacity: [0.26, 0.58, 0.26], scaleX: [0.8, 1, 0.8] }}
-                            transition={{
-                              duration: transitionMs(reduceMotion, 1.2),
-                              ease: "easeInOut",
-                              repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
-                            }}
-                          />
-                          <motion.span
-                            aria-hidden
-                            className="font-serif text-[1rem] italic leading-none text-[#d7ccbc]/74"
-                            animate={reduceMotion ? undefined : { opacity: [0.35, 0.9, 0.35], y: [0, -1.5, 0] }}
-                            transition={{
-                              duration: transitionMs(reduceMotion, 1.0),
-                              ease: "easeInOut",
-                              repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
-                            }}
-                          >
-                            …
-                          </motion.span>
+                          {showThinkingCue ? (
+                            <>
+                              <motion.div
+                                aria-hidden
+                                className="h-px w-10 origin-right bg-gradient-to-l from-[#d3c4ad]/30 to-transparent"
+                                animate={reduceMotion ? undefined : { opacity: [0.26, 0.58, 0.26], scaleX: [0.8, 1, 0.8] }}
+                                transition={{
+                                  duration: transitionMs(reduceMotion, 1.2),
+                                  ease: "easeInOut",
+                                  repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
+                                }}
+                              />
+                              <motion.span
+                                aria-hidden
+                                className="font-serif text-[1.05rem] italic leading-none text-[#f0e6d7]/88"
+                                animate={reduceMotion ? undefined : { opacity: [0.35, 0.9, 0.35], y: [0, -1.5, 0] }}
+                                transition={{
+                                  duration: transitionMs(reduceMotion, 1.0),
+                                  ease: "easeInOut",
+                                  repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
+                                }}
+                              >
+                                …
+                              </motion.span>
+                              <motion.p
+                                aria-hidden
+                                className="rounded-md border border-[#d8c7ad]/26 bg-black/24 px-2.5 py-1 font-serif text-[0.84rem] italic tracking-[0.01em] text-[#f1e8da]/92 sm:text-[0.88rem]"
+                                animate={reduceMotion ? undefined : { opacity: [0.55, 0.9, 0.55] }}
+                                transition={{
+                                  duration: transitionMs(reduceMotion, 1.35),
+                                  ease: "easeInOut",
+                                  repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
+                                }}
+                              >
+                                Give me a moment while I evaluate that...
+                              </motion.p>
+                            </>
+                          ) : (
+                            <p
+                              aria-hidden
+                              className="rounded-md border border-[#d8c7ad]/20 bg-black/20 px-2.5 py-1 font-serif text-[0.84rem] italic tracking-[0.01em] text-[#efe4d3]/78 sm:text-[0.88rem]"
+                            >
+                              …
+                            </p>
+                          )}
                         </div>
                       ) : (
-                        <p className="text-[0.66rem] uppercase tracking-[0.12em] text-[#c7baa4]/56">
-                          Press Enter to submit.
+                        <p className="text-[0.82rem] font-medium text-[#f2e8d8]/96">
+                          When you are ready, answer and press Enter.
                         </p>
                       )}
                     </div>
@@ -355,8 +418,8 @@ export function OralEvaluationExperience() {
                       ease: cinematicEase,
                     }}
                   >
-                    <p className="text-[0.63rem] uppercase tracking-[0.12em] text-[#b9aa93]/52">
-                      Next item loading…
+                    <p className="text-[0.82rem] font-medium text-[#efe4d3]/96">
+                      All right, let us move to the next scenario.
                     </p>
                   </motion.div>
                 </div>
@@ -566,25 +629,25 @@ function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
   const correct =
     matched.length > 0
       ? [
-          `You did identify ${listToPhrase(matched.slice(0, 2).map((x) => x.label))}.`,
-          "That shows situational awareness, but the answer still does not stand as a complete checkride response.",
+          `You touched the right points: ${listToPhrase(matched.slice(0, 2).map((x) => x.label))}.`,
+          "That is a solid start, but I still need a fuller checkride-level answer.",
         ]
-      : ["Your response did not establish the core elements I needed to hear for this scenario."];
+      : ["I did not hear the core elements I need for this scenario."];
 
   const missing =
     missed.length > 0
       ? [
-          `What I still needed to hear was ${listToPhrase(missed.slice(0, 3).map((x) => x.label))}.`,
-          "Without those pieces, the answer does not demonstrate a defensible checkride decision process.",
+          `I still needed to hear ${listToPhrase(missed.slice(0, 3).map((x) => x.label))}.`,
+          "Without those pieces, I cannot call this a defensible checkride decision process.",
         ]
-      : ["You covered the core decision elements; what remains is tightening precision and delivery under pressure."];
+      : ["You covered the decision backbone. Now tighten precision and delivery under pressure."];
 
   const stronger =
     missed.length > 0
-      ? `A complete answer would explicitly walk through ${listToPhrase(
+      ? `A complete answer would walk me through ${listToPhrase(
           missed.slice(0, 4).map((x) => x.label),
-        )} in a clear sequence, without waiting for examiner prompts.`
-      : "A complete answer would keep the same structure while tightening language and sequencing so your judgment remains clear under interruption.";
+        )} in a clear sequence, without waiting for prompts.`
+      : "Keep this same structure, but tighten your language and sequence so your judgment stays clear under interruption.";
 
   const examinerNote = buildExaminerNote(verdict.judgment);
 
@@ -603,12 +666,12 @@ function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
 /** Supporting copy only — verdict line is shown separately above. */
 function buildExaminerNote(judgment: string) {
   if (judgment === "Satisfactory") {
-    return "Your response shows a complete and defensible decision process under checkride pressure.";
+    return "That was a complete, defensible decision process under checkride pressure.";
   }
   if (judgment === "Adequate, but incomplete") {
-    return "You are directionally correct, but key omissions prevent this from being a complete oral answer.";
+    return "You are on the right track, but key omissions keep this from being a complete oral answer.";
   }
-  return "I still cannot verify a complete, defensible decision process from your response.";
+  return "I still cannot verify a complete, defensible decision process from your response yet.";
 }
 
 function normalize(value: string) {
