@@ -420,28 +420,27 @@ export function OralEvaluationExperience() {
             <div
               className={`oral-scrollbar-none relative z-[1] flex max-h-[min(90dvh,920px)] w-full flex-col overflow-y-auto text-left ${ATMOSPHERE_PANEL}`}
             >
-              <motion.div
-                animate={{
-                  opacity:
-                    sessionPhase === "feedback"
-                      ? 0.22
-                      : evaluating
-                        ? 0.5
-                        : 1,
-                }}
-                transition={{
-                  duration: transitionMs(reduceMotion, 1.2),
-                  ease: cinematicEase,
-                }}
-              >
-                <h1 className="mt-1 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
-                  {`"${item.promptLine}"`}
-                </h1>
+              {/* Question copy only while the user is answering or the examiner is
+                  thinking — never during feedback, or it ghosts behind the verdict. */}
+              {sessionPhase !== "feedback" && (
+                <motion.div
+                  animate={{
+                    opacity: evaluating ? 0.5 : 1,
+                  }}
+                  transition={{
+                    duration: transitionMs(reduceMotion, 1.2),
+                    ease: cinematicEase,
+                  }}
+                >
+                  <h1 className="mt-1 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
+                    {`"${item.promptLine}"`}
+                  </h1>
 
-                <p className="mt-4 max-w-[min(100%,34rem)] text-[0.8rem] font-light leading-[1.62] text-white/[0.44] sm:text-[0.84rem]">
-                  {item.scenario}
-                </p>
-              </motion.div>
+                  <p className="mt-4 max-w-[min(100%,34rem)] text-[0.8rem] font-light leading-[1.62] text-white/[0.44] sm:text-[0.84rem]">
+                    {item.scenario}
+                  </p>
+                </motion.div>
+              )}
 
               <AnimatePresence mode="wait" initial={false}>
                 {showQuestionChrome ? (
