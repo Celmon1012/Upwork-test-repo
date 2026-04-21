@@ -508,8 +508,12 @@ export function OralEvaluationExperience() {
                     <label htmlFor="oral-answer" className="sr-only">
                       Response to the examiner
                     </label>
-                    {/* Left-bar + writing-area wrapper — reads as "speak here", not a form */}
-                    <div className="oral-input-wrap relative mt-3 flex gap-3">
+                    {/* Left-bar + writing-area — dims while examiner is thinking */}
+                    <div
+                      className={`oral-input-wrap relative mt-3 flex gap-3 transition-opacity duration-500 ease-out ${
+                        evaluating ? "opacity-[0.38]" : "opacity-100"
+                      }`}
+                    >
                       {/* Left accent bar */}
                       <div
                         aria-hidden
