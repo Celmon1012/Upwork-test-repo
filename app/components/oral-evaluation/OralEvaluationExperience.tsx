@@ -444,7 +444,7 @@ export function OralEvaluationExperience() {
                 duration: transitionMs(reduceMotion, 0.9),
                 ease: cinematicEase,
               }}
-              className="relative mx-auto flex min-h-0 w-full max-w-[min(92vw,58rem)] flex-col"
+              className="relative mx-auto flex min-h-0 w-full max-w-[min(88vw,50rem)] flex-col"
             >
             {sessionPhase !== "feedback" ? (
               <BookmarkToggle marked={isMarked} onToggle={toggleMark} />
@@ -468,7 +468,7 @@ export function OralEvaluationExperience() {
                     {`"${item.promptLine}"`}
                   </h1>
 
-                  <p className="mt-4 max-w-[min(100%,34rem)] text-[0.8rem] font-light leading-[1.62] text-white/[0.44] sm:text-[0.84rem]">
+                  <p className="mt-4 max-w-[min(100%,30rem)] text-[0.8rem] font-light leading-[1.62] text-white/[0.44] sm:text-[0.84rem]">
                     {item.scenario}
                   </p>
                 </motion.div>
@@ -480,7 +480,7 @@ export function OralEvaluationExperience() {
                     duration: transitionMs(reduceMotion, 0.55),
                     ease: cinematicEase,
                   }}
-                  className="mt-1 max-w-[min(100%,34rem)]"
+                  className="mt-1 max-w-[min(100%,30rem)]"
                 >
                   <p className="text-[0.58rem] font-normal uppercase tracking-[0.26em] text-white/[0.22]">
                     {item.contextLabel}
@@ -1078,7 +1078,7 @@ function JudgmentBlock({
       <div className="mt-2.5 flex shrink-0 flex-col items-stretch text-left">
         <motion.h2
           id={id}
-          className={`max-w-[min(100%,32rem)] font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.012em] transition-all duration-[700ms] ease-out sm:text-[1.48rem] ${verdictClass} ${
+          className={`max-w-[min(100%,28rem)] font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.012em] transition-all duration-[700ms] ease-out sm:text-[1.48rem] ${verdictClass} ${
             settled && !reduceMotion ? "translate-y-px opacity-[0.94]" : ""
           }`}
           initial={reduceMotion ? false : { opacity: 0, y: 5 }}
@@ -1096,7 +1096,7 @@ function JudgmentBlock({
 
         {!teaching && examinerNote ? (
           <motion.p
-            className="mt-2.5 max-w-[min(100%,32rem)] text-[0.8rem] font-light leading-[1.78] text-[#9c968c]/95 sm:text-[0.84rem]"
+            className="mt-2.5 max-w-[min(100%,28rem)] text-[0.8rem] font-light leading-[1.78] text-[#9c968c]/95 sm:text-[0.84rem]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{
