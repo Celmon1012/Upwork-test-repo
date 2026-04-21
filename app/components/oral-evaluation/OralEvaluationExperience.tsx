@@ -15,17 +15,19 @@ import {
   useState,
 } from "react";
 import {
-  EVALUATING_MS,
   ORAL_ITEMS,
   type EvaluationBlock,
   type OralItem,
   type ScoreValue,
 } from "./content";
+import {
+  buildExaminerSpokenTurn,
+  compactSpokenBeats,
+} from "./examiner-scripts";
 
 type SessionPhase = "respond" | "evaluating" | "feedback";
 type RubricPoint = { label: string; keywords: readonly string[] };
 
-const easeOut = [0.22, 1, 0.36, 1] as const;
 const cinematicEase = [0.16, 1, 0.3, 1] as const;
 
 /**
@@ -164,9 +166,6 @@ const ATMOSPHERE_PANEL =
 const FOOTER_WHISPER =
   "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.72rem] font-light italic tracking-[0.006em] text-white/[0.26] outline-none transition-[color] duration-200 ease-out hover:text-[#b8aa9a]/52 focus-visible:text-[#c9beb0]/62 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/18";
 
-const FOOTER_CONTINUE =
-  "rounded-sm border-0 bg-transparent p-0 text-right font-serif text-[0.72rem] font-light italic tracking-[0.006em] text-white/[0.28] outline-none transition-[color] duration-200 ease-out hover:text-[#b8aa9a]/54 focus-visible:text-[#c9beb0]/62 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/18";
-
 export function OralEvaluationExperience() {
   const reduceMotion = useReducedMotion();
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("respond");
@@ -182,7 +181,9 @@ export function OralEvaluationExperience() {
   );
   
   const [showMeMode, setShowMeMode] = useState(false);
-  const [showDeeper, setShowDeeper] = useState(false);
+  // Gated reveal of the full strong answer (model answer + rationale + deeper).
+  // Never open by default — the user has to ask for it.
+  const [showAnswer, setShowAnswer] = useState(false);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
   const evaluationTimerRef = useRef<number | null>(null);
@@ -226,7 +227,7 @@ export function OralEvaluationExperience() {
     setAnswerError(null);
     setEvaluated(evaluateAnswer(item, answer));
     setShowMeMode(false);
-    setShowDeeper(false);
+    setShowAnswer(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
     setShowThinkingCue(true);
@@ -250,7 +251,7 @@ export function OralEvaluationExperience() {
     setAnswerError(null);
     setEvaluated(null);
     setShowMeMode(true);
-    setShowDeeper(false);
+    setShowAnswer(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
     setShowThinkingCue(true);
@@ -269,13 +270,29 @@ export function OralEvaluationExperience() {
     setAnswerError(null);
     setEvaluated(null);
     setShowMeMode(false);
-    setShowDeeper(false);
+    setShowAnswer(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
     setShowThinkingCue(false);
     setJustReceived(false);
     if (answerRef.current) answerRef.current.value = "";
     setItemIndex((i) => (i + 1) % ORAL_ITEMS.length);
+  }, []);
+
+  // The pushback. Same question, cleared textarea, focus restored.
+  // The examiner isn't giving up the answer — they're making the user talk again.
+  const tryAgain = useCallback(() => {
+    setSessionPhase("respond");
+    setAnswerError(null);
+    setEvaluated(null);
+    setShowMeMode(false);
+    setShowAnswer(false);
+    setRevealedSegments(0);
+    setShowTransitionCue(false);
+    setShowThinkingCue(false);
+    setJustReceived(false);
+    if (answerRef.current) answerRef.current.value = "";
+    // itemIndex intentionally unchanged — same item, another pass.
   }, []);
 
   const toggleMark = useCallback(() => {
@@ -287,8 +304,8 @@ export function OralEvaluationExperience() {
     });
   }, [item.id]);
 
-  const toggleDeeper = useCallback(() => {
-    setShowDeeper((prev) => !prev);
+  const toggleAnswer = useCallback(() => {
+    setShowAnswer((prev) => !prev);
   }, []);
 
   const evaluating = sessionPhase === "evaluating";
@@ -310,19 +327,30 @@ export function OralEvaluationExperience() {
     return () => window.clearTimeout(timer);
   }, [justReceived]);
 
-  // Enter advances manually once the examiner has finished speaking,
-  // so users don't have to wait out the auto-advance dwell.
+  // The primary action is context-sensitive:
+  //   - Teaching mode (showMeMode) or a passing score  → Enter moves on.
+  //   - Anything below satisfactory                    → Enter retries. This
+  //     is the whole point of the DPE posture: you don't walk away; you talk
+  //     again. The examiner keeps the pressure on the user, not on the clock.
+  const primaryAfterFeedback = useCallback(() => {
+    if (showMeMode || evaluation.score >= 3) {
+      advanceFromFeedback();
+    } else {
+      tryAgain();
+    }
+  }, [advanceFromFeedback, evaluation.score, showMeMode, tryAgain]);
+
   useEffect(() => {
     if (sessionPhase !== "feedback" || !allSegmentsRevealed) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey) {
         event.preventDefault();
-        advanceFromFeedback();
+        primaryAfterFeedback();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [advanceFromFeedback, allSegmentsRevealed, sessionPhase]);
+  }, [allSegmentsRevealed, primaryAfterFeedback, sessionPhase]);
 
   useEffect(() => {
     return () => {
@@ -357,18 +385,22 @@ export function OralEvaluationExperience() {
 
   // End-of-moment pacing.
   //
-  //   1. Examiner finishes speaking (all segments revealed).
-  //   2. A long reading dwell — user sits with the feedback.
-  //   3. Near the end of that dwell, the examiner's wrap-up cue lands.
-  //   4. A beat later, the room moves on.
+  // DPE rule: on an incomplete or unsatisfactory answer, the room does NOT
+  // move on by itself. The user has to act — try again, ask for the answer,
+  // or explicitly move on. No auto-advance, no clock rescuing them.
   //
-  // The cue and the advance are paired so that "Let's move on." lands
-  // shortly before the handoff, instead of sitting alone for the whole dwell.
+  // A satisfactory answer is the only case where a soft wrap-up cue lands
+  // and the session will drift forward. Everywhere else, the silence after
+  // the verdict is the pressure.
   useEffect(() => {
     if (sessionPhase !== "feedback" || !allSegmentsRevealed) return;
-    // If the user asked for more, the examiner stays with them — no auto
-    // advance, no wrap-up cue. The user drives when to continue.
-    if (showDeeper) return;
+    // User opened the full model answer — stay with them.
+    if (showAnswer) return;
+    // Failed / incomplete — hold. No timed cue, no auto-advance. The "Your
+    // move." cue is derived in render for this path so the user sees it
+    // immediately; the room pressures through silence, not through the clock.
+    if (evaluation.score < 3 && !showMeMode) return;
+
     const dwell = readingDwellAfterSpeechMs(reduceMotion, evaluation.score);
     const cueLead = reduceMotion
       ? 2400
@@ -390,18 +422,16 @@ export function OralEvaluationExperience() {
     evaluation.score,
     reduceMotion,
     sessionPhase,
-    showDeeper,
+    showAnswer,
+    showMeMode,
   ]);
 
   return (
     <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
       <BackgroundStack phase={sessionPhase} justReceived={justReceived} />
 
-      <div
-        className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden"
-        style={{ zoom: 1.2 }}
-      >
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-3 py-4 sm:px-6 sm:py-5">
+      <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-visible px-3 py-3 sm:px-6 sm:py-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={item.id}
@@ -414,14 +444,14 @@ export function OralEvaluationExperience() {
                 duration: transitionMs(reduceMotion, 0.9),
                 ease: cinematicEase,
               }}
-              className="relative mx-auto w-full max-w-[min(100%,35rem)]"
+              className="relative mx-auto flex min-h-0 w-full max-w-[min(100%,35rem)] flex-col"
             >
             {sessionPhase !== "feedback" ? (
               <BookmarkToggle marked={isMarked} onToggle={toggleMark} />
             ) : null}
 
             <div
-              className={`oral-scrollbar-none relative z-[1] flex max-h-[min(90dvh,920px)] w-full flex-col overflow-y-auto text-left ${ATMOSPHERE_PANEL}`}
+              className={`oral-scrollbar-none relative z-[1] flex max-h-[min(86dvh,900px)] w-full flex-col overflow-y-auto overflow-x-hidden text-left ${ATMOSPHERE_PANEL}`}
             >
               {sessionPhase !== "feedback" ? (
                 <motion.div
@@ -636,10 +666,28 @@ export function OralEvaluationExperience() {
                       })}
                     </div>
 
+                    {allSegmentsRevealed && (
+                      <FeedbackActions
+                        score={evaluation.score}
+                        teaching={showMeMode}
+                        showAnswer={showAnswer}
+                        onToggleAnswer={toggleAnswer}
+                        onTryAgain={tryAgain}
+                        onMoveOn={advanceFromFeedback}
+                        marked={isMarked}
+                        onToggleMark={toggleMark}
+                        showCue={
+                          showTransitionCue ||
+                          (evaluation.score < 3 && !showMeMode)
+                        }
+                        reduceMotion={reduceMotion}
+                      />
+                    )}
+
                     <AnimatePresence initial={false}>
-                      {allSegmentsRevealed && showDeeper && (
+                      {allSegmentsRevealed && showAnswer && !showMeMode && (
                         <motion.div
-                          key="deeper"
+                          key="answer-reveal"
                           className="flex flex-col"
                           initial={reduceMotion ? false : { opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -649,108 +697,43 @@ export function OralEvaluationExperience() {
                             ease: cinematicEase,
                           }}
                         >
-                          {item.evaluation.deeperExplanation.map((line, index) => (
+                          {[
+                            ...splitSpokenChunks(item.evaluation.stronger),
+                            ...splitSpokenChunks(item.evaluation.why),
+                            ...item.evaluation.deeperExplanation,
+                          ].map((line, index) => (
                             <motion.p
-                              key={`${item.id}-deeper-${index}`}
+                              key={`${item.id}-answer-${index}`}
                               initial={reduceMotion ? false : { opacity: 0, y: 5 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{
                                 duration: transitionMs(reduceMotion, 0.7),
                                 delay: reduceMotion
                                   ? 0
-                                  : 0.28 +
+                                  : 0.24 +
                                     index *
-                                      (0.42 +
+                                      (0.38 +
                                         jitterFromSeed(line.length + index * 17) *
                                           0.18),
                                 ease: cinematicEase,
                               }}
                               className={`text-[0.88rem] leading-[1.92] tracking-[0.01em] text-[#b9b3a9]/92 sm:text-[0.92rem] ${
-                                index === 0 ? "mt-7" : "mt-6"
+                                index === 0 ? "mt-5" : "mt-6"
                               }`}
                             >
                               {line}
                             </motion.p>
                           ))}
+                          <button
+                            type="button"
+                            onClick={toggleAnswer}
+                            className="mt-8 inline-flex self-start items-center rounded-sm border border-[#d8c7ad]/20 bg-[#050810]/55 px-2.5 py-1.5 font-serif text-[0.82rem] font-normal not-italic tracking-[0.008em] text-[#d7cec2]/85 outline-none backdrop-blur-sm transition-[color,background-color,border-color] duration-200 ease-out hover:border-[#d8c7ad]/40 hover:bg-[#0b111a]/70 hover:text-[#f2ebde]/96 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/40 sm:text-[0.85rem]"
+                          >
+                            Hide the answer
+                          </button>
                         </motion.div>
                       )}
                     </AnimatePresence>
-
-                    {allSegmentsRevealed && (
-                      <motion.div
-                        className="mt-7 flex flex-col gap-3 pb-0.5 sm:mt-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
-                        initial={reduceMotion ? false : { opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{
-                          duration: transitionMs(reduceMotion, 0.6),
-                          delay: reduceMotion ? 0 : 0.35,
-                          ease: cinematicEase,
-                        }}
-                      >
-                        <div className="flex min-w-0 flex-wrap items-baseline gap-x-5 gap-y-1.5">
-                          <button
-                            type="button"
-                            onClick={toggleDeeper}
-                            aria-expanded={showDeeper}
-                            className={`-ml-0.5 ${FOOTER_WHISPER}`}
-                          >
-                            {showDeeper ? "That’s enough" : "Explain more"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={toggleMark}
-                            aria-pressed={isMarked}
-                            className={FOOTER_WHISPER}
-                          >
-                            {isMarked ? "Saved for review" : "Review later"}
-                          </button>
-                        </div>
-                        <div className="flex shrink-0 justify-start sm:justify-end">
-                          <AnimatePresence initial={false}>
-                            {showTransitionCue && !showDeeper && (
-                              <motion.button
-                                key="continue"
-                                type="button"
-                                onClick={advanceFromFeedback}
-                                initial={reduceMotion ? false : { opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={reduceMotion ? undefined : { opacity: 0 }}
-                                transition={{
-                                  duration: transitionMs(reduceMotion, 0.55),
-                                  ease: cinematicEase,
-                                }}
-                                className={FOOTER_CONTINUE}
-                              >
-                                <span>All right. Let’s move on.</span>
-                                <span className="ml-1.5 text-[0.62rem] font-light not-italic tracking-normal text-white/[0.16]">
-                                  Enter
-                                </span>
-                              </motion.button>
-                            )}
-                            {showDeeper && (
-                              <motion.button
-                                key="continue-deeper"
-                                type="button"
-                                onClick={advanceFromFeedback}
-                                initial={reduceMotion ? false : { opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={reduceMotion ? undefined : { opacity: 0 }}
-                                transition={{
-                                  duration: transitionMs(reduceMotion, 0.45),
-                                  ease: cinematicEase,
-                                }}
-                                className={FOOTER_CONTINUE}
-                              >
-                                <span>Continue</span>
-                                <span className="ml-1.5 text-[0.62rem] font-light not-italic tracking-normal text-white/[0.16]">
-                                  Enter
-                                </span>
-                              </motion.button>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </motion.div>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -805,6 +788,149 @@ function BookmarkToggle({
         />
       </svg>
     </button>
+  );
+}
+
+/**
+ * Feedback action row.
+ *
+ * Shape follows the DPE posture, not a ChatGPT-style "here's everything" card:
+ *
+ *   - Failed / incomplete (score < 3):
+ *       Primary (right, Enter)         → "Try again" (same question)
+ *       Secondary (left, toggle)       → "Show me the answer" / "Hide the answer"
+ *       Tertiary (left, quiet)         → "Move on" (escape hatch, not nudged)
+ *       Soft italic cue (left)         → "Your move." — lands with showCue
+ *
+ *   - Satisfactory (score ≥ 3) or teaching mode:
+ *       Primary (right, Enter)         → "Next question"
+ *       Secondary (left, toggle)       → "Show me the answer" (still available)
+ *
+ * The user has to act. The room no longer drifts forward by itself on a miss.
+ */
+/** Secondary action — quiet but legible against the cockpit. */
+const SECONDARY_ACTION =
+  "rounded-sm border-0 bg-transparent px-1 py-0.5 text-left font-serif text-[0.82rem] font-normal not-italic tracking-[0.008em] text-[#d7cec2]/82 outline-none transition-[color,background-color] duration-200 ease-out hover:bg-[#d8c7ad]/10 hover:text-[#f2ebde]/96 focus-visible:text-[#f2ebde]/96 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/40 sm:text-[0.85rem]";
+
+/** Primary action — pill. Reads as "this is what you do next." */
+const PRIMARY_ACTION =
+  "inline-flex items-baseline gap-2 rounded-full border border-[#d8c7ad]/38 bg-[#1a2230]/60 px-3.5 py-1.5 font-sans text-[0.82rem] font-medium not-italic tracking-[0.01em] text-[#f5eedf] shadow-[0_2px_10px_rgba(0,0,0,0.25)] outline-none transition-[color,background-color,border-color,box-shadow] duration-200 ease-out hover:border-[#d8c7ad]/60 hover:bg-[#223046]/75 hover:text-white hover:shadow-[0_3px_14px_rgba(0,0,0,0.4)] focus-visible:border-[#d8c7ad]/70 focus-visible:ring-2 focus-visible:ring-[#d8c7ad]/40 sm:text-[0.85rem]";
+
+function FeedbackActions({
+  score,
+  teaching,
+  showAnswer,
+  onToggleAnswer,
+  onTryAgain,
+  onMoveOn,
+  marked,
+  onToggleMark,
+  showCue,
+  reduceMotion,
+}: {
+  score: ScoreValue;
+  teaching: boolean;
+  showAnswer: boolean;
+  onToggleAnswer: () => void;
+  onTryAgain: () => void;
+  onMoveOn: () => void;
+  marked: boolean;
+  onToggleMark: () => void;
+  showCue: boolean;
+  reduceMotion: boolean | null;
+}) {
+  const passed = teaching || score >= 3;
+  const primaryLabel = passed ? "Next question" : "Try again";
+  const primaryAction = passed ? onMoveOn : onTryAgain;
+
+  return (
+    <motion.div
+      className="relative mt-8 sm:mt-9"
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: transitionMs(reduceMotion, 0.6),
+        delay: reduceMotion ? 0 : 0.35,
+        ease: cinematicEase,
+      }}
+    >
+      {/* Soft divider separating the action band from the spoken feedback. */}
+      <div
+        aria-hidden
+        className="pointer-events-none mb-3 h-px w-full bg-gradient-to-r from-transparent via-[#d8c7ad]/22 to-transparent"
+      />
+      <div className="flex flex-col gap-3 rounded-sm border border-[#d8c7ad]/14 bg-[#050810]/55 px-3 py-2.5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-4 sm:py-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+          {!teaching ? (
+            <button
+              type="button"
+              onClick={onToggleAnswer}
+              aria-expanded={showAnswer}
+              className={SECONDARY_ACTION}
+            >
+              {showAnswer ? "Hide the answer" : "Show me the answer"}
+            </button>
+          ) : null}
+          {!teaching ? (
+            <span aria-hidden className="text-white/[0.18]">·</span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onToggleMark}
+            aria-pressed={marked}
+            className={SECONDARY_ACTION}
+          >
+            {marked ? "Saved for review" : "Review later"}
+          </button>
+          {!passed ? (
+            <>
+              <span aria-hidden className="text-white/[0.18]">·</span>
+              <button
+                type="button"
+                onClick={onMoveOn}
+                className={SECONDARY_ACTION}
+              >
+                Move on
+              </button>
+            </>
+          ) : null}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3 justify-start sm:justify-end">
+          <AnimatePresence initial={false}>
+            {showCue && !passed && !showAnswer ? (
+              <motion.span
+                key="cue"
+                aria-hidden
+                className="font-serif text-[0.8rem] font-light italic leading-none tracking-[0.01em] text-[#d8c7ad]/78 sm:text-[0.82rem]"
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={reduceMotion ? undefined : { opacity: 0 }}
+                transition={{
+                  duration: transitionMs(reduceMotion, 0.45),
+                  ease: cinematicEase,
+                }}
+              >
+                Your move.
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
+          <button
+            type="button"
+            onClick={primaryAction}
+            className={PRIMARY_ACTION}
+          >
+            <span>{primaryLabel}</span>
+            <span
+              aria-hidden
+              className="rounded-[3px] border border-[#d8c7ad]/30 bg-black/25 px-1.5 py-[1px] text-[0.66rem] font-medium not-italic tracking-normal text-white/[0.72]"
+            >
+              Enter
+            </span>
+          </button>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -957,22 +1083,6 @@ function JudgmentBlock({
           style={{ textShadow: softShadow }}
         >
           <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            {!teaching && value > 0 ? (
-              <>
-                <span
-                  className="shrink-0 font-sans text-[0.66rem] font-medium tabular-nums not-italic tracking-[0.08em] text-white/[0.26]"
-                  aria-hidden
-                >
-                  {value}
-                </span>
-                <span
-                  className="font-sans text-[0.58rem] font-light not-italic text-white/[0.14]"
-                  aria-hidden
-                >
-                  ·
-                </span>
-              </>
-            ) : null}
             <span className="min-w-0">{headline}</span>
           </span>
         </motion.h2>
@@ -1071,13 +1181,15 @@ function compactSpokenLines(parts: readonly string[]): string[] {
 }
 
 /**
- * Spoken-style beats the examiner delivers after the verdict — each string
- * is one short paragraph in the UI (one breath), not a merged essay.
+ * Spoken beats after the headline judgment (JudgmentBlock = line 1 only).
  *
- * Evaluation mode: each rubric acknowledgment / gap line stays separate;
- * model answer and rationale are sentence-split.
+ * Client structure (evaluator, not teacher):
+ *   2. Pressure — challenge the answer
+ *   3. Gaps — only 1–2 areas, conversational
+ *   4. Retry push — explicit “walk me through it again…” (plus Try again in UI)
  *
- * Teaching mode: intro line, then the same splitting on the demonstration text.
+ * No model answer, no rationale, no praise here. Those stay behind
+ * “Show me the answer”. Teaching mode is the lone demonstration path.
  */
 function composeExplanationSegments(
   evaluation: EvaluationBlock,
@@ -1090,12 +1202,7 @@ function composeExplanationSegments(
       ...splitSpokenChunks(evaluation.why),
     ]);
   }
-  return compactSpokenLines([
-    ...evaluation.correct,
-    ...evaluation.missed,
-    ...splitSpokenChunks(evaluation.stronger),
-    ...splitSpokenChunks(evaluation.why),
-  ]);
+  return compactSpokenLines([...evaluation.missed]);
 }
 
 function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
@@ -1107,69 +1214,25 @@ function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
   const missed = rubric.filter((point) => !matched.includes(point));
   const coverage = rubric.length === 0 ? 0 : matched.length / rubric.length;
 
-  const verdict =
-    coverage >= 0.75
-      ? { score: 3 as ScoreValue, outcomeLabel: "Examiner assessment", judgment: "Satisfactory" }
-      : coverage >= 0.45
-        ? { score: 2 as ScoreValue, outcomeLabel: "Examiner assessment", judgment: "Adequate, but incomplete" }
-        : { score: 1 as ScoreValue, outcomeLabel: "Examiner assessment", judgment: "Unsatisfactory" };
+  const score: ScoreValue =
+    coverage >= 0.75 ? 3 : coverage >= 0.45 ? 2 : 1;
 
-  const correct =
-    matched.length > 0
-      ? [
-          `All right — you got to ${listToPhrase(matched.slice(0, 2).map((x) => x.label))}. That part’s there.`,
-          "It’s a start. But I’m not at a full checkride answer yet.",
-        ]
-      : ["I didn’t hear the core pieces I need for this one."];
-
-  const missing =
-    missed.length > 0
-      ? [
-          `I still needed you to walk me through ${listToPhrase(missed.slice(0, 3).map((x) => x.label))}.`,
-          "Without those, I can’t call this a defensible checkride decision.",
-        ]
-      : ["You covered the backbone. Now tighten your precision and your delivery under pressure."];
-
-  const stronger =
-    missed.length > 0
-      ? `A complete answer walks me through ${listToPhrase(
-          missed.slice(0, 4).map((x) => x.label),
-        )} in a clean sequence — and I shouldn’t have to pull it out of you.`
-      : "Keep the structure. But tighten the language and the sequence so your judgment still reads clean when I interrupt you.";
-
-  const examinerNote = buildExaminerNote(verdict.judgment);
+  const turn = buildExaminerSpokenTurn(item.id, score, missed);
+  const spoken = compactSpokenBeats(turn.spokenBeats);
 
   return {
-    score: verdict.score,
-    outcomeLabel: verdict.outcomeLabel,
-    judgment: verdict.judgment,
-    examinerNote,
-    correct,
-    missed: missing,
-    stronger,
+    score,
+    outcomeLabel: "Examiner assessment",
+    judgment: turn.judgment,
+    examinerNote: turn.examinerNote,
+    correct: [],
+    missed: spoken.length > 0 ? spoken : ["Say it again — I’m listening."],
+    stronger: item.evaluation.stronger,
     why: item.evaluation.why,
     deeperExplanation: item.evaluation.deeperExplanation,
   };
 }
 
-/** Supporting copy only — verdict line is shown separately above. */
-function buildExaminerNote(judgment: string) {
-  if (judgment === "Satisfactory") {
-    return "That was a complete decision process — and it held up under pressure. Good.";
-  }
-  if (judgment === "Adequate, but incomplete") {
-    return "You’re on the right track. But there are gaps here that keep it from being a complete oral answer.";
-  }
-  return "From what you just gave me, I can’t say you have a complete decision process yet.";
-}
-
 function normalize(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-function listToPhrase(items: readonly string[]) {
-  if (items.length === 0) return "the critical factors for this scenario";
-  if (items.length === 1) return items[0]!;
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
 }
