@@ -79,25 +79,36 @@ function verdictLine(score: ScoreValue, teaching: boolean = false): string {
   return "Not sufficient.";
 }
 
-/**
- * Verdict hold before anything else renders.
- *
- * Deliberately uneven. Most of the time the examiner takes a normal beat after
- * the verdict lands. Occasionally they snap in fast (cutting the silence) or
- * linger longer than is comfortable. Unpredictability is the point — a real
- * examiner doesn't pace themselves for the student's benefit.
+/*
+ * Oral-room presentation (not “just UI”): these timings and motion choices
+ * are how the examiner *feels* — verdict weight, silence, when the next
+ * line is allowed to land. Backend copy can stay fixed; this layer shapes
+ * checkride-like rhythm on the client.
  */
-function explanationRevealDelayMs(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 800;
+
+/**
+ * Verdict hold before the first spoken beat after the headline judgment.
+ *
+ * Deliberately uneven: usually the room lets the verdict sit, sometimes the
+ * examiner cuts in early, sometimes they wait too long. Misses get a bit more
+ * air than a pass so the headline reads as a real oral moment.
+ */
+function explanationRevealDelayMs(
+  reduce: boolean | null,
+  score: ScoreValue,
+  teaching: boolean,
+): number {
+  if (reduce) return teaching ? 640 : 920;
+  if (teaching) return 460 + Math.floor(Math.random() * 220);
   const roll = Math.random();
-  // ~18% — snap in fast, almost interrupting the moment of judgment.
-  if (roll < 0.18) return 320 + Math.floor(Math.random() * 220);
-  // ~15% — drawn-out silence, uncomfortably long.
-  if (roll < 0.33) return 2000 + Math.floor(Math.random() * 700);
-  const jitter = Math.floor(Math.random() * 360);
-  if (score <= 1) return 950 + jitter;
-  if (score === 2) return 820 + jitter;
-  return 720 + jitter;
+  // ~11% — cuts in early (still happens, but verdict usually gets the room).
+  if (roll < 0.11) return 300 + Math.floor(Math.random() * 240);
+  // ~17% — uncomfortable hold before they start talking at you.
+  if (roll < 0.28) return 2080 + Math.floor(Math.random() * 780);
+  const jitter = Math.floor(Math.random() * 420);
+  if (score <= 1) return 1260 + jitter;
+  if (score === 2) return 1100 + jitter;
+  return 760 + jitter;
 }
 
 /**
@@ -107,8 +118,8 @@ function explanationRevealDelayMs(reduce: boolean | null, score: ScoreValue): nu
  */
 function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number {
   if (reduce) return 1.0;
-  if (score <= 1) return 1.25;
-  if (score === 2) return 1.1;
+  if (score <= 1) return 1.38;
+  if (score === 2) return 1.2;
   return 1.0;
 }
 
@@ -451,7 +462,11 @@ export function OralEvaluationExperience() {
     if (segments.length === 0) return;
 
     const timers: number[] = [];
-    let cumulative = explanationRevealDelayMs(reduceMotion, evaluation.score);
+    let cumulative = explanationRevealDelayMs(
+      reduceMotion,
+      evaluation.score,
+      showMeMode,
+    );
     for (let i = 0; i < segments.length; i++) {
       const index = i;
       timers.push(
@@ -460,13 +475,30 @@ export function OralEvaluationExperience() {
         }, cumulative),
       );
       if (i < segments.length - 1) {
-        cumulative += segmentRevealDelayMs(segments[i]!, reduceMotion);
+        let gap = segmentRevealDelayMs(segments[i]!, reduceMotion);
+        // Extra breath after the first pressure line on a miss — examiner
+        // lets the first hit land before leaning in again.
+        if (
+          i === 0 &&
+          evaluation.score < 3 &&
+          !showMeMode &&
+          segments.length > 1
+        ) {
+          gap += 200 + Math.floor(Math.random() * 280);
+        }
+        cumulative += gap;
       }
     }
     return () => {
       timers.forEach((id) => window.clearTimeout(id));
     };
-  }, [evaluation.score, explanationSegments, reduceMotion, sessionPhase]);
+  }, [
+    evaluation.score,
+    explanationSegments,
+    reduceMotion,
+    sessionPhase,
+    showMeMode,
+  ]);
 
   // End-of-moment pacing.
   //
@@ -1154,6 +1186,9 @@ function JudgmentBlock({
         ? "0 6px 22px rgba(48,14,10,0.22)"
         : "0 5px 18px rgba(12,10,8,0.18)";
 
+    const verdictEntryDurationS =
+      teaching || value >= 3 ? 0.34 : value === 2 ? 0.4 : 0.48;
+
     return (
       <div className="mt-2.5 flex shrink-0 flex-col items-stretch text-left">
         <motion.h2
@@ -1164,7 +1199,7 @@ function JudgmentBlock({
           initial={reduceMotion ? false : { opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            duration: transitionMs(reduceMotion, 0.34),
+            duration: transitionMs(reduceMotion, verdictEntryDurationS),
             ease: [0.2, 0.72, 0.24, 1] as const,
           }}
           style={{ textShadow: softShadow }}
