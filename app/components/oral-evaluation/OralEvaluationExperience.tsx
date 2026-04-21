@@ -30,15 +30,6 @@ type RubricPoint = { label: string; keywords: readonly string[] };
 
 const cinematicEase = [0.16, 1, 0.3, 1] as const;
 
-/**
- * Deterministic pseudo-random in [0, 1) — stable per seed.
- * Used where a small amount of natural jitter has to be computed during
- * render but must remain pure across re-renders (React lint guarantees).
- */
-function jitterFromSeed(seed: number): number {
-  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
 const rubricByItem: Record<string, readonly RubricPoint[]> = {
   "preflight-prep": [
     { label: "weather interpretation", keywords: ["weather", "taf", "metar"] },
@@ -91,15 +82,22 @@ function verdictLine(score: ScoreValue, teaching: boolean = false): string {
 /**
  * Verdict hold before anything else renders.
  *
- * Natural examiner delivery: short, decisive, then a beat of silence.
- * Range: 800–1200ms, with light variation so it never feels timed.
+ * Deliberately uneven. Most of the time the examiner takes a normal beat after
+ * the verdict lands. Occasionally they snap in fast (cutting the silence) or
+ * linger longer than is comfortable. Unpredictability is the point — a real
+ * examiner doesn't pace themselves for the student's benefit.
  */
 function explanationRevealDelayMs(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 900;
-  const jitter = Math.floor(Math.random() * 200);
-  if (score <= 1) return 1100 + jitter;
-  if (score === 2) return 950 + jitter;
-  return 850 + jitter;
+  if (reduce) return 800;
+  const roll = Math.random();
+  // ~18% — snap in fast, almost interrupting the moment of judgment.
+  if (roll < 0.18) return 320 + Math.floor(Math.random() * 220);
+  // ~15% — drawn-out silence, uncomfortably long.
+  if (roll < 0.33) return 2000 + Math.floor(Math.random() * 700);
+  const jitter = Math.floor(Math.random() * 360);
+  if (score <= 1) return 950 + jitter;
+  if (score === 2) return 820 + jitter;
+  return 720 + jitter;
 }
 
 /**
@@ -115,17 +113,29 @@ function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number
 }
 
 /**
- * Inter-segment pause between spoken explanation parts.
+ * Inter-segment pause between spoken explanation parts (frontend-only pacing).
  *
- * Models a human examiner finishing one thought, taking a beat,
- * and landing the next. Length-sensitive (gives reading room) with
- * natural jitter so the rhythm never feels mechanical.
+ * Three moods, re-rolled per gap so rhythm varies line to line:
+ *   - "cut-in" (~24%): next line lands soon after the previous.
+ *   - "long hold" (~18%): uncomfortable wait before the next line.
+ *   - "normal" (~58%): readable beat, length-sensitive + jitter.
+ *
+ * Fade-in duration for each line stays fixed elsewhere — only the *wait*
+ * before the next line appears varies.
  */
 function segmentRevealDelayMs(segmentText: string, reduce: boolean | null): number {
-  if (reduce) return 450;
-  const base = 1500;
-  const readRoom = Math.min(1400, Math.floor(segmentText.length * 11));
-  const jitter = Math.floor(Math.random() * 420);
+  if (reduce) return 420;
+  const roll = Math.random();
+  if (roll < 0.24) {
+    return 280 + Math.floor(Math.random() * 380);
+  }
+  if (roll < 0.42) {
+    const readRoom = Math.min(1300, Math.floor(segmentText.length * 10));
+    return 2200 + readRoom + Math.floor(Math.random() * 900);
+  }
+  const base = 980;
+  const readRoom = Math.min(1100, Math.floor(segmentText.length * 8));
+  const jitter = Math.floor(Math.random() * 640);
   return base + readRoom + jitter;
 }
 
@@ -147,15 +157,26 @@ function readingDwellAfterSpeechMs(reduce: boolean | null, score: ScoreValue): n
 /**
  * Examiner processing beat.
  *
- * The pause should feel like a person considering what was just said —
- * never perfectly fixed, and slightly influenced by how much there is to weigh.
- * Range: 1200–1800ms.
+ * Uneven on purpose:
+ *   - ~20% "snap judgment" — comes back almost immediately, like the answer
+ *     was already wrong before the user finished speaking.
+ *   - ~15% "hard think" — long, uncomfortable pause that makes the user
+ *     wonder if the examiner is still there.
+ *   - ~65% normal — length-weighted with jitter.
  */
 function examinerThinkingPauseMs(answer: string): number {
-  const base = 1200;
-  const weightFromLength = Math.min(350, Math.floor(answer.length * 2.2));
-  const humanJitter = Math.floor(Math.random() * 260);
-  return Math.min(1800, base + weightFromLength + humanJitter);
+  const roll = Math.random();
+  if (roll < 0.20) {
+    return 420 + Math.floor(Math.random() * 380);
+  }
+  if (roll < 0.35) {
+    const weight = Math.min(500, Math.floor(answer.length * 2.6));
+    return 2400 + weight + Math.floor(Math.random() * 700);
+  }
+  const base = 1050;
+  const weightFromLength = Math.min(420, Math.floor(answer.length * 2.2));
+  const humanJitter = Math.floor(Math.random() * 360);
+  return base + weightFromLength + humanJitter;
 }
 
 /** Blended surface — reads as depth in the cockpit, not a floating card. */
@@ -184,6 +205,9 @@ export function OralEvaluationExperience() {
   // Gated reveal of the full strong answer (model answer + rationale + deeper).
   // Never open by default — the user has to ask for it.
   const [showAnswer, setShowAnswer] = useState(false);
+  /** While true, bookmark + feedback actions stay hidden so the full answer can land alone. */
+  const [answerRevealChromeHidden, setAnswerRevealChromeHidden] =
+    useState(false);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
   const evaluationTimerRef = useRef<number | null>(null);
@@ -195,17 +219,13 @@ export function OralEvaluationExperience() {
     [evaluation, showMeMode],
   );
   const isMarked = markedItems.has(item.id);
-  // Per-segment reveal durations — memoized so each evaluation has its own
-  // stable-yet-uneven cadence. Longer thoughts articulate a touch slower,
-  // with random jitter so the rhythm never lines up twice.
+  // Per-segment reveal duration — uniform across all lines and all responses.
+  // Variation lives in the *pauses between* lines (see segmentRevealDelayMs),
+  // not in how long each line takes to fade in. Keeping the fade itself
+  // constant gives every response the same visual rhythm on-screen.
+  const SEGMENT_FADE_SECONDS = 0.88;
   const segmentDurations = useMemo(
-    () =>
-      explanationSegments.map((segment, index) => {
-        const base = 0.78;
-        const lengthPacing = Math.min(0.26, segment.length * 0.0018);
-        const jitter = jitterFromSeed(segment.length + index * 31) * 0.22;
-        return base + lengthPacing + jitter;
-      }),
+    () => explanationSegments.map(() => SEGMENT_FADE_SECONDS),
     [explanationSegments],
   );
   const segmentCount = explanationSegments.filter((s) => s.trim().length > 0)
@@ -228,6 +248,7 @@ export function OralEvaluationExperience() {
     setEvaluated(evaluateAnswer(item, answer));
     setShowMeMode(false);
     setShowAnswer(false);
+    setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
     setShowThinkingCue(true);
@@ -252,6 +273,7 @@ export function OralEvaluationExperience() {
     setEvaluated(null);
     setShowMeMode(true);
     setShowAnswer(false);
+    setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
     setShowThinkingCue(true);
@@ -271,6 +293,7 @@ export function OralEvaluationExperience() {
     setEvaluated(null);
     setShowMeMode(false);
     setShowAnswer(false);
+    setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
     setShowThinkingCue(false);
@@ -287,6 +310,7 @@ export function OralEvaluationExperience() {
     setEvaluated(null);
     setShowMeMode(false);
     setShowAnswer(false);
+    setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
     setShowThinkingCue(false);
@@ -304,13 +328,64 @@ export function OralEvaluationExperience() {
     });
   }, [item.id]);
 
-  const toggleAnswer = useCallback(() => {
-    setShowAnswer((prev) => !prev);
-  }, []);
-
   const evaluating = sessionPhase === "evaluating";
   const showQuestionChrome =
     sessionPhase === "respond" || sessionPhase === "evaluating";
+
+  /** Open: hide all chrome first, then show answer body; close: restore immediately. */
+  const toggleAnswer = useCallback(() => {
+    setShowAnswer((prev) => {
+      if (prev) {
+        setAnswerRevealChromeHidden(false);
+        return false;
+      }
+      setAnswerRevealChromeHidden(true);
+      return true;
+    });
+  }, []);
+
+  const expandedAnswerLines = useMemo(
+    () =>
+      refineToShorterLines([
+        ...splitSpokenChunks(item.evaluation.stronger),
+        ...splitSpokenChunks(item.evaluation.why),
+        ...item.evaluation.deeperExplanation,
+      ]),
+    [item],
+  );
+
+  // After "Show me the answer", keep bookmark + actions hidden until the
+  // expanded block has had time to open and the last line has finished fading in.
+  useEffect(() => {
+    if (!showAnswer || !answerRevealChromeHidden || showMeMode) return;
+
+    if (reduceMotion) {
+      setAnswerRevealChromeHidden(false);
+      return;
+    }
+
+    const n = expandedAnswerLines.length;
+    if (n === 0) {
+      setAnswerRevealChromeHidden(false);
+      return;
+    }
+
+    // Match motion.div height (~0.55s) + last line delay + fade (0.24 + i*0.42 + 0.7s).
+    const lastLineEndMs = (0.24 + (n - 1) * 0.42 + 0.7) * 1000;
+    const totalMs = Math.round(550 + lastLineEndMs + 220);
+
+    const id = window.setTimeout(() => {
+      setAnswerRevealChromeHidden(false);
+    }, totalMs);
+    return () => window.clearTimeout(id);
+  }, [
+    answerRevealChromeHidden,
+    expandedAnswerLines.length,
+    item.id,
+    reduceMotion,
+    showAnswer,
+    showMeMode,
+  ]);
 
   useEffect(() => {
     if (sessionPhase === "respond") {
@@ -344,13 +419,23 @@ export function OralEvaluationExperience() {
     if (sessionPhase !== "feedback" || !allSegmentsRevealed) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey) {
+        if (showAnswer && answerRevealChromeHidden) {
+          event.preventDefault();
+          return;
+        }
         event.preventDefault();
         primaryAfterFeedback();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [allSegmentsRevealed, primaryAfterFeedback, sessionPhase]);
+  }, [
+    allSegmentsRevealed,
+    answerRevealChromeHidden,
+    primaryAfterFeedback,
+    sessionPhase,
+    showAnswer,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -446,7 +531,11 @@ export function OralEvaluationExperience() {
               }}
               className="relative mx-auto flex min-h-0 w-full max-w-[min(88vw,50rem)] flex-col"
             >
-            {sessionPhase !== "feedback" ? (
+            {/* Bookmark only after the examiner has fully delivered feedback —
+                same beat as learning/review actions (no chrome during respond / thinking / reveal). */}
+            {sessionPhase === "feedback" &&
+            allSegmentsRevealed &&
+            !(showAnswer && answerRevealChromeHidden) ? (
               <BookmarkToggle marked={isMarked} onToggle={toggleMark} />
             ) : null}
 
@@ -555,17 +644,8 @@ export function OralEvaluationExperience() {
                     <div
                       className={`flex flex-wrap items-center gap-x-4 gap-y-1 ${
                         answerError ? "mt-3" : "mt-2.5"
-                      } ${evaluating ? "justify-end" : "justify-start"}`}
+                      } justify-end`}
                     >
-                      {!evaluating ? (
-                        <button
-                          type="button"
-                          onClick={runShowMe}
-                          className={`-ml-0.5 ${FOOTER_WHISPER}`}
-                        >
-                          If you want to hear one.
-                        </button>
-                      ) : null}
                       {evaluating ? (
                         <div className="flex items-center gap-2.5">
                           <span className="sr-only" role="status" aria-live="polite">
@@ -680,7 +760,42 @@ export function OralEvaluationExperience() {
                       })}
                     </div>
 
-                    {allSegmentsRevealed && (
+                    <AnimatePresence initial={false}>
+                      {allSegmentsRevealed && showAnswer && !showMeMode && (
+                        <motion.div
+                          key="answer-reveal"
+                          className="flex flex-col"
+                          initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
+                          transition={{
+                            duration: transitionMs(reduceMotion, 0.55),
+                            ease: cinematicEase,
+                          }}
+                        >
+                          {expandedAnswerLines.map((line, index) => (
+                            <motion.p
+                              key={`${item.id}-answer-${index}`}
+                              initial={reduceMotion ? false : { opacity: 0, y: 5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: transitionMs(reduceMotion, 0.7),
+                                delay: reduceMotion ? 0 : 0.24 + index * 0.42,
+                                ease: cinematicEase,
+                              }}
+                              className={`text-[0.88rem] leading-[1.92] tracking-[0.01em] text-[#b9b3a9]/92 sm:text-[0.92rem] ${
+                                index === 0 ? "mt-5" : "mt-6"
+                              }`}
+                            >
+                              {line}
+                            </motion.p>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {allSegmentsRevealed &&
+                      !(showAnswer && answerRevealChromeHidden) && (
                       <FeedbackActions
                         score={evaluation.score}
                         teaching={showMeMode}
@@ -695,59 +810,9 @@ export function OralEvaluationExperience() {
                           (evaluation.score < 3 && !showMeMode)
                         }
                         reduceMotion={reduceMotion}
+                        onHearStandard={runShowMe}
                       />
                     )}
-
-                    <AnimatePresence initial={false}>
-                      {allSegmentsRevealed && showAnswer && !showMeMode && (
-                        <motion.div
-                          key="answer-reveal"
-                          className="flex flex-col"
-                          initial={reduceMotion ? false : { opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
-                          transition={{
-                            duration: transitionMs(reduceMotion, 0.55),
-                            ease: cinematicEase,
-                          }}
-                        >
-                          {[
-                            ...splitSpokenChunks(item.evaluation.stronger),
-                            ...splitSpokenChunks(item.evaluation.why),
-                            ...item.evaluation.deeperExplanation,
-                          ].map((line, index) => (
-                            <motion.p
-                              key={`${item.id}-answer-${index}`}
-                              initial={reduceMotion ? false : { opacity: 0, y: 5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{
-                                duration: transitionMs(reduceMotion, 0.7),
-                                delay: reduceMotion
-                                  ? 0
-                                  : 0.24 +
-                                    index *
-                                      (0.38 +
-                                        jitterFromSeed(line.length + index * 17) *
-                                          0.18),
-                                ease: cinematicEase,
-                              }}
-                              className={`text-[0.88rem] leading-[1.92] tracking-[0.01em] text-[#b9b3a9]/92 sm:text-[0.92rem] ${
-                                index === 0 ? "mt-5" : "mt-6"
-                              }`}
-                            >
-                              {line}
-                            </motion.p>
-                          ))}
-                          <button
-                            type="button"
-                            onClick={toggleAnswer}
-                            className="mt-8 inline-flex self-start items-center rounded-sm border border-[#d8c7ad]/20 bg-[#050810]/55 px-2.5 py-1.5 font-serif text-[0.82rem] font-normal not-italic tracking-[0.008em] text-[#d7cec2]/85 outline-none backdrop-blur-sm transition-[color,background-color,border-color] duration-200 ease-out hover:border-[#d8c7ad]/40 hover:bg-[#0b111a]/70 hover:text-[#f2ebde]/96 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/40 sm:text-[0.85rem]"
-                          >
-                            Hide the answer
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -841,6 +906,7 @@ function FeedbackActions({
   onToggleMark,
   showCue,
   reduceMotion,
+  onHearStandard,
 }: {
   score: ScoreValue;
   teaching: boolean;
@@ -852,6 +918,8 @@ function FeedbackActions({
   onToggleMark: () => void;
   showCue: boolean;
   reduceMotion: boolean | null;
+  /** Optional: hear a walk-through without a grade — only offered after feedback completes. */
+  onHearStandard?: () => void;
 }) {
   const passed = teaching || score >= 3;
   const primaryLabel = passed ? "Next question" : "Try again";
@@ -899,6 +967,18 @@ function FeedbackActions({
                 className={SECONDARY_ACTION}
               >
                 Move on
+              </button>
+            </>
+          ) : null}
+          {onHearStandard && !teaching ? (
+            <>
+              <span aria-hidden className="text-white/[0.18]">·</span>
+              <button
+                type="button"
+                onClick={onHearStandard}
+                className={`-ml-0.5 ${FOOTER_WHISPER}`}
+              >
+                If you want to hear one.
               </button>
             </>
           ) : null}
@@ -1183,6 +1263,37 @@ function splitSpokenChunks(text: string): readonly string[] {
   return out;
 }
 
+/**
+ * Frontend-only: break already-split lines a bit shorter for display / reveal
+ * pacing. Does not change source copy — only how many motion lines we render.
+ * Splits long clauses at ", " when both sides stay substantial.
+ */
+function refineToShorterLines(
+  lines: readonly string[],
+  maxLen = 68,
+  minClause = 12,
+): string[] {
+  const result: string[] = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.length <= maxLen) {
+      result.push(line);
+      continue;
+    }
+    const byComma = line.split(/,\s+/).map((s) => s.trim()).filter(Boolean);
+    if (
+      byComma.length >= 2 &&
+      byComma.every((p) => p.length >= minClause)
+    ) {
+      result.push(...byComma);
+      continue;
+    }
+    result.push(line);
+  }
+  return result;
+}
+
 function compactSpokenLines(parts: readonly string[]): string[] {
   return parts.map((s) => s.trim()).filter((s) => s.length > 0);
 }
@@ -1205,11 +1316,13 @@ function composeExplanationSegments(
   if (teaching) {
     return compactSpokenLines([
       "All right — here’s what I’m listening for on this one.",
-      ...splitSpokenChunks(evaluation.stronger),
-      ...splitSpokenChunks(evaluation.why),
+      ...refineToShorterLines([
+        ...splitSpokenChunks(evaluation.stronger),
+        ...splitSpokenChunks(evaluation.why),
+      ]),
     ]);
   }
-  return compactSpokenLines([...evaluation.missed]);
+  return compactSpokenLines(refineToShorterLines([...evaluation.missed]));
 }
 
 function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
