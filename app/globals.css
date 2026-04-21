@@ -128,15 +128,35 @@ body {
   box-shadow: 0 0 120px rgba(0, 0, 0, 0.65);
 }
 
-/* Answer line: reads as speech on a record, not a form control */
+/* Answer line — no browser chrome; border-b underline only */
 .oral-answer-line {
-  caret-color: rgba(232, 212, 176, 0.75);
+  caret-color: rgba(232, 212, 176, 0.82);
 }
 
-.oral-answer-line::placeholder {
-  color: rgba(255, 255, 255, 0.12);
+.oral-answer-line:focus,
+.oral-answer-line:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: rgba(216, 199, 173, 0.55) !important;
 }
 
-.oral-answer-line:focus {
-  outline: none;
+/* Placeholder — warm cream, visible but softer than typed text */
+textarea.oral-answer-line::placeholder,
+textarea.oral-answer-line::-webkit-input-placeholder,
+textarea.oral-answer-line::-moz-placeholder {
+  color: rgba(220, 210, 195, 0.72);
+  -webkit-text-fill-color: rgba(220, 210, 195, 0.72);
+  opacity: 1;
+  font-style: italic;
+  font-weight: 300;
+}
+
+/* Focus: brighten the bottom writing line and left accent bar */
+.oral-input-wrap:focus-within .oral-answer-line {
+  border-bottom-color: rgba(216, 199, 173, 0.82) !important;
+}
+
+.oral-input-wrap:focus-within > div:first-child {
+  opacity: 1;
+  background-image: linear-gradient(to bottom, rgba(216, 199, 173, 0.82), rgba(201, 180, 138, 0.55), transparent);
 }

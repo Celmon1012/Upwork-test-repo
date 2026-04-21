@@ -431,7 +431,7 @@ export function OralEvaluationExperience() {
       <BackgroundStack phase={sessionPhase} justReceived={justReceived} />
 
       <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-visible px-3 py-3 sm:px-6 sm:py-4">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-visible px-4 py-3 sm:px-10 sm:py-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={item.id}
@@ -444,14 +444,14 @@ export function OralEvaluationExperience() {
                 duration: transitionMs(reduceMotion, 0.9),
                 ease: cinematicEase,
               }}
-              className="relative mx-auto flex min-h-0 w-full max-w-[min(100%,35rem)] flex-col"
+              className="relative mx-auto flex min-h-0 w-full max-w-[min(92vw,58rem)] flex-col"
             >
             {sessionPhase !== "feedback" ? (
               <BookmarkToggle marked={isMarked} onToggle={toggleMark} />
             ) : null}
 
             <div
-              className={`oral-scrollbar-none relative z-[1] flex max-h-[min(86dvh,900px)] w-full flex-col overflow-y-auto overflow-x-hidden text-left ${ATMOSPHERE_PANEL}`}
+              className={`oral-scrollbar-none relative z-[1] flex max-h-[88dvh] w-full flex-col overflow-y-auto overflow-x-hidden text-left ${ATMOSPHERE_PANEL}`}
             >
               {sessionPhase !== "feedback" ? (
                 <motion.div
@@ -462,6 +462,7 @@ export function OralEvaluationExperience() {
                     duration: transitionMs(reduceMotion, 1.2),
                     ease: cinematicEase,
                   }}
+                  style={{ zoom: 1.3 }}
                 >
                   <h1 className="mt-1 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
                     {`"${item.promptLine}"`}
@@ -502,32 +503,41 @@ export function OralEvaluationExperience() {
                       ease: cinematicEase,
                     }}
                     className="mt-1 w-full pt-2"
+                    style={{ zoom: 1.3 }}
                   >
                     <label htmlFor="oral-answer" className="sr-only">
                       Response to the examiner
                     </label>
-                    <textarea
-                      ref={answerRef}
-                      id="oral-answer"
-                      rows={3}
-                      readOnly={evaluating}
-                      placeholder=""
-                      aria-invalid={Boolean(answerError)}
-                      aria-describedby={answerError ? "oral-answer-error" : undefined}
-                      onChange={() => {
-                        if (answerError) setAnswerError(null);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" && !event.shiftKey) {
-                          event.preventDefault();
-                          if (!evaluating) runEvaluation();
-                        }
-                      }}
-                      className="oral-answer-line box-border min-h-[3.5rem] max-h-[min(18vh,7rem)] w-full resize-none border-0 bg-transparent pb-2 pl-0 pr-1 pt-0.5 text-[0.9rem] leading-[1.55] text-[#ebe6dc] sm:text-[0.95rem]"
-                    />
-                    <div className="pointer-events-none mt-1.5" aria-hidden>
-                      <div className="h-px w-full bg-gradient-to-r from-transparent via-[#d9ccb7]/26 to-transparent" />
-                      <div className="mx-auto mt-0.5 h-px w-[82%] bg-gradient-to-r from-transparent via-[#a99373]/16 to-transparent" />
+                    {/* Left-bar + writing-area wrapper — reads as "speak here", not a form */}
+                    <div className="oral-input-wrap relative mt-3 flex gap-3">
+                      {/* Left accent bar */}
+                      <div
+                        aria-hidden
+                        className="pointer-events-none mt-1 w-[3px] shrink-0 rounded-full bg-gradient-to-b from-[#d8c7ad]/55 via-[#c9b48a]/35 to-transparent"
+                      />
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <textarea
+                          ref={answerRef}
+                          id="oral-answer"
+                          rows={4}
+                          readOnly={evaluating}
+                          placeholder="Begin here — Enter when ready, Shift+Enter for a new line."
+                          aria-invalid={Boolean(answerError)}
+                          aria-describedby={answerError ? "oral-answer-error" : undefined}
+                          onChange={() => {
+                            if (answerError) setAnswerError(null);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && !event.shiftKey) {
+                              event.preventDefault();
+                              if (!evaluating) runEvaluation();
+                            }
+                          }}
+                          className="oral-answer-line box-border min-h-[4rem] max-h-[min(22vh,9rem)] w-full resize-none border-0 border-b-2 border-[#c9b48a]/55 bg-[#050810]/50 pb-2.5 pl-1 pr-1 pt-2 text-[0.9rem] leading-[1.62] text-[#ebe6dc] focus:outline-none focus-visible:outline-none focus:ring-0 sm:text-[0.95rem]"
+                        />
+                        {/* Writing-line glow under the border */}
+                        <div className="pointer-events-none h-px w-full bg-gradient-to-r from-[#c9b48a]/18 via-[#d9ccb7]/22 to-transparent" aria-hidden />
+                      </div>
                     </div>
                     {answerError && (
                       <p
@@ -845,7 +855,7 @@ function FeedbackActions({
 
   return (
     <motion.div
-      className="relative mt-8 sm:mt-9"
+      className="mt-[calc(2rem*1.3)] flex flex-col gap-[calc(0.75rem*1.3)] sm:flex-row sm:items-center sm:justify-between sm:gap-[calc(1.25rem*1.3)]"
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{
@@ -854,13 +864,7 @@ function FeedbackActions({
         ease: cinematicEase,
       }}
     >
-      {/* Soft divider separating the action band from the spoken feedback. */}
-      <div
-        aria-hidden
-        className="pointer-events-none mb-3 h-px w-full bg-gradient-to-r from-transparent via-[#d8c7ad]/22 to-transparent"
-      />
-      <div className="flex flex-col gap-3 rounded-sm border border-[#d8c7ad]/14 bg-[#050810]/55 px-3 py-2.5 backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-4 sm:py-2.5">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-[calc(0.5rem*1.3)] gap-y-[calc(0.375rem*1.3)]">
           {!teaching ? (
             <button
               type="button"
@@ -896,7 +900,7 @@ function FeedbackActions({
           ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-3 justify-start sm:justify-end">
+        <div className="flex shrink-0 items-center gap-[calc(0.75rem*1.3)] justify-start sm:justify-end">
           <AnimatePresence initial={false}>
             {showCue && !passed && !showAnswer ? (
               <motion.span
@@ -929,7 +933,6 @@ function FeedbackActions({
             </span>
           </button>
         </div>
-      </div>
     </motion.div>
   );
 }
