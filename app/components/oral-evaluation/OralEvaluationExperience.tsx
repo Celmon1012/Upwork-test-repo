@@ -30,41 +30,14 @@ type RubricPoint = { label: string; keywords: readonly string[] };
 
 const cinematicEase = [0.16, 1, 0.3, 1] as const;
 
+/** Phase 1: single-scenario rubric (lost comms VFR). */
 const rubricByItem: Record<string, readonly RubricPoint[]> = {
-  "preflight-prep": [
-    { label: "weather interpretation", keywords: ["weather", "taf", "metar"] },
-    { label: "NOTAM and airspace review", keywords: ["notam", "tfr", "airspace"] },
-    { label: "performance and runway suitability", keywords: ["performance", "runway", "density altitude", "takeoff"] },
-    { label: "weight and balance", keywords: ["weight", "balance", "cg", "center of gravity"] },
-    { label: "fuel reserves and alternates", keywords: ["fuel", "reserve", "alternate", "divert"] },
-  ],
   "lost-comms-vfr": [
     { label: "transponder action", keywords: ["7600", "transponder", "squawk"] },
     { label: "route priority", keywords: ["assigned", "expected", "filed", "route"] },
     { label: "altitude priority", keywords: ["mea", "minimum", "altitude", "highest"] },
     { label: "regulatory basis", keywords: ["91.185", "regulation", "rule"] },
     { label: "practical execution order", keywords: ["first", "then", "order", "sequence"] },
-  ],
-  "stall-spin": [
-    { label: "stall cue recognition", keywords: ["buffet", "horn", "control feel", "mushy"] },
-    { label: "angle-of-attack explanation", keywords: ["angle of attack", "aoa", "critical angle"] },
-    { label: "recovery priority", keywords: ["reduce", "unload", "power", "recover"] },
-    { label: "coordination discipline", keywords: ["coordinated", "rudder", "ball", "yaw"] },
-    { label: "return to assignment", keywords: ["altitude", "configuration", "wings level", "climb"] },
-  ],
-  "night-currency": [
-    { label: "correct regulation", keywords: ["61.57", "regulation", "rule"] },
-    { label: "full-stop requirement", keywords: ["full stop", "landing", "takeoff"] },
-    { label: "night definition", keywords: ["civil twilight", "night", "sunset"] },
-    { label: "90-day window", keywords: ["90 day", "90-day", "within 90"] },
-    { label: "legal determination with dates/times", keywords: ["logbook", "date", "time", "legal"] },
-  ],
-  "crosswind-gusts": [
-    { label: "stabilized approach criteria", keywords: ["stabilized", "approach", "criteria"] },
-    { label: "gust strategy", keywords: ["gust", "spread", "add airspeed", "correction"] },
-    { label: "crosswind control inputs", keywords: ["aileron", "rudder", "slip", "crab"] },
-    { label: "touchdown technique", keywords: ["upwind wheel", "flare", "touchdown"] },
-    { label: "personal limits and go-around gates", keywords: ["personal minimum", "limit", "go around", "abort"] },
   ],
 };
 
@@ -166,28 +139,12 @@ function readingDwellAfterSpeechMs(reduce: boolean | null, score: ScoreValue): n
 }
 
 /**
- * Examiner processing beat.
- *
- * Uneven on purpose:
- *   - ~20% "snap judgment" — comes back almost immediately, like the answer
- *     was already wrong before the user finished speaking.
- *   - ~15% "hard think" — long, uncomfortable pause that makes the user
- *     wonder if the examiner is still there.
- *   - ~65% normal — length-weighted with jitter.
+ * Phase 1: fixed examiner “think” window after typed submit — 1–2 seconds
+ * before the judgment and spoken beats appear (no snap / long-tail modes).
  */
-function examinerThinkingPauseMs(answer: string): number {
-  const roll = Math.random();
-  if (roll < 0.20) {
-    return 420 + Math.floor(Math.random() * 380);
-  }
-  if (roll < 0.35) {
-    const weight = Math.min(500, Math.floor(answer.length * 2.6));
-    return 2400 + weight + Math.floor(Math.random() * 700);
-  }
-  const base = 1050;
-  const weightFromLength = Math.min(420, Math.floor(answer.length * 2.2));
-  const humanJitter = Math.floor(Math.random() * 360);
-  return base + weightFromLength + humanJitter;
+function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
+  if (reduceMotion) return 1400;
+  return 1000 + Math.floor(Math.random() * 1001);
 }
 
 /** Blended surface — reads as depth in the cockpit, not a floating card. */
@@ -196,7 +153,7 @@ const ATMOSPHERE_PANEL =
 
 /** Footer links — examiner-room whispers, not dashboard CTAs. */
 const FOOTER_WHISPER =
-  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.72rem] font-light italic tracking-[0.006em] text-white/[0.26] outline-none transition-[color] duration-200 ease-out hover:text-[#b8aa9a]/52 focus-visible:text-[#c9beb0]/62 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/18";
+  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.7rem] font-light italic tracking-[0.006em] text-white/[0.2] outline-none transition-[color] duration-200 ease-out hover:text-white/[0.34] focus-visible:text-white/[0.42] focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/14";
 
 export function OralEvaluationExperience() {
   const reduceMotion = useReducedMotion();
@@ -219,6 +176,8 @@ export function OralEvaluationExperience() {
   /** While true, bookmark + feedback actions stay hidden so the full answer can land alone. */
   const [answerRevealChromeHidden, setAnswerRevealChromeHidden] =
     useState(false);
+  /** Increments each Try again on the same item — sharper examiner copy on repeat miss. */
+  const [oralRepeatMissCount, setOralRepeatMissCount] = useState(0);
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
   const evaluationTimerRef = useRef<number | null>(null);
@@ -256,7 +215,9 @@ export function OralEvaluationExperience() {
       evaluationTimerRef.current = null;
     }
     setAnswerError(null);
-    setEvaluated(evaluateAnswer(item, answer));
+    const block = evaluateAnswer(item, answer, oralRepeatMissCount);
+    setEvaluated(block);
+    if (block.score >= 3) setOralRepeatMissCount(0);
     setShowMeMode(false);
     setShowAnswer(false);
     setAnswerRevealChromeHidden(false);
@@ -265,13 +226,13 @@ export function OralEvaluationExperience() {
     setShowThinkingCue(true);
     setJustReceived(true);
     setSessionPhase("evaluating");
-    const pauseMs = examinerThinkingPauseMs(answer);
+    const pauseMs = examinerThinkingPauseMs(reduceMotion);
     evaluationTimerRef.current = window.setTimeout(() => {
       setSessionPhase("feedback");
       setShowThinkingCue(false);
       evaluationTimerRef.current = null;
     }, pauseMs);
-  }, [item]);
+  }, [item, oralRepeatMissCount, reduceMotion]);
 
   // Skip answering — go straight to the examiner showing you a strong answer.
   // Same environmental pacing, shorter think-pause (they aren't grading).
@@ -289,14 +250,17 @@ export function OralEvaluationExperience() {
     setShowTransitionCue(false);
     setShowThinkingCue(true);
     setJustReceived(true);
+    setOralRepeatMissCount(0);
     setSessionPhase("evaluating");
-    const pauseMs = 700 + Math.floor(Math.random() * 360);
+    const pauseMs = reduceMotion
+      ? 1400
+      : 1000 + Math.floor(Math.random() * 1001);
     evaluationTimerRef.current = window.setTimeout(() => {
       setSessionPhase("feedback");
       setShowThinkingCue(false);
       evaluationTimerRef.current = null;
     }, pauseMs);
-  }, []);
+  }, [reduceMotion]);
 
   const advanceFromFeedback = useCallback(() => {
     setSessionPhase("respond");
@@ -310,6 +274,7 @@ export function OralEvaluationExperience() {
     setShowThinkingCue(false);
     setJustReceived(false);
     if (answerRef.current) answerRef.current.value = "";
+    setOralRepeatMissCount(0);
     setItemIndex((i) => (i + 1) % ORAL_ITEMS.length);
   }, []);
 
@@ -327,6 +292,7 @@ export function OralEvaluationExperience() {
     setShowThinkingCue(false);
     setJustReceived(false);
     if (answerRef.current) answerRef.current.value = "";
+    setOralRepeatMissCount((n) => n + 1);
     // itemIndex intentionally unchanged — same item, another pass.
   }, []);
 
@@ -343,6 +309,10 @@ export function OralEvaluationExperience() {
   const showQuestionChrome =
     sessionPhase === "respond" || sessionPhase === "evaluating";
 
+  useEffect(() => {
+    setOralRepeatMissCount(0);
+  }, [itemIndex]);
+
   /** Open: hide all chrome first, then show answer body; close: restore immediately. */
   const toggleAnswer = useCallback(() => {
     setShowAnswer((prev) => {
@@ -355,15 +325,14 @@ export function OralEvaluationExperience() {
     });
   }, []);
 
-  const expandedAnswerLines = useMemo(
-    () =>
-      refineToShorterLines([
-        ...splitSpokenChunks(item.evaluation.stronger),
-        ...splitSpokenChunks(item.evaluation.why),
-        ...item.evaluation.deeperExplanation,
-      ]),
-    [item],
-  );
+  const expandedAnswerLines = useMemo(() => {
+    const raw = refineToShorterLines([
+      ...splitSpokenChunks(item.evaluation.stronger),
+      ...splitSpokenChunks(item.evaluation.why),
+      ...item.evaluation.deeperExplanation,
+    ]);
+    return capExpandedModelAnswerSentences(raw);
+  }, [item]);
 
   // After "Show me the answer", keep bookmark + actions hidden until the
   // expanded block has had time to open and the last line has finished fading in.
@@ -928,13 +897,13 @@ function BookmarkToggle({
  *
  * The user has to act. The room no longer drifts forward by itself on a miss.
  */
-/** Secondary action — quiet but legible against the cockpit. */
+/** Secondary — whisper-weight; examiner copy stays the focus. */
 const SECONDARY_ACTION =
-  "rounded-sm border-0 bg-transparent px-1 py-0.5 text-left font-serif text-[0.82rem] font-normal not-italic tracking-[0.008em] text-[#d7cec2]/82 outline-none transition-[color,background-color] duration-200 ease-out hover:bg-[#d8c7ad]/10 hover:text-[#f2ebde]/96 focus-visible:text-[#f2ebde]/96 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/40 sm:text-[0.85rem]";
+  "rounded-sm border-0 bg-transparent px-0.5 py-0.5 text-left font-serif text-[0.76rem] font-light not-italic tracking-[0.004em] text-[#b8b0a4]/46 outline-none transition-[color,background-color] duration-200 ease-out hover:bg-white/[0.03] hover:text-[#c9c2b6]/62 focus-visible:text-[#d4cdc2]/72 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/16 sm:text-[0.78rem]";
 
-/** Primary action — pill. Reads as "this is what you do next." */
+/** Primary — minimal chrome; slightly brighter on hover so it’s still findable. */
 const PRIMARY_ACTION =
-  "inline-flex items-baseline gap-2 rounded-full border border-[#d8c7ad]/38 bg-[#1a2230]/60 px-3.5 py-1.5 font-sans text-[0.82rem] font-medium not-italic tracking-[0.01em] text-[#f5eedf] shadow-[0_2px_10px_rgba(0,0,0,0.25)] outline-none transition-[color,background-color,border-color,box-shadow] duration-200 ease-out hover:border-[#d8c7ad]/60 hover:bg-[#223046]/75 hover:text-white hover:shadow-[0_3px_14px_rgba(0,0,0,0.4)] focus-visible:border-[#d8c7ad]/70 focus-visible:ring-2 focus-visible:ring-[#d8c7ad]/40 sm:text-[0.85rem]";
+  "inline-flex items-baseline gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 font-sans text-[0.76rem] font-normal not-italic tracking-[0.008em] text-[#d2cbc0]/72 shadow-none outline-none transition-[color,background-color,border-color] duration-200 ease-out hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-[#e4ddd2]/88 focus-visible:border-[#d8c7ad]/22 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/18 sm:text-[0.78rem]";
 
 function FeedbackActions({
   score,
@@ -968,12 +937,12 @@ function FeedbackActions({
 
   return (
     <motion.div
-      className="mt-[calc(2rem*1.3)] flex flex-col gap-[calc(0.75rem*1.3)] sm:flex-row sm:items-center sm:justify-between sm:gap-[calc(1.25rem*1.3)]"
+      className="mt-[calc(1.5rem*1.3)] flex flex-col gap-[calc(0.6rem*1.3)] sm:flex-row sm:items-center sm:justify-between sm:gap-[calc(1rem*1.3)]"
       initial={reduceMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
+      animate={{ opacity: reduceMotion ? 1 : 0.88 }}
       transition={{
-        duration: transitionMs(reduceMotion, 0.6),
-        delay: reduceMotion ? 0 : 0.35,
+        duration: transitionMs(reduceMotion, 0.55),
+        delay: reduceMotion ? 0 : 0.28,
         ease: cinematicEase,
       }}
     >
@@ -989,7 +958,7 @@ function FeedbackActions({
             </button>
           ) : null}
           {!teaching ? (
-            <span aria-hidden className="text-white/[0.18]">·</span>
+            <span aria-hidden className="text-white/[0.12]">·</span>
           ) : null}
           <button
             type="button"
@@ -1001,7 +970,7 @@ function FeedbackActions({
           </button>
           {!passed ? (
             <>
-              <span aria-hidden className="text-white/[0.18]">·</span>
+              <span aria-hidden className="text-white/[0.12]">·</span>
               <button
                 type="button"
                 onClick={onMoveOn}
@@ -1013,7 +982,7 @@ function FeedbackActions({
           ) : null}
           {onHearStandard && !teaching ? (
             <>
-              <span aria-hidden className="text-white/[0.18]">·</span>
+              <span aria-hidden className="text-white/[0.12]">·</span>
               <button
                 type="button"
                 onClick={onHearStandard}
@@ -1031,7 +1000,7 @@ function FeedbackActions({
               <motion.span
                 key="cue"
                 aria-hidden
-                className="font-serif text-[0.8rem] font-light italic leading-none tracking-[0.01em] text-[#d8c7ad]/78 sm:text-[0.82rem]"
+                className="font-serif text-[0.76rem] font-light italic leading-none tracking-[0.01em] text-[#b5a896]/48 sm:text-[0.78rem]"
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -1052,7 +1021,7 @@ function FeedbackActions({
             <span>{primaryLabel}</span>
             <span
               aria-hidden
-              className="rounded-[3px] border border-[#d8c7ad]/30 bg-black/25 px-1.5 py-[1px] text-[0.66rem] font-medium not-italic tracking-normal text-white/[0.72]"
+              className="rounded-[2px] border border-white/[0.1] bg-black/20 px-1 py-[1px] text-[0.62rem] font-normal not-italic tracking-normal text-white/[0.48]"
             >
               Enter
             </span>
@@ -1312,6 +1281,31 @@ function splitSpokenChunks(text: string): readonly string[] {
  * pacing. Does not change source copy — only how many motion lines we render.
  * Splits long clauses at ", " when both sides stay substantial.
  */
+/**
+ * "Show me the answer" — keep the model read to a spoken length (client: ~6–10
+ * sentences). Over-long sources are cut to 8 sentences; ≤10 sentences stay intact.
+ */
+const EXPANDED_ANSWER_MAX_SENTENCES = 10;
+const EXPANDED_ANSWER_TRIM_TO = 8;
+
+function capExpandedModelAnswerSentences(lines: readonly string[]): string[] {
+  const sentences: string[] = [];
+  for (const raw of lines) {
+    const t = raw.trim();
+    if (!t) continue;
+    const parts = t
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (parts.length) sentences.push(...parts);
+    else sentences.push(t);
+  }
+  if (sentences.length > EXPANDED_ANSWER_MAX_SENTENCES) {
+    return sentences.slice(0, EXPANDED_ANSWER_TRIM_TO);
+  }
+  return sentences;
+}
+
 function refineToShorterLines(
   lines: readonly string[],
   maxLen = 68,
@@ -1343,15 +1337,9 @@ function compactSpokenLines(parts: readonly string[]): string[] {
 }
 
 /**
- * Spoken beats after the headline judgment (JudgmentBlock = line 1 only).
- *
- * Client structure (evaluator, not teacher):
- *   2. Pressure — challenge the answer
- *   3. Gaps — only 1–2 areas, conversational
- *   4. Retry push — explicit “walk me through it again…” (plus Try again in UI)
- *
- * No model answer, no rationale, no praise here. Those stay behind
- * “Show me the answer”. Teaching mode is the lone demonstration path.
+ * Phase 1 — spoken beats after the headline judgment (JudgmentBlock = line 1 only):
+ * pressure → 1–2 gaps (rubric-driven) → retry. Teaching mode still streams the
+ * standard answer from static `evaluation` copy.
  */
 function composeExplanationSegments(
   evaluation: EvaluationBlock,
@@ -1369,7 +1357,11 @@ function composeExplanationSegments(
   return compactSpokenLines(refineToShorterLines([...evaluation.missed]));
 }
 
-function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
+function evaluateAnswer(
+  item: OralItem,
+  answer: string,
+  repeatMissDepth: number = 0,
+): EvaluationBlock {
   const rubric = rubricByItem[item.id] ?? [];
   const normalized = normalize(answer);
   const matched = rubric.filter((point) =>
@@ -1381,7 +1373,9 @@ function evaluateAnswer(item: OralItem, answer: string): EvaluationBlock {
   const score: ScoreValue =
     coverage >= 0.75 ? 3 : coverage >= 0.45 ? 2 : 1;
 
-  const turn = buildExaminerSpokenTurn(item.id, score, missed);
+  const turn = buildExaminerSpokenTurn(item.id, score, missed, {
+    repeatMissDepth: repeatMissDepth,
+  });
   const spoken = compactSpokenBeats(turn.spokenBeats);
 
   return {

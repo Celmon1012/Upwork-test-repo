@@ -1,16 +1,20 @@
 /**
- * Client-spec examiner voice: judgment (1 line) → pressure → 1–2 gaps → retry push.
- * Not ChatGPT — short, spoken, sometimes blunt, sometimes cut-off, never tidy.
- *
- * Each turn randomly samples from a pool of variants so repeat passes on the
- * same item don't land identically. Some variants are full sentences; others
- * are deliberately curt ("Too general.", "Again.") — that unevenness is the
- * point. A real examiner doesn't phrase feedback consistently.
+ * Phase 1 examiner voice (lost comms VFR only): judgment → pressure → 1–2 gaps
+ * → retry push. `repeatMissDepth > 0` after **Try again** escalates copy (second
+ * failure onward), including two-beat (pressure + order/close) or three-beat scripts.
  */
 
 import type { ScoreValue } from "./content";
 
 export type RubricPoint = { label: string; keywords: readonly string[] };
+
+export type ExaminerTurnOptions = {
+  /**
+   * 0 = first miss on this item (this visit).
+   * 1+ = user already missed and hit Try again — examiner escalates.
+   */
+  repeatMissDepth?: number;
+};
 
 export type ExaminerSpokenTurn = {
   judgment: string;
@@ -24,35 +28,36 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]!;
 }
 
-/** Occasionally drop the third beat (pressure + one gap, no retry push). */
-function maybeDrop(): boolean {
-  return Math.random() < 0.22;
-}
+// ---------- Gap phrasing — sharp, oral (no “what about”, no soft asks) ----------
 
-// ---------- Gap phrasing (blunter + softer blends randomly) ----------
-
+/** Bias toward the client’s two patterns: “I didn’t hear X.” / “Where’s your X?” */
 function gapOne(label: string): string {
-  const variants = [
+  const primary: readonly string[] = [
+    `I didn't hear ${label}.`,
     `Where's your ${label}?`,
-    `What about ${label}?`,
-    `Nothing on ${label}?`,
-    `${capFirst(label)}?`,
-    `And ${label}?`,
-    `You skipped ${label}.`,
   ];
-  return pick(variants);
+  const secondary: readonly string[] = [
+    `I'm not hearing ${label}.`,
+    `You didn't give me ${label}.`,
+    `I still don't have ${label}.`,
+    `I'm waiting on ${label}.`,
+  ];
+  return Math.random() < 0.62 ? pick(primary) : pick([...primary, ...secondary]);
 }
 
 function gapTwo(a: string, b: string): string {
-  const variants = [
-    `Where's your ${a}? Where's ${b}?`,
-    `${capFirst(a)}? ${capFirst(b)}?`,
-    `Nothing on ${a}. Nothing on ${b}.`,
-    `Say something about ${a}. Say something about ${b}.`,
-    `What about ${a}? And ${b}?`,
-    `${capFirst(a)} — ${b} — neither one came out.`,
+  const primary: readonly string[] = [
+    `I didn't hear ${a}. I didn't hear ${b}.`,
+    `Where's your ${a}? Where's your ${b}?`,
+    `Where's your ${a}? I didn't hear ${b}.`,
+    `I didn't hear ${a}. Where's your ${b}?`,
   ];
-  return pick(variants);
+  const secondary: readonly string[] = [
+    `I didn't get ${a}, and I didn't get ${b} either.`,
+    `You skipped ${a} and ${b}.`,
+    `I'm missing both ${a} and ${b}.`,
+  ];
+  return Math.random() < 0.58 ? pick(primary) : pick([...primary, ...secondary]);
 }
 
 function gapsWherePair(missed: readonly RubricPoint[]): string {
@@ -61,9 +66,9 @@ function gapsWherePair(missed: readonly RubricPoint[]): string {
   if (a && b) return gapTwo(a, b);
   if (a) return gapOne(a);
   return pick([
-    "What are you not telling me?",
-    "Something's missing.",
-    "There's a piece you're skipping.",
+    "I didn't hear enough.",
+    "That was thin. Say what you're skipping.",
+    "You're holding back. Spell it out.",
   ]);
 }
 
@@ -71,28 +76,128 @@ function capFirst(s: string): string {
   return s ? s[0]!.toUpperCase() + s.slice(1) : s;
 }
 
-// ---------- Weak judgments (score 1) — bluntness pool ----------
+// ---------- Escalation (repeat miss on same item) ----------
+
+const escalationJudgmentPool: readonly string[] = [
+  "Still not there.",
+  "Same problem.",
+  "No — we're not there yet.",
+  "That didn't fix it.",
+];
+
+function pickEscalationJudgment(repeatDepth: number): string {
+  // First repeat miss: lean on the client’s headline so it lands like a real oral.
+  if (repeatDepth === 1 && Math.random() < 0.5) return "Still not there.";
+  return pick(escalationJudgmentPool);
+}
+
+/** Two beats after judgment: pressure, then structured close (order + go again in one line). */
+type EscalationTwoBeat = {
+  readonly kind: "twoBeat";
+  readonly pressure: string;
+  /** Order / structure + close — one spoken unit, not a separate “retry” chip. */
+  readonly orderAndClose: string;
+};
+
+type EscalationThreeBeat = {
+  readonly kind: "threeBeat";
+  readonly pressure: string;
+  readonly gaps: string;
+  readonly retry: string;
+};
+
+type EscalationScript = EscalationTwoBeat | EscalationThreeBeat;
+
+function spokenTripletFromEscalation(
+  script: EscalationScript,
+): readonly [string, string, string] {
+  if (script.kind === "twoBeat") {
+    return [script.pressure, script.orderAndClose, ""];
+  }
+  return [script.pressure, script.gaps, script.retry];
+}
+
+/**
+ * Phase 1: one scenario (`lost-comms-vfr`). Deeper `repeatMissDepth` rotates
+ * scripts so repeat misses do not read as the same block.
+ */
+const escalationByItem: Record<string, readonly EscalationScript[]> = {
+  "lost-comms-vfr": [
+    {
+      kind: "twoBeat",
+      pressure: "Still out of order.",
+      orderAndClose:
+        "Confirm failure, then lights, route, altitude, intention. That order. Go again.",
+    },
+    {
+      kind: "twoBeat",
+      pressure: "You keep skipping to the end.",
+      orderAndClose:
+        "First move before 7600. Say it again.",
+    },
+    {
+      kind: "threeBeat",
+      pressure: "Same miss. I'm being literal.",
+      gaps: "Not squawk-and-land. I need the order.",
+      retry: "Step by step. Now.",
+    },
+  ],
+};
+
+function buildEscalatedTurn(
+  itemId: string,
+  _score: ScoreValue,
+  missed: readonly RubricPoint[],
+  depth: number,
+): ExaminerSpokenTurn {
+  const pool = escalationByItem[itemId];
+  const tier = pool?.length ? Math.min(depth - 1, pool.length - 1) : 0;
+  const scripted = pool?.[tier];
+
+  if (scripted) {
+    return {
+      judgment: pickEscalationJudgment(depth),
+      examinerNote: "",
+      spokenBeats: spokenTripletFromEscalation(scripted),
+    };
+  }
+
+  const g = gapsWherePair(missed.slice(0, 2));
+  return {
+    judgment: pickEscalationJudgment(depth),
+    examinerNote: "",
+    spokenBeats: [
+      depth >= 3
+        ? "Third miss — change the answer."
+        : depth >= 2
+          ? "Same circle. Different structure."
+          : "Same gap. More this time.",
+      g,
+      pick(retryPushLostComms),
+    ],
+  };
+}
+
+// ---------- Weak judgments (score 1) ----------
 
 const weakJudgmentPool: readonly string[] = [
   "That's not sufficient.",
   "Not sufficient.",
-  "That's not it.",
   "No.",
   "Not enough.",
   "That's too general.",
   "That won't fly.",
-  "Try again.",
+  "Insufficient.",
 ];
 
 // ---------- Adequate judgments (score 2) ----------
 
 const adequateJudgmentPool: readonly string[] = [
   "Still incomplete.",
-  "Closer.",
-  "Getting there.",
   "Not yet.",
-  "Almost — not quite.",
-  "Part of it.",
+  "Not quite.",
+  "Incomplete.",
+  "Closer — not enough.",
 ];
 
 // ---------- Pass judgments (score 3) ----------
@@ -102,140 +207,62 @@ const passJudgmentPool: readonly string[] = [
   "Good.",
   "That'll do.",
   "Fine.",
-  "That works.",
+  "Satisfactory.",
 ];
 
-// ---------- Adequate pressure per item (score 2) ----------
+// ---------- Adequate pressure per item (score 2) — short spoken ----------
 
 const adequatePressurePool: Record<string, readonly string[]> = {
-  "preflight-prep": [
-    "You're in the neighborhood — I'm not hearing a defendable process.",
-    "Parts are there. Nothing I can grade cleanly.",
-    "Surface-level.",
-  ],
   "lost-comms-vfr": [
-    "Parts are there — I need the sequence clean.",
-    "You're piecing it together. Not tight enough.",
-    "I can't tell you've flown it.",
-  ],
-  "stall-spin": [
-    "Closer — I still can't picture you recovering under stress.",
-    "You know the words. I don't hear the airplane.",
-    "Not enough feel.",
-  ],
-  "night-currency": [
-    "Touched it. Not tied together.",
-    "Where's the math?",
-    "Pieces — not a decision.",
-  ],
-  "crosswind-gusts": [
-    "Generic crosswind talk isn't enough today.",
-    "You're not managing the day — just describing it.",
-    "Too clean for gusty conditions.",
+    "Sequence still isn't clean enough to grade.",
+    "I can't tell you've flown this.",
+    "Pieces, not order.",
   ],
 };
-
-// ---------- Pass pressure / closer (score 3) — less uniform ----------
 
 const passPressurePool: readonly string[] = [
   "That's a checkride answer.",
   "Clean.",
-  "That held together.",
-  "You owned that one.",
+  "That held.",
+  "Good enough.",
 ];
 
 const passCloserPool: readonly string[] = [
-  "Move on when you're ready.",
+  "Move on when ready.",
   "Next.",
-  "We're done on this one.",
-  "Take the next one.",
-];
-
-// ---------- Retry push — shorter blunter variants ----------
-
-const retryPushPool: readonly string[] = [
-  "Walk me through it again.",
-  "From the top.",
-  "Again.",
-  "Start over.",
-  "Try it once more.",
-  "Again — properly this time.",
+  "Done here.",
+  "Next one.",
 ];
 
 const retryPushLostComms: readonly string[] = [
-  "Walk me through it step by step.",
-  "Step by step.",
-  "In order this time.",
-  "First action first.",
+  "Step by step. Go.",
+  "In order. Again.",
+  "First move first. Again.",
 ];
-
-const retryPushStall: readonly string[] = [
-  "Cues first. Then priorities. Out loud.",
-  "Again — cues, priorities, recovery.",
-  "Say it like you're flying it.",
-];
-
-const retryPushNight: readonly string[] = [
-  "Regulation, definition, landings, window, answer. Again.",
-  "Rule first. Then the math. Then your call.",
-  "Walk it — rule, math, decision.",
-];
-
-const retryPushCrosswind: readonly string[] = [
-  "Setup, short final, personal limits. Again.",
-  "Full picture — setup through limits.",
-  "Again — and commit to limits this time.",
-];
-
-// ---------- Weak pressure per item (score 1) ----------
 
 const weakPressurePool: Record<string, readonly string[]> = {
-  "preflight-prep": [
-    "You're giving general ideas, not a full process.",
-    "Too general.",
-    "That's a checklist name, not a plan.",
-    "Words, not a process.",
-  ],
   "lost-comms-vfr": [
-    "You jumped straight to the end.",
-    "You skipped the first thing.",
+    "You jumped to the end.",
     "Out of order.",
-    "That's the outcome — I need the work.",
-  ],
-  "stall-spin": [
-    "That sounds like words from a book.",
-    "Book answer. I need cues and priorities.",
-    "Too textbook.",
-    "I don't hear you in the airplane.",
-  ],
-  "night-currency": [
-    "I need a conclusion — not 'probably.'",
-    "That's not a decision.",
-    "Give me yes or no and why.",
-    "Vibes won't pass this.",
-  ],
-  "crosswind-gusts": [
-    "Not enough depth for gusty, limiting conditions.",
-    "Too shallow for the day.",
-    "That's normal-day crosswind. It's not a normal day.",
-    "Surface-level.",
+    "Landing first — I need the setup.",
   ],
 };
 
 const weakPressureFallback: readonly string[] = [
-  "That doesn't hold up.",
+  "Doesn't hold up.",
   "Not enough.",
-  "Too general.",
-  "That's thin.",
+  "Too thin.",
+  "Again. Tighter.",
 ];
-
-// ---------- Build a turn ----------
 
 export function buildExaminerSpokenTurn(
   itemId: string,
   score: ScoreValue,
   missed: readonly RubricPoint[],
+  options?: ExaminerTurnOptions,
 ): ExaminerSpokenTurn {
+  const depth = Math.min(Math.max(0, options?.repeatMissDepth ?? 0), 3);
+
   if (score >= 3) {
     const pressure = pick(passPressurePool);
     const closer = pick(passCloserPool);
@@ -246,39 +273,32 @@ export function buildExaminerSpokenTurn(
     };
   }
 
+  if (depth > 0) {
+    return buildEscalatedTurn(itemId, score, missed, depth);
+  }
+
   if (score === 2) {
     const pressurePool =
       adequatePressurePool[itemId] ?? weakPressureFallback;
     const pressure = pick(pressurePool);
     const gaps = gapsWherePair(missed.slice(0, 2));
-    const retry = pickRetryFor(itemId);
-    // Sometimes skip the retry push entirely — the silence is the pressure.
-    const drop = maybeDrop();
+    const retry = pick(retryPushLostComms);
     return {
       judgment: pick(adequateJudgmentPool),
       examinerNote: "",
-      spokenBeats: [pressure, gaps, drop ? "" : retry],
+      spokenBeats: [pressure, gaps, retry],
     };
   }
 
   const pressurePool = weakPressurePool[itemId] ?? weakPressureFallback;
   const pressure = pick(pressurePool);
   const gaps = gapsWherePair(missed.slice(0, 2));
-  const retry = pickRetryFor(itemId);
-  const drop = maybeDrop();
+  const retry = pick(retryPushLostComms);
   return {
     judgment: pick(weakJudgmentPool),
     examinerNote: "",
-    spokenBeats: [pressure, gaps, drop ? "" : retry],
+    spokenBeats: [pressure, gaps, retry],
   };
-}
-
-function pickRetryFor(itemId: string): string {
-  if (itemId === "lost-comms-vfr") return pick(retryPushLostComms);
-  if (itemId === "stall-spin") return pick(retryPushStall);
-  if (itemId === "night-currency") return pick(retryPushNight);
-  if (itemId === "crosswind-gusts") return pick(retryPushCrosswind);
-  return pick(retryPushPool);
 }
 
 /** Filter empty trailing beats (pass path uses a shorter third line). */
