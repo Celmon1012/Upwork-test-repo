@@ -140,23 +140,27 @@ body {
   border-color: rgba(216, 199, 173, 0.55) !important;
 }
 
-/* Placeholder — warm cream, visible but softer than typed text */
+/* Placeholder — slightly smaller, 0.7 opacity vs typed text */
 textarea.oral-answer-line::placeholder,
 textarea.oral-answer-line::-webkit-input-placeholder,
 textarea.oral-answer-line::-moz-placeholder {
-  color: rgba(220, 210, 195, 0.72);
-  -webkit-text-fill-color: rgba(220, 210, 195, 0.72);
+  color: rgba(235, 230, 220, 0.7);
+  -webkit-text-fill-color: rgba(235, 230, 220, 0.7);
   opacity: 1;
+  font-size: 0.82rem;
   font-style: italic;
   font-weight: 300;
 }
 
-/* Focus: brighten the bottom writing line and left accent bar */
-.oral-input-wrap:focus-within .oral-answer-line {
-  border-bottom-color: rgba(216, 199, 173, 0.82) !important;
+@media (min-width: 640px) {
+  textarea.oral-answer-line::placeholder,
+  textarea.oral-answer-line::-webkit-input-placeholder,
+  textarea.oral-answer-line::-moz-placeholder {
+    font-size: 0.86rem;
+  }
 }
 
-.oral-input-wrap:focus-within > div:first-child {
-  opacity: 1;
-  background-image: linear-gradient(to bottom, rgba(216, 199, 173, 0.82), rgba(201, 180, 138, 0.55), transparent);
+/* Focus: brighten the bottom writing line */
+.oral-input-wrap:focus-within .oral-answer-line {
+  border-bottom-color: rgba(216, 199, 173, 0.82) !important;
 }

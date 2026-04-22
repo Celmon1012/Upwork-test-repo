@@ -598,18 +598,13 @@ export function OralEvaluationExperience() {
                     <label htmlFor="oral-answer" className="sr-only">
                       Response to the examiner
                     </label>
-                    {/* Left-bar + writing-area — dims while examiner is thinking */}
+                    {/* Writing-area — dims while examiner is thinking */}
                     <div
-                      className={`oral-input-wrap relative mt-3 flex gap-3 transition-opacity duration-500 ease-out ${
+                      className={`oral-input-wrap relative mt-3 w-full transition-opacity duration-500 ease-out ${
                         evaluating ? "opacity-[0.38]" : "opacity-100"
                       }`}
                     >
-                      {/* Left accent bar */}
-                      <div
-                        aria-hidden
-                        className="pointer-events-none mt-1 w-[3px] shrink-0 rounded-full bg-gradient-to-b from-[#d8c7ad]/55 via-[#c9b48a]/35 to-transparent"
-                      />
-                      <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="flex min-w-0 w-full flex-col">
                         <textarea
                           ref={answerRef}
                           id="oral-answer"
@@ -627,7 +622,7 @@ export function OralEvaluationExperience() {
                               if (!evaluating) runEvaluation();
                             }
                           }}
-                          className="oral-answer-line box-border min-h-[4rem] max-h-[min(22vh,9rem)] w-full resize-none border-0 border-b-2 border-[#c9b48a]/55 bg-[#050810]/50 pb-2.5 pl-1 pr-1 pt-2 text-[0.9rem] leading-[1.62] text-[#ebe6dc] focus:outline-none focus-visible:outline-none focus:ring-0 sm:text-[0.95rem]"
+                          className="oral-answer-line box-border min-h-[4rem] max-h-[min(22vh,9rem)] w-full resize-none border-0 border-b-2 border-[#c9b48a]/55 bg-[#050810]/40 pb-2.5 pl-1 pr-1 pt-2 text-[0.9rem] leading-[1.62] text-[#ebe6dc] focus:outline-none focus-visible:outline-none focus:ring-0 sm:text-[0.95rem]"
                         />
                         {/* Writing-line glow under the border */}
                         <div className="pointer-events-none h-px w-full bg-gradient-to-r from-[#c9b48a]/18 via-[#d9ccb7]/22 to-transparent" aria-hidden />
