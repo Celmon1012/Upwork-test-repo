@@ -33,11 +33,11 @@ const cinematicEase = [0.16, 1, 0.3, 1] as const;
 /** Phase 1: single-scenario rubric (lost comms VFR). */
 const rubricByItem: Record<string, readonly RubricPoint[]> = {
   "lost-comms-vfr": [
-    { label: "transponder action", keywords: ["7600", "transponder", "squawk"] },
-    { label: "route priority", keywords: ["assigned", "expected", "filed", "route"] },
-    { label: "altitude priority", keywords: ["mea", "minimum", "altitude", "highest"] },
-    { label: "regulatory basis", keywords: ["91.185", "regulation", "rule"] },
-    { label: "practical execution order", keywords: ["first", "then", "order", "sequence"] },
+    { label: "7600", keywords: ["7600", "transponder", "squawk"] },
+    { label: "route stack", keywords: ["assigned", "expected", "filed", "route"] },
+    { label: "altitude stack", keywords: ["mea", "minimum", "altitude", "highest"] },
+    { label: "91.185", keywords: ["91.185", "regulation", "rule"] },
+    { label: "clear order", keywords: ["first", "then", "order", "sequence"] },
   ],
 };
 
@@ -1276,12 +1276,8 @@ function splitSpokenChunks(text: string): readonly string[] {
  * pacing. Does not change source copy — only how many motion lines we render.
  * Splits long clauses at ", " when both sides stay substantial.
  */
-/**
- * "Show me the answer" — keep the model read to a spoken length (client: ~6–10
- * sentences). Over-long sources are cut to 8 sentences; ≤10 sentences stay intact.
- */
-const EXPANDED_ANSWER_MAX_SENTENCES = 10;
-const EXPANDED_ANSWER_TRIM_TO = 8;
+/** "Show me the answer" — keep to a few short spoken lines (client target 3–4). */
+const EXPANDED_ANSWER_MAX_LINES = 3;
 
 function capExpandedModelAnswerSentences(lines: readonly string[]): string[] {
   const sentences: string[] = [];
@@ -1295,16 +1291,13 @@ function capExpandedModelAnswerSentences(lines: readonly string[]): string[] {
     if (parts.length) sentences.push(...parts);
     else sentences.push(t);
   }
-  if (sentences.length > EXPANDED_ANSWER_MAX_SENTENCES) {
-    return sentences.slice(0, EXPANDED_ANSWER_TRIM_TO);
-  }
-  return sentences;
+  return sentences.slice(0, EXPANDED_ANSWER_MAX_LINES);
 }
 
 function refineToShorterLines(
   lines: readonly string[],
-  maxLen = 68,
-  minClause = 12,
+  maxLen = 44,
+  minClause = 8,
 ): string[] {
   const result: string[] = [];
   for (const raw of lines) {
@@ -1333,7 +1326,7 @@ function compactSpokenLines(parts: readonly string[]): string[] {
 
 /**
  * Phase 1 — spoken beats after the headline judgment (JudgmentBlock = line 1 only):
- * pressure → 1–2 gaps (rubric-driven) → retry. Teaching mode still streams the
+ * pressure → 1–2 gap **lines** (rubric-driven, separate sentences) → retry. Teaching mode still streams the
  * standard answer from static `evaluation` copy.
  */
 function composeExplanationSegments(
@@ -1342,7 +1335,7 @@ function composeExplanationSegments(
 ): readonly string[] {
   if (teaching) {
     return compactSpokenLines([
-      "All right — here’s what I’m listening for on this one.",
+      "Here's what I'm listening for.",
       ...refineToShorterLines([
         ...splitSpokenChunks(evaluation.stronger),
         ...splitSpokenChunks(evaluation.why),

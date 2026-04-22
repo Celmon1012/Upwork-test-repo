@@ -1,7 +1,7 @@
 /**
  * Phase 1 examiner voice (lost comms VFR only): judgment → pressure → 1–2 gaps
  * → retry push. `repeatMissDepth > 0` after **Try again** escalates copy (second
- * failure onward), including two-beat (pressure + order/close) or three-beat scripts.
+ * failure onward): judgment, then pressure → short order beats → retry.
  */
 
 import type { ScoreValue } from "./content";
@@ -20,8 +20,11 @@ export type ExaminerSpokenTurn = {
   judgment: string;
   /** Kept for EvaluationBlock compatibility; immersive UI leaves headline-only. */
   examinerNote: string;
-  /** Three beats after the headline: pressure, gaps, retry push. */
-  spokenBeats: readonly [string, string, string];
+  /**
+   * After the headline: pressure, then one or two **separate** gap lines when
+   * two rubric holes, then retry (miss path). Pass path: pressure + closer only.
+   */
+  spokenBeats: readonly string[];
 };
 
 function pick<T>(arr: readonly T[]): T {
@@ -37,43 +40,31 @@ function gapOne(label: string): string {
     `Where's your ${label}?`,
   ];
   const secondary: readonly string[] = [
-    `I'm not hearing ${label}.`,
-    `You didn't give me ${label}.`,
-    `I still don't have ${label}.`,
-    `I'm waiting on ${label}.`,
+    `Not hearing ${label}.`,
+    `No ${label}.`,
+    `Still missing ${label}.`,
   ];
   return Math.random() < 0.62 ? pick(primary) : pick([...primary, ...secondary]);
 }
 
-function gapTwo(a: string, b: string): string {
-  const primary: readonly string[] = [
-    `I didn't hear ${a}. I didn't hear ${b}.`,
-    `Where's your ${a}? Where's your ${b}?`,
-    `Where's your ${a}? I didn't hear ${b}.`,
-    `I didn't hear ${a}. Where's your ${b}?`,
-  ];
-  const secondary: readonly string[] = [
-    `I didn't get ${a}, and I didn't get ${b} either.`,
-    `You skipped ${a} and ${b}.`,
-    `I'm missing both ${a} and ${b}.`,
-  ];
-  return Math.random() < 0.58 ? pick(primary) : pick([...primary, ...secondary]);
-}
-
-function gapsWherePair(missed: readonly RubricPoint[]): string {
+/** Two rubric gaps as **separate** spoken lines (oral cadence, not one compound sentence). */
+function gapLinesFromTopMisses(missed: readonly RubricPoint[]): readonly string[] {
   const a = missed[0]?.label;
   const b = missed[1]?.label;
-  if (a && b) return gapTwo(a, b);
-  if (a) return gapOne(a);
-  return pick([
-    "I didn't hear enough.",
-    "That was thin. Say what you're skipping.",
-    "You're holding back. Spell it out.",
-  ]);
-}
-
-function capFirst(s: string): string {
-  return s ? s[0]!.toUpperCase() + s.slice(1) : s;
+  if (a && b) {
+    if (Math.random() < 0.5) {
+      return [`Where's your ${a}?`, `I didn't hear ${b}.`];
+    }
+    return [`I didn't hear ${a}.`, `Where's your ${b}?`];
+  }
+  if (a) return [gapOne(a)];
+  return [
+    pick([
+      "Not enough there.",
+      "Too thin. Name it.",
+      "Spell it out.",
+    ]),
+  ];
 }
 
 // ---------- Escalation (repeat miss on same item) ----------
@@ -81,22 +72,26 @@ function capFirst(s: string): string {
 const escalationJudgmentPool: readonly string[] = [
   "Still not there.",
   "Same problem.",
-  "No — we're not there yet.",
-  "That didn't fix it.",
+  "Not there yet.",
+  "Didn't fix it.",
 ];
 
 function pickEscalationJudgment(repeatDepth: number): string {
-  // First repeat miss: lean on the client’s headline so it lands like a real oral.
-  if (repeatDepth === 1 && Math.random() < 0.5) return "Still not there.";
+  // First repeat miss: blunt headline so the structured beats land harder.
+  if (repeatDepth === 1) {
+    return Math.random() < 0.82 ? "Still not there." : pick(escalationJudgmentPool);
+  }
+  if (repeatDepth === 2 && Math.random() < 0.4) return "Same problem.";
   return pick(escalationJudgmentPool);
 }
 
-/** Two beats after judgment: pressure, then structured close (order + go again in one line). */
-type EscalationTwoBeat = {
-  readonly kind: "twoBeat";
+/** After judgment: pressure → short stack beats → retry. */
+type EscalationStructured = {
+  readonly kind: "structured";
   readonly pressure: string;
-  /** Order / structure + close — one spoken unit, not a separate “retry” chip. */
-  readonly orderAndClose: string;
+  /** One oral beat per string — keep each line tiny. */
+  readonly orderBeats: readonly string[];
+  readonly retry: string;
 };
 
 type EscalationThreeBeat = {
@@ -106,13 +101,11 @@ type EscalationThreeBeat = {
   readonly retry: string;
 };
 
-type EscalationScript = EscalationTwoBeat | EscalationThreeBeat;
+type EscalationScript = EscalationStructured | EscalationThreeBeat;
 
-function spokenTripletFromEscalation(
-  script: EscalationScript,
-): readonly [string, string, string] {
-  if (script.kind === "twoBeat") {
-    return [script.pressure, script.orderAndClose, ""];
+function spokenBeatsFromEscalation(script: EscalationScript): readonly string[] {
+  if (script.kind === "structured") {
+    return [script.pressure, ...script.orderBeats, script.retry];
   }
   return [script.pressure, script.gaps, script.retry];
 }
@@ -124,22 +117,31 @@ function spokenTripletFromEscalation(
 const escalationByItem: Record<string, readonly EscalationScript[]> = {
   "lost-comms-vfr": [
     {
-      kind: "twoBeat",
-      pressure: "Still out of order.",
-      orderAndClose:
-        "Confirm failure, then lights, route, altitude, intention. That order. Go again.",
+      kind: "structured",
+      pressure: "No sequence.",
+      orderBeats: [
+        "Verify failure. Squawk.",
+        "Then continue VFR.",
+      ],
+      retry: "Go again.",
     },
     {
-      kind: "twoBeat",
-      pressure: "You keep skipping to the end.",
-      orderAndClose:
-        "First move before 7600. Say it again.",
+      kind: "structured",
+      pressure: "Need order.",
+      orderBeats: [
+        "7600 first.",
+        "Route, then altitude, then intention.",
+      ],
+      retry: "Again. Out loud.",
     },
     {
-      kind: "threeBeat",
-      pressure: "Same miss. I'm being literal.",
-      gaps: "Not squawk-and-land. I need the order.",
-      retry: "Step by step. Now.",
+      kind: "structured",
+      pressure: "Third pass. No blanks.",
+      orderBeats: [
+        "Code it. Fly 91.185 order.",
+        "VFR landing? Say why it's legal.",
+      ],
+      retry: "Now.",
     },
   ],
 };
@@ -158,46 +160,43 @@ function buildEscalatedTurn(
     return {
       judgment: pickEscalationJudgment(depth),
       examinerNote: "",
-      spokenBeats: spokenTripletFromEscalation(scripted),
+      spokenBeats: spokenBeatsFromEscalation(scripted),
     };
   }
 
-  const g = gapsWherePair(missed.slice(0, 2));
+  const gapLines = gapLinesFromTopMisses(missed.slice(0, 2));
+  const pressureLine =
+    depth >= 3
+      ? "Third miss. Change it."
+      : depth >= 2
+        ? "Same circle. New shape."
+        : "Same gap. More.";
   return {
     judgment: pickEscalationJudgment(depth),
     examinerNote: "",
-    spokenBeats: [
-      depth >= 3
-        ? "Third miss — change the answer."
-        : depth >= 2
-          ? "Same circle. Different structure."
-          : "Same gap. More this time.",
-      g,
-      pick(retryPushLostComms),
-    ],
+    spokenBeats: [pressureLine, ...gapLines, pick(retryPushLostComms)],
   };
 }
 
 // ---------- Weak judgments (score 1) ----------
 
 const weakJudgmentPool: readonly string[] = [
-  "That's not sufficient.",
   "Not sufficient.",
   "No.",
   "Not enough.",
-  "That's too general.",
-  "That won't fly.",
+  "Too general.",
   "Insufficient.",
+  "That won't fly.",
 ];
 
 // ---------- Adequate judgments (score 2) ----------
 
 const adequateJudgmentPool: readonly string[] = [
-  "Still incomplete.",
+  "Incomplete.",
   "Not yet.",
   "Not quite.",
-  "Incomplete.",
-  "Closer — not enough.",
+  "Still thin.",
+  "Not enough.",
 ];
 
 // ---------- Pass judgments (score 3) ----------
@@ -214,21 +213,21 @@ const passJudgmentPool: readonly string[] = [
 
 const adequatePressurePool: Record<string, readonly string[]> = {
   "lost-comms-vfr": [
-    "Sequence still isn't clean enough to grade.",
-    "I can't tell you've flown this.",
-    "Pieces, not order.",
+    "Can't grade that order.",
+    "Not flown. Just said.",
+    "Pieces. No order.",
   ],
 };
 
 const passPressurePool: readonly string[] = [
-  "That's a checkride answer.",
+  "Checkride answer.",
   "Clean.",
   "That held.",
   "Good enough.",
 ];
 
 const passCloserPool: readonly string[] = [
-  "Move on when ready.",
+  "Move on.",
   "Next.",
   "Done here.",
   "Next one.",
@@ -244,7 +243,7 @@ const weakPressurePool: Record<string, readonly string[]> = {
   "lost-comms-vfr": [
     "You jumped to the end.",
     "Out of order.",
-    "Landing first — I need the setup.",
+    "Landing first. No setup.",
   ],
 };
 
@@ -269,7 +268,7 @@ export function buildExaminerSpokenTurn(
     return {
       judgment: pick(passJudgmentPool),
       examinerNote: "",
-      spokenBeats: [pressure, closer, ""],
+      spokenBeats: [pressure, closer],
     };
   }
 
@@ -281,29 +280,27 @@ export function buildExaminerSpokenTurn(
     const pressurePool =
       adequatePressurePool[itemId] ?? weakPressureFallback;
     const pressure = pick(pressurePool);
-    const gaps = gapsWherePair(missed.slice(0, 2));
+    const gapLines = gapLinesFromTopMisses(missed.slice(0, 2));
     const retry = pick(retryPushLostComms);
     return {
       judgment: pick(adequateJudgmentPool),
       examinerNote: "",
-      spokenBeats: [pressure, gaps, retry],
+      spokenBeats: [pressure, ...gapLines, retry],
     };
   }
 
   const pressurePool = weakPressurePool[itemId] ?? weakPressureFallback;
   const pressure = pick(pressurePool);
-  const gaps = gapsWherePair(missed.slice(0, 2));
+  const gapLines = gapLinesFromTopMisses(missed.slice(0, 2));
   const retry = pick(retryPushLostComms);
   return {
     judgment: pick(weakJudgmentPool),
     examinerNote: "",
-    spokenBeats: [pressure, gaps, retry],
+    spokenBeats: [pressure, ...gapLines, retry],
   };
 }
 
-/** Filter empty trailing beats (pass path uses a shorter third line). */
-export function compactSpokenBeats(
-  beats: readonly [string, string, string],
-): readonly string[] {
+/** Trim and drop empty beats. */
+export function compactSpokenBeats(beats: readonly string[]): readonly string[] {
   return beats.map((s) => s.trim()).filter((s) => s.length > 0);
 }
