@@ -676,8 +676,17 @@ export function OralEvaluationExperience() {
                     <div
                       className={`flex flex-wrap items-center gap-x-4 gap-y-1 ${
                         answerError ? "mt-3" : "mt-2.5"
-                      } justify-end`}
+                      } ${evaluating ? "justify-end" : "justify-start"}`}
                     >
+                      {!evaluating ? (
+                        <button
+                          type="button"
+                          onClick={runShowMe}
+                          className={`-ml-0.5 ${FOOTER_WHISPER}`}
+                        >
+                          If you want to hear one.
+                        </button>
+                      ) : null}
                       {evaluating ? (
                         <div className="flex items-center gap-2.5">
                           <span className="sr-only" role="status" aria-live="polite">
