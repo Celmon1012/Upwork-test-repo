@@ -30,7 +30,7 @@ type RubricPoint = { label: string; keywords: readonly string[] };
 
 const cinematicEase = [0.16, 1, 0.3, 1] as const;
 
-/** Phase 1: single-scenario rubric (lost comms VFR). */
+/** Phase 2: scenario rubrics for 0–3 scoring. */
 const rubricByItem: Record<string, readonly RubricPoint[]> = {
   "lost-comms-vfr": [
     { label: "7600", keywords: ["7600", "transponder", "squawk"] },
@@ -38,6 +38,34 @@ const rubricByItem: Record<string, readonly RubricPoint[]> = {
     { label: "altitude stack", keywords: ["mea", "minimum", "altitude", "highest"] },
     { label: "91.185", keywords: ["91.185", "regulation", "rule"] },
     { label: "clear order", keywords: ["first", "then", "order", "sequence"] },
+  ],
+  "weather-briefing-go-no-go": [
+    { label: "weather sources", keywords: ["metar", "taf", "radar", "winds aloft"] },
+    { label: "hazard assessment", keywords: ["ceiling", "visibility", "icing", "convection", "thunderstorm"] },
+    { label: "go/no-go logic", keywords: ["go", "no-go", "decision", "personal minimum"] },
+    { label: "alternate plan", keywords: ["alternate", "divert", "plan b"] },
+    { label: "clear sequence", keywords: ["first", "then", "next", "sequence"] },
+  ],
+  "notams-and-airspace-brief": [
+    { label: "NOTAM coverage", keywords: ["notam", "departure", "destination", "alternate"] },
+    { label: "restriction check", keywords: ["tfr", "closure", "outage", "restriction"] },
+    { label: "airspace legality", keywords: ["airspace", "class", "legal", "clearance"] },
+    { label: "route adjustment", keywords: ["reroute", "revise", "change route", "avoid"] },
+    { label: "communication/equipment", keywords: ["comms", "radio", "transponder", "equipment"] },
+  ],
+  "runway-performance-assessment": [
+    { label: "performance inputs", keywords: ["weight", "altitude", "temperature", "wind"] },
+    { label: "POH corrections", keywords: ["poh", "surface", "slope", "obstacle"] },
+    { label: "distance comparison", keywords: ["required distance", "available runway", "margin"] },
+    { label: "runway suitability decision", keywords: ["suitable", "unsuitable", "accept", "reject"] },
+    { label: "mitigation", keywords: ["reduce weight", "delay", "another runway", "another airport"] },
+  ],
+  "weight-balance-fuel-plan": [
+    { label: "weight and CG", keywords: ["weight", "cg", "center of gravity", "envelope"] },
+    { label: "envelope compliance", keywords: ["within limits", "max gross", "limits"] },
+    { label: "fuel components", keywords: ["taxi", "trip", "reserve", "contingency"] },
+    { label: "wind adjustment", keywords: ["headwind", "wind correction", "extra fuel"] },
+    { label: "final go/no-go", keywords: ["go", "no-go", "offload", "delay"] },
   ],
 };
 
@@ -47,13 +75,20 @@ function transitionMs(reduce: boolean | null, ms: number) {
 
 /** Short disposition line — shown alone before any supporting copy. */
 function verdictLine(score: ScoreValue, teaching: boolean = false): string {
-  if (teaching) return "Here’s what I want.";
+  if (teaching) return "Here's what I want.";
   if (score >= 3) return "Satisfactory.";
   return "Not sufficient.";
 }
 
+const SCORE_MEANING: Record<ScoreValue, string> = {
+  0: "Off-target or no usable answer",
+  1: "Weak / fragmented (partial knowledge, poor structure)",
+  2: "Adequate but incomplete (misses 1–2 important items)",
+  3: "Complete, checkride-ready answer",
+};
+
 /*
- * Oral-room presentation (not “just UI”): these timings and motion choices
+ * Oral-room presentation (not "just UI"): these timings and motion choices
  * are how the examiner *feels* — verdict weight, silence, when the next
  * line is allowed to land. Backend copy can stay fixed; this layer shapes
  * checkride-like rhythm on the client.
@@ -139,7 +174,7 @@ function readingDwellAfterSpeechMs(reduce: boolean | null, score: ScoreValue): n
 }
 
 /**
- * Phase 1: fixed examiner “think” window after typed submit — 1–2 seconds
+ * Phase 1: fixed examiner "think" window after typed submit — 1–2 seconds
  * before the judgment and spoken beats appear (no snap / long-tail modes).
  */
 function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
@@ -168,12 +203,12 @@ export function OralEvaluationExperience() {
   const [markedItems, setMarkedItems] = useState<ReadonlySet<string>>(
     () => new Set<string>(),
   );
-  
+
   const [showMeMode, setShowMeMode] = useState(false);
-  // Gated reveal of the full strong answer (model answer + rationale + deeper).
+  // Gated reveal of the strong sample answer block.
   // Never open by default — the user has to ask for it.
   const [showAnswer, setShowAnswer] = useState(false);
-  /** While true, bookmark + feedback actions stay hidden so the full answer can land alone. */
+  /** While true, bookmark + feedback actions stay hidden so the sample answer can land alone. */
   const [answerRevealChromeHidden, setAnswerRevealChromeHidden] =
     useState(false);
   /** Increments each Try again on the same item — sharper examiner copy on repeat miss. */
@@ -191,8 +226,7 @@ export function OralEvaluationExperience() {
   const isMarked = markedItems.has(item.id);
   // Per-segment reveal duration — uniform across all lines and all responses.
   // Variation lives in the *pauses between* lines (see segmentRevealDelayMs),
-  // not in how long each line takes to fade in. Keeping the fade itself
-  // constant gives every response the same visual rhythm on-screen.
+  // not in how long each line takes to fade in.
   const SEGMENT_FADE_SECONDS = 0.88;
   const segmentDurations = useMemo(
     () => explanationSegments.map(() => SEGMENT_FADE_SECONDS),
@@ -202,6 +236,13 @@ export function OralEvaluationExperience() {
     .length;
   const allSegmentsRevealed =
     segmentCount === 0 ? true : revealedSegments >= segmentCount;
+
+  // Static sample answer lines — used by "Show Me Answer" after evaluation.
+  // Pulled directly from item.sampleAnswer (clean, per-question, no mixing).
+  const sampleAnswerLines = useMemo(
+    () => item.sampleAnswer.slice(),
+    [item],
+  );
 
   const runEvaluation = useCallback(() => {
     const answer = answerRef.current?.value.trim() ?? "";
@@ -325,15 +366,6 @@ export function OralEvaluationExperience() {
     });
   }, []);
 
-  const expandedAnswerLines = useMemo(() => {
-    const raw = refineToShorterLines([
-      ...splitSpokenChunks(item.evaluation.stronger),
-      ...splitSpokenChunks(item.evaluation.why),
-      ...item.evaluation.deeperExplanation,
-    ]);
-    return capExpandedModelAnswerSentences(raw);
-  }, [item]);
-
   // After "Show me the answer", keep bookmark + actions hidden until the
   // expanded block has had time to open and the last line has finished fading in.
   useEffect(() => {
@@ -344,14 +376,15 @@ export function OralEvaluationExperience() {
       return;
     }
 
-    const n = expandedAnswerLines.length;
+    const n = sampleAnswerLines.length;
     if (n === 0) {
       setAnswerRevealChromeHidden(false);
       return;
     }
 
-    // Match motion.div height (~0.55s) + last line delay + fade (0.24 + i*0.42 + 0.7s).
-    const lastLineEndMs = (0.24 + (n - 1) * 0.42 + 0.7) * 1000;
+    // Match motion.div height (~0.55s) + label delay + last line delay + fade.
+    // label at 0, lines staggered at 0.18 + index * 0.38 + 0.65s fade.
+    const lastLineEndMs = (0.18 + (n - 1) * 0.38 + 0.65) * 1000;
     const totalMs = Math.round(550 + lastLineEndMs + 220);
 
     const id = window.setTimeout(() => {
@@ -360,7 +393,7 @@ export function OralEvaluationExperience() {
     return () => window.clearTimeout(id);
   }, [
     answerRevealChromeHidden,
-    expandedAnswerLines.length,
+    sampleAnswerLines.length,
     item.id,
     reduceMotion,
     showAnswer,
@@ -382,18 +415,10 @@ export function OralEvaluationExperience() {
     return () => window.clearTimeout(timer);
   }, [justReceived]);
 
-  // The primary action is context-sensitive:
-  //   - Teaching mode (showMeMode) or a passing score  → Enter moves on.
-  //   - Anything below satisfactory                    → Enter retries. This
-  //     is the whole point of the DPE posture: you don't walk away; you talk
-  //     again. The examiner keeps the pressure on the user, not on the clock.
+  // Keyboard Enter follows the explicit Next Question action in Phase 2.
   const primaryAfterFeedback = useCallback(() => {
-    if (showMeMode || evaluation.score >= 3) {
-      advanceFromFeedback();
-    } else {
-      tryAgain();
-    }
-  }, [advanceFromFeedback, evaluation.score, showMeMode, tryAgain]);
+    advanceFromFeedback();
+  }, [advanceFromFeedback]);
 
   useEffect(() => {
     if (sessionPhase !== "feedback" || !allSegmentsRevealed) return;
@@ -471,13 +496,8 @@ export function OralEvaluationExperience() {
 
   // End-of-moment pacing.
   //
-  // DPE rule: on an incomplete or unsatisfactory answer, the room does NOT
-  // move on by itself. The user has to act — try again, ask for the answer,
-  // or explicitly move on. No auto-advance, no clock rescuing them.
-  //
-  // A satisfactory answer is the only case where a soft wrap-up cue lands
-  // and the session will drift forward. Everywhere else, the silence after
-  // the verdict is the pressure.
+  // Phase 2: after feedback, the user chooses from explicit actions. We keep
+  // only the soft wrap-up cue timing and remove timed auto-advance.
   useEffect(() => {
     if (sessionPhase !== "feedback" || !allSegmentsRevealed) return;
     // User opened the full model answer — stay with them.
@@ -495,15 +515,10 @@ export function OralEvaluationExperience() {
       () => setShowTransitionCue(true),
       Math.max(0, dwell - cueLead),
     );
-    const advanceTimer = window.setTimeout(() => {
-      advanceFromFeedback();
-    }, dwell);
     return () => {
       window.clearTimeout(cueTimer);
-      window.clearTimeout(advanceTimer);
     };
   }, [
-    advanceFromFeedback,
     allSegmentsRevealed,
     evaluation.score,
     reduceMotion,
@@ -532,14 +547,6 @@ export function OralEvaluationExperience() {
               }}
               className="relative mx-auto flex min-h-0 w-full max-w-[min(88vw,50rem)] flex-col"
             >
-            {/* Bookmark only after the examiner has fully delivered feedback —
-                same beat as learning/review actions (no chrome during respond / thinking / reveal). */}
-            {sessionPhase === "feedback" &&
-            allSegmentsRevealed &&
-            !(showAnswer && answerRevealChromeHidden) ? (
-              <BookmarkToggle marked={isMarked} onToggle={toggleMark} />
-            ) : null}
-
             <div
               className={`oral-scrollbar-none relative z-[1] flex max-h-[88dvh] w-full flex-col overflow-y-auto overflow-x-hidden text-left ${ATMOSPHERE_PANEL}`}
             >
@@ -741,9 +748,6 @@ export function OralEvaluationExperience() {
                               reduceMotion
                                 ? { opacity: 1, y: 0 }
                                 : {
-                                    // Hesitation beat at the start of each
-                                    // segment — the examiner catches a breath,
-                                    // forms the thought, then the words land.
                                     opacity: [0, 0.16, 0.42, 1],
                                     y: [7, 5, 3, 0],
                                   }
@@ -765,6 +769,7 @@ export function OralEvaluationExperience() {
                       })}
                     </div>
 
+                    {/* Sample answer reveal — shown after "Show Me Answer" is clicked post-evaluation. */}
                     <AnimatePresence initial={false}>
                       {allSegmentsRevealed && showAnswer && !showMeMode && (
                         <motion.div
@@ -778,18 +783,31 @@ export function OralEvaluationExperience() {
                             ease: cinematicEase,
                           }}
                         >
-                          {expandedAnswerLines.map((line, index) => (
+                          {/* "Sample answer" label */}
+                          <motion.p
+                            initial={reduceMotion ? false : { opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{
+                              duration: transitionMs(reduceMotion, 0.4),
+                              delay: reduceMotion ? 0 : 0.1,
+                              ease: cinematicEase,
+                            }}
+                            className="mt-6 text-[0.58rem] font-normal uppercase tracking-[0.26em] text-[#a09070]/52"
+                          >
+                            Sample answer
+                          </motion.p>
+                          {sampleAnswerLines.map((line, index) => (
                             <motion.p
-                              key={`${item.id}-answer-${index}`}
-                              initial={reduceMotion ? false : { opacity: 0, y: 5 }}
+                              key={`${item.id}-sample-${index}`}
+                              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{
-                                duration: transitionMs(reduceMotion, 0.7),
-                                delay: reduceMotion ? 0 : 0.24 + index * 0.42,
+                                duration: transitionMs(reduceMotion, 0.65),
+                                delay: reduceMotion ? 0 : 0.18 + index * 0.38,
                                 ease: cinematicEase,
                               }}
-                              className={`text-[0.88rem] leading-[1.92] tracking-[0.01em] text-[#b9b3a9]/92 sm:text-[0.92rem] ${
-                                index === 0 ? "mt-5" : "mt-6"
+                              className={`text-[0.88rem] leading-[1.88] tracking-[0.01em] text-[#d2ccc4]/92 sm:text-[0.92rem] ${
+                                index === 0 ? "mt-3" : "mt-3.5"
                               }`}
                             >
                               {line}
@@ -807,7 +825,7 @@ export function OralEvaluationExperience() {
                         showAnswer={showAnswer}
                         onToggleAnswer={toggleAnswer}
                         onTryAgain={tryAgain}
-                        onMoveOn={advanceFromFeedback}
+                        onNextQuestion={advanceFromFeedback}
                         marked={isMarked}
                         onToggleMark={toggleMark}
                         showCue={
@@ -815,7 +833,6 @@ export function OralEvaluationExperience() {
                           (evaluation.score < 3 && !showMeMode)
                         }
                         reduceMotion={reduceMotion}
-                        onHearStandard={runShowMe}
                       />
                     )}
                   </motion.div>
@@ -831,72 +848,17 @@ export function OralEvaluationExperience() {
 }
 
 /**
- * Bookmark toggle — minimal, non-distracting.
+ * Feedback action row — Phase 2.
  *
- * A small flag icon tucked into the corner of the panel. It's present
- * but recessed; marking a question feels like flipping a silent flag,
- * not triggering a UI element.
+ * Score line + four explicit post-eval actions in-panel, directly under evaluator output:
+ *   Try Again · Show Me Answer · Review Later   /   Next Question
  */
-function BookmarkToggle({
-  marked,
-  onToggle,
-}: {
-  marked: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-label={marked ? "Unmark this question" : "Mark this question for review"}
-      aria-pressed={marked}
-      className={`absolute right-2 top-1 z-10 h-6 w-6 rounded-full outline-none transition-colors duration-300 ease-out focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/28 sm:right-3 sm:top-2 ${
-        marked
-          ? "text-[#c9a66e]/55 hover:text-[#d4b17a]/72"
-          : "text-white/[0.22] hover:text-white/[0.38]"
-      }`}
-    >
-      <svg
-        viewBox="0 0 14 18"
-        width="14"
-        height="18"
-        aria-hidden
-        className="mx-auto"
-      >
-        <path
-          d="M2.5 2h9a0.5 0.5 0 0 1 0.5 0.5v14l-5-3-5 3v-14a0.5 0.5 0 0 1 0.5-0.5z"
-          fill={marked ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="1.1"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </button>
-  );
-}
 
-/**
- * Feedback action row.
- *
- * Shape follows the DPE posture, not a ChatGPT-style "here's everything" card:
- *
- *   - Failed / incomplete (score < 3):
- *       Primary (right, Enter)         → "Try again" (same question)
- *       Secondary (left, toggle)       → "Show me the answer" / "Hide the answer"
- *       Tertiary (left, quiet)         → "Move on" (escape hatch, not nudged)
- *       Soft italic cue (left)         → "Your move." — lands with showCue
- *
- *   - Satisfactory (score ≥ 3) or teaching mode:
- *       Primary (right, Enter)         → "Next question"
- *       Secondary (left, toggle)       → "Show me the answer" (still available)
- *
- * The user has to act. The room no longer drifts forward by itself on a miss.
- */
 /** Secondary — whisper-weight; examiner copy stays the focus. */
 const SECONDARY_ACTION =
   "rounded-sm border-0 bg-transparent px-0.5 py-0.5 text-left font-serif text-[0.76rem] font-light not-italic tracking-[0.004em] text-[#b8b0a4]/46 outline-none transition-[color,background-color] duration-200 ease-out hover:bg-white/[0.03] hover:text-[#c9c2b6]/62 focus-visible:text-[#d4cdc2]/72 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/16 sm:text-[0.78rem]";
 
-/** Primary — minimal chrome; slightly brighter on hover so it’s still findable. */
+/** Primary — minimal chrome; slightly brighter on hover so it's still findable. */
 const PRIMARY_ACTION =
   "inline-flex items-baseline gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 font-sans text-[0.76rem] font-normal not-italic tracking-[0.008em] text-[#d2cbc0]/72 shadow-none outline-none transition-[color,background-color,border-color] duration-200 ease-out hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-[#e4ddd2]/88 focus-visible:border-[#d8c7ad]/22 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/18 sm:text-[0.78rem]";
 
@@ -906,29 +868,25 @@ function FeedbackActions({
   showAnswer,
   onToggleAnswer,
   onTryAgain,
-  onMoveOn,
+  onNextQuestion,
   marked,
   onToggleMark,
   showCue,
   reduceMotion,
-  onHearStandard,
 }: {
   score: ScoreValue;
   teaching: boolean;
   showAnswer: boolean;
   onToggleAnswer: () => void;
   onTryAgain: () => void;
-  onMoveOn: () => void;
+  onNextQuestion: () => void;
   marked: boolean;
   onToggleMark: () => void;
   showCue: boolean;
   reduceMotion: boolean | null;
-  /** Optional: hear a walk-through without a grade — only offered after feedback completes. */
-  onHearStandard?: () => void;
 }) {
   const passed = teaching || score >= 3;
-  const primaryLabel = passed ? "Next question" : "Try again";
-  const primaryAction = passed ? onMoveOn : onTryAgain;
+  const scoreMeaning = SCORE_MEANING[score];
 
   return (
     <motion.div
@@ -941,87 +899,90 @@ function FeedbackActions({
         ease: cinematicEase,
       }}
     >
+      <div className="flex min-w-0 flex-col items-start gap-[calc(0.42rem*1.3)]">
+        {/* Score display — score number slightly more prominent than description */}
+        {!teaching ? (
+          <p className="font-serif text-[0.73rem] font-light tracking-[0.01em] text-[#b5aca0]/80 sm:text-[0.76rem]">
+            <span className="font-medium not-italic text-[#ddd6ca]/88">
+              Score {score}/3
+            </span>
+            {" — "}
+            <span className="italic">{scoreMeaning}</span>
+          </p>
+        ) : null}
+
+        {/* Action buttons */}
         <div className="flex min-w-0 flex-wrap items-center gap-x-[calc(0.5rem*1.3)] gap-y-[calc(0.375rem*1.3)]">
           {!teaching ? (
-            <button
-              type="button"
-              onClick={onToggleAnswer}
-              aria-expanded={showAnswer}
-              className={SECONDARY_ACTION}
-            >
-              {showAnswer ? "Hide the answer" : "Show me the answer"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={onTryAgain}
+                className={SECONDARY_ACTION}
+              >
+                Try Again
+              </button>
+              <span aria-hidden className="text-white/[0.12]">·</span>
+              <button
+                type="button"
+                onClick={onToggleAnswer}
+                aria-expanded={showAnswer}
+                className={SECONDARY_ACTION}
+              >
+                {showAnswer ? "Hide Answer" : "Show Me Answer"}
+              </button>
+              <span aria-hidden className="text-white/[0.12]">·</span>
+            </>
           ) : null}
-          {!teaching ? (
-            <span aria-hidden className="text-white/[0.12]">·</span>
-          ) : null}
+          {/* Review Later — saved state uses warmer, slightly brighter tone */}
           <button
             type="button"
             onClick={onToggleMark}
             aria-pressed={marked}
-            className={SECONDARY_ACTION}
+            className={`${SECONDARY_ACTION} ${
+              marked
+                ? "text-[#c8b47a]/68 hover:text-[#d4c08a]/80"
+                : ""
+            }`}
           >
-            {marked ? "Saved for review" : "Review later"}
+            {marked ? "Review Later \u2713" : "Review Later"}
           </button>
-          {!passed ? (
-            <>
-              <span aria-hidden className="text-white/[0.12]">·</span>
-              <button
-                type="button"
-                onClick={onMoveOn}
-                className={SECONDARY_ACTION}
-              >
-                Move on
-              </button>
-            </>
-          ) : null}
-          {onHearStandard && !teaching ? (
-            <>
-              <span aria-hidden className="text-white/[0.12]">·</span>
-              <button
-                type="button"
-                onClick={onHearStandard}
-                className={`-ml-0.5 ${FOOTER_WHISPER}`}
-              >
-                If you want to hear one.
-              </button>
-            </>
-          ) : null}
         </div>
+      </div>
 
-        <div className="flex shrink-0 items-center gap-[calc(0.75rem*1.3)] justify-start sm:justify-end">
-          <AnimatePresence initial={false}>
-            {showCue && !passed && !showAnswer ? (
-              <motion.span
-                key="cue"
-                aria-hidden
-                className="font-serif text-[0.76rem] font-light italic leading-none tracking-[0.01em] text-[#b5a896]/48 sm:text-[0.78rem]"
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={reduceMotion ? undefined : { opacity: 0 }}
-                transition={{
-                  duration: transitionMs(reduceMotion, 0.45),
-                  ease: cinematicEase,
-                }}
-              >
-                Your move.
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
-          <button
-            type="button"
-            onClick={primaryAction}
-            className={PRIMARY_ACTION}
-          >
-            <span>{primaryLabel}</span>
-            <span
+      <div className="flex shrink-0 items-center gap-[calc(0.75rem*1.3)] justify-start sm:justify-end">
+        <AnimatePresence initial={false}>
+          {showCue && !passed && !showAnswer ? (
+            <motion.span
+              key="cue"
               aria-hidden
-              className="rounded-[2px] border border-white/[0.1] bg-black/20 px-1 py-[1px] text-[0.62rem] font-normal not-italic tracking-normal text-white/[0.48]"
+              className="font-serif text-[0.76rem] font-light italic leading-none tracking-[0.01em] text-[#b5a896]/48 sm:text-[0.78rem]"
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0 }}
+              transition={{
+                duration: transitionMs(reduceMotion, 0.45),
+                ease: cinematicEase,
+              }}
             >
-              Enter
-            </span>
-          </button>
-        </div>
+              Your move.
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+        <button
+          type="button"
+          onClick={onNextQuestion}
+          className={PRIMARY_ACTION}
+        >
+          <span>Next Question</span>
+          <span
+            aria-hidden
+            className="rounded-[2px] border border-white/[0.1] bg-black/20 px-1 py-[1px] text-[0.62rem] font-normal not-italic tracking-normal text-white/[0.48]"
+          >
+            Enter
+          </span>
+        </button>
+      </div>
     </motion.div>
   );
 }
@@ -1101,9 +1062,7 @@ function BackgroundStack({
           aria-hidden
         />
       )}
-      {/* Answer-received beat — a brief environmental acknowledgement.
-          Fades in quickly, lingers a moment, then eases out as the
-          examiner begins to think. */}
+      {/* Answer-received beat — a brief environmental acknowledgement. */}
       <div
         className={`absolute inset-0 bg-[radial-gradient(ellipse_68%_54%_at_50%_42%,transparent_20%,rgba(2,4,9,0.38)_100%)] transition-opacity ease-out ${
           justReceived
@@ -1242,6 +1201,7 @@ function JudgmentBlock({
     </div>
   );
 }
+
 /**
  * Split model answers and standards into short spoken beats — one thought
  * per reveal, not a wall of text.
@@ -1276,24 +1236,6 @@ function splitSpokenChunks(text: string): readonly string[] {
  * pacing. Does not change source copy — only how many motion lines we render.
  * Splits long clauses at ", " when both sides stay substantial.
  */
-/** "Show me the answer" — keep to a few short spoken lines (client target 3–4). */
-const EXPANDED_ANSWER_MAX_LINES = 3;
-
-function capExpandedModelAnswerSentences(lines: readonly string[]): string[] {
-  const sentences: string[] = [];
-  for (const raw of lines) {
-    const t = raw.trim();
-    if (!t) continue;
-    const parts = t
-      .split(/(?<=[.!?])\s+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parts.length) sentences.push(...parts);
-    else sentences.push(t);
-  }
-  return sentences.slice(0, EXPANDED_ANSWER_MAX_LINES);
-}
-
 function refineToShorterLines(
   lines: readonly string[],
   maxLen = 44,
@@ -1359,7 +1301,7 @@ function evaluateAnswer(
   const coverage = rubric.length === 0 ? 0 : matched.length / rubric.length;
 
   const score: ScoreValue =
-    coverage >= 0.75 ? 3 : coverage >= 0.45 ? 2 : 1;
+    matched.length === 0 ? 0 : coverage >= 0.75 ? 3 : coverage >= 0.45 ? 2 : 1;
 
   const turn = buildExaminerSpokenTurn(item.id, score, missed, {
     repeatMissDepth: repeatMissDepth,
@@ -1372,7 +1314,7 @@ function evaluateAnswer(
     judgment: turn.judgment,
     examinerNote: turn.examinerNote,
     correct: [],
-    missed: spoken.length > 0 ? spoken : ["Say it again — I’m listening."],
+    missed: spoken.length > 0 ? spoken : ["Say it again — I'm listening."],
     stronger: item.evaluation.stronger,
     why: item.evaluation.why,
     deeperExplanation: item.evaluation.deeperExplanation,
