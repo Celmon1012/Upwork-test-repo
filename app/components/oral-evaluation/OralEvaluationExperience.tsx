@@ -203,6 +203,8 @@ export function OralEvaluationExperience() {
   const [markedItems, setMarkedItems] = useState<ReadonlySet<string>>(
     () => new Set<string>(),
   );
+  const [sessionDone, setSessionDone] = useState(false);
+  const [fromReview, setFromReview] = useState(false);
 
   const [showMeMode, setShowMeMode] = useState(false);
   // Gated reveal of the strong sample answer block.
@@ -223,7 +225,6 @@ export function OralEvaluationExperience() {
     () => composeExplanationSegments(evaluation, showMeMode),
     [evaluation, showMeMode],
   );
-  const isMarked = markedItems.has(item.id);
   // Per-segment reveal duration — uniform across all lines and all responses.
   // Variation lives in the *pauses between* lines (see segmentRevealDelayMs),
   // not in how long each line takes to fade in.
@@ -316,8 +317,15 @@ export function OralEvaluationExperience() {
     setJustReceived(false);
     if (answerRef.current) answerRef.current.value = "";
     setOralRepeatMissCount(0);
-    setItemIndex((i) => (i + 1) % ORAL_ITEMS.length);
-  }, []);
+    if (fromReview) {
+      setFromReview(false);
+      setSessionDone(true);
+    } else if (itemIndex >= ORAL_ITEMS.length - 1) {
+      setSessionDone(true);
+    } else {
+      setItemIndex((i) => i + 1);
+    }
+  }, [fromReview, itemIndex]);
 
   // The pushback. Same question, cleared textarea, focus restored.
   // The examiner isn't giving up the answer — they're making the user talk again.
@@ -345,6 +353,57 @@ export function OralEvaluationExperience() {
       return next;
     });
   }, [item.id]);
+
+  // Mark current item for later and immediately move on — no confirmation.
+  const reviewLater = useCallback(() => {
+    setMarkedItems((prev) => {
+      const next = new Set(prev);
+      next.add(item.id);
+      return next;
+    });
+    advanceFromFeedback();
+  }, [advanceFromFeedback, item.id]);
+
+  // Jump to a specific item from the end-of-session review screen.
+  const startReviewItem = useCallback((id: string) => {
+    const index = ORAL_ITEMS.findIndex((o) => o.id === id);
+    if (index === -1) return;
+    setItemIndex(index);
+    setFromReview(true);
+    setSessionDone(false);
+    setSessionPhase("respond");
+    setAnswerError(null);
+    setEvaluated(null);
+    setShowMeMode(false);
+    setShowAnswer(false);
+    setAnswerRevealChromeHidden(false);
+    setRevealedSegments(0);
+    setShowTransitionCue(false);
+    setShowThinkingCue(false);
+    setJustReceived(false);
+    setOralRepeatMissCount(0);
+    if (answerRef.current) answerRef.current.value = "";
+  }, []);
+
+  // Restart entire session from question one.
+  const startOver = useCallback(() => {
+    setSessionDone(false);
+    setFromReview(false);
+    setItemIndex(0);
+    setMarkedItems(new Set());
+    setSessionPhase("respond");
+    setAnswerError(null);
+    setEvaluated(null);
+    setShowMeMode(false);
+    setShowAnswer(false);
+    setAnswerRevealChromeHidden(false);
+    setRevealedSegments(0);
+    setShowTransitionCue(false);
+    setShowThinkingCue(false);
+    setJustReceived(false);
+    setOralRepeatMissCount(0);
+    if (answerRef.current) answerRef.current.value = "";
+  }, []);
 
   const evaluating = sessionPhase === "evaluating";
   const showQuestionChrome =
@@ -526,6 +585,23 @@ export function OralEvaluationExperience() {
     showAnswer,
     showMeMode,
   ]);
+
+  if (sessionDone) {
+    return (
+      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
+        <BackgroundStack phase="respond" justReceived={false} />
+        <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-10 sm:py-8">
+            <SessionEndScreen
+              markedItems={markedItems}
+              onRetryItem={startReviewItem}
+              onStartOver={startOver}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
@@ -783,7 +859,7 @@ export function OralEvaluationExperience() {
                             ease: cinematicEase,
                           }}
                         >
-                          {/* "Sample answer" label */}
+                          {/* Spoken examiner preamble before the model answer lines */}
                           <motion.p
                             initial={reduceMotion ? false : { opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -792,9 +868,9 @@ export function OralEvaluationExperience() {
                               delay: reduceMotion ? 0 : 0.1,
                               ease: cinematicEase,
                             }}
-                            className="mt-6 text-[0.58rem] font-normal uppercase tracking-[0.26em] text-[#a09070]/52"
+                            className="mt-6 font-serif text-[0.8rem] font-light italic leading-[1.45] tracking-[0.01em] text-[#b5aa9a]/58 sm:text-[0.84rem]"
                           >
-                            Sample answer
+                            Here&rsquo;s what I&rsquo;m looking for.
                           </motion.p>
                           {sampleAnswerLines.map((line, index) => (
                             <motion.p
@@ -826,8 +902,7 @@ export function OralEvaluationExperience() {
                         onToggleAnswer={toggleAnswer}
                         onTryAgain={tryAgain}
                         onNextQuestion={advanceFromFeedback}
-                        marked={isMarked}
-                        onToggleMark={toggleMark}
+                        onReviewLater={reviewLater}
                         showCue={
                           showTransitionCue ||
                           (evaluation.score < 3 && !showMeMode)
@@ -869,8 +944,7 @@ function FeedbackActions({
   onToggleAnswer,
   onTryAgain,
   onNextQuestion,
-  marked,
-  onToggleMark,
+  onReviewLater,
   showCue,
   reduceMotion,
 }: {
@@ -880,8 +954,7 @@ function FeedbackActions({
   onToggleAnswer: () => void;
   onTryAgain: () => void;
   onNextQuestion: () => void;
-  marked: boolean;
-  onToggleMark: () => void;
+  onReviewLater: () => void;
   showCue: boolean;
   reduceMotion: boolean | null;
 }) {
@@ -900,7 +973,6 @@ function FeedbackActions({
       }}
     >
       <div className="flex min-w-0 flex-col items-start gap-[calc(0.42rem*1.3)]">
-        {/* Score display — score number slightly more prominent than description */}
         {!teaching ? (
           <p className="font-serif text-[0.73rem] font-light tracking-[0.01em] text-[#b5aca0]/80 sm:text-[0.76rem]">
             <span className="font-medium not-italic text-[#ddd6ca]/88">
@@ -911,41 +983,36 @@ function FeedbackActions({
           </p>
         ) : null}
 
-        {/* Action buttons */}
+        {/* All 4 actions — whisper-weight, examiner room tone */}
         <div className="flex min-w-0 flex-wrap items-center gap-x-[calc(0.5rem*1.3)] gap-y-[calc(0.375rem*1.3)]">
-          {!teaching ? (
+          <button
+            type="button"
+            onClick={onTryAgain}
+            className={SECONDARY_ACTION}
+          >
+            Try Again
+          </button>
+          {/* Show Me Answer — one-way; disappears once the answer is visible */}
+          {!teaching && !showAnswer ? (
             <>
-              <button
-                type="button"
-                onClick={onTryAgain}
-                className={SECONDARY_ACTION}
-              >
-                Try Again
-              </button>
               <span aria-hidden className="text-white/[0.12]">·</span>
               <button
                 type="button"
                 onClick={onToggleAnswer}
-                aria-expanded={showAnswer}
                 className={SECONDARY_ACTION}
               >
-                {showAnswer ? "Hide Answer" : "Show Me Answer"}
+                Show Me Answer
               </button>
-              <span aria-hidden className="text-white/[0.12]">·</span>
             </>
           ) : null}
-          {/* Review Later — saved state uses warmer, slightly brighter tone */}
+          <span aria-hidden className="text-white/[0.12]">·</span>
+          {/* Review Later — marks and immediately moves on, no popup */}
           <button
             type="button"
-            onClick={onToggleMark}
-            aria-pressed={marked}
-            className={`${SECONDARY_ACTION} ${
-              marked
-                ? "text-[#c8b47a]/68 hover:text-[#d4c08a]/80"
-                : ""
-            }`}
+            onClick={onReviewLater}
+            className={SECONDARY_ACTION}
           >
-            {marked ? "Review Later \u2713" : "Review Later"}
+            Review Later
           </button>
         </div>
       </div>
@@ -1323,4 +1390,87 @@ function evaluateAnswer(
 
 function normalize(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * End-of-session screen — shown after all questions are done.
+ * Lists questions the user flagged for review. Feels like the examiner
+ * wrapping up the table session, not a results dashboard.
+ */
+function SessionEndScreen({
+  markedItems,
+  onRetryItem,
+  onStartOver,
+}: {
+  markedItems: ReadonlySet<string>;
+  onRetryItem: (id: string) => void;
+  onStartOver: () => void;
+}) {
+  const reduceMotion = useReducedMotion();
+  const marked = ORAL_ITEMS.filter((item) => markedItems.has(item.id));
+
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{
+        duration: transitionMs(reduceMotion, 0.8),
+        ease: cinematicEase,
+      }}
+      className="mx-auto w-full max-w-[min(88vw,50rem)] px-1 py-2 sm:px-2 sm:py-3"
+    >
+      <h2 className="font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.012em] text-[#f0e8de] sm:text-[1.48rem]">
+        That covers it.
+      </h2>
+
+      <div
+        className="mt-4 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-[#a08050]/14 via-[#a08050]/06 to-transparent"
+        aria-hidden
+      />
+
+      {marked.length > 0 ? (
+        <div className="mt-8 flex flex-col">
+          <p className="text-[0.62rem] font-normal uppercase tracking-[0.26em] text-white/[0.22]">
+            {marked.length === 1
+              ? "1 question set aside"
+              : `${marked.length} questions set aside`}
+          </p>
+
+          <div className="mt-5 flex flex-col gap-7">
+            {marked.map((item) => (
+              <div key={item.id} className="flex flex-col gap-1.5">
+                <p className="text-[0.56rem] font-normal uppercase tracking-[0.28em] text-white/[0.18]">
+                  {item.contextLabel}
+                </p>
+                <p className="max-w-[min(100%,30rem)] font-serif text-[0.82rem] font-light italic leading-[1.42] text-white/[0.36] sm:text-[0.86rem]">
+                  {`\u201c${item.promptLine}\u201d`}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onRetryItem(item.id)}
+                  className={`mt-0.5 self-start ${FOOTER_WHISPER}`}
+                >
+                  Go again.
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="mt-8 font-serif text-[0.88rem] font-light italic leading-[1.55] text-white/[0.30] sm:text-[0.92rem]">
+          Nothing set aside.
+        </p>
+      )}
+
+      <div className="mt-12">
+        <button
+          type="button"
+          onClick={onStartOver}
+          className={FOOTER_WHISPER}
+        >
+          Start over.
+        </button>
+      </div>
+    </motion.div>
+  );
 }
