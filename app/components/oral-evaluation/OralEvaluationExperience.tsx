@@ -182,9 +182,14 @@ function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
   return 1000 + Math.floor(Math.random() * 1001);
 }
 
-/** Content panel — glass card that all evaluation text lives inside. */
-const ATMOSPHERE_PANEL =
-  "oral-glass-panel px-6 py-6 sm:px-8 sm:py-8";
+/**
+ * Fixed outer panel: stable footprint across question/evaluation.
+ * Only inner content scrolls/changes.
+ */
+const ORAL_PANEL_SHELL =
+  "oral-glass-panel flex h-[min(90dvh,33rem)] w-full flex-col overflow-hidden";
+const ORAL_PANEL_SCROLL =
+  "oral-scrollbar-modern relative z-[1] flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-6 py-6 text-left sm:px-8 sm:py-8";
 
 /** Inline whisper links — e.g. "If you want to hear one." */
 const FOOTER_WHISPER =
@@ -623,9 +628,8 @@ export function OralEvaluationExperience() {
               }}
               className="relative mx-auto flex min-h-0 w-full max-w-[min(92vw,52rem)] flex-col"
             >
-            <div
-              className={`oral-scrollbar-none relative z-[1] flex max-h-[90dvh] w-full flex-col overflow-y-auto overflow-x-hidden text-left ${ATMOSPHERE_PANEL}`}
-            >
+            <div className={ORAL_PANEL_SHELL}>
+            <div className={ORAL_PANEL_SCROLL}>
               {sessionPhase !== "feedback" ? (
                 <motion.div
                   animate={{
@@ -677,7 +681,7 @@ export function OralEvaluationExperience() {
                       duration: transitionMs(reduceMotion, 0.32),
                       ease: cinematicEase,
                     }}
-                    className="mt-7 w-full"
+                    className="mt-11 flex h-full w-full flex-col"
                   >
                     {/* Section divider */}
                     <div className="mb-5 h-px w-full bg-white/[0.09]" aria-hidden />
@@ -728,7 +732,7 @@ export function OralEvaluationExperience() {
                     )}
 
                     {/* Bottom row: hint / thinking cue  ↔  Submit button */}
-                    <div className="mt-3.5 flex min-h-[2rem] items-center justify-between gap-4">
+                    <div className="mt-auto flex min-h-[2rem] items-center justify-between gap-4 pt-3.5">
                       {/* Left — hint text or evaluating cue */}
                       <div className="flex items-center gap-2.5">
                         <span className="sr-only" role="status" aria-live="polite">
@@ -913,6 +917,7 @@ export function OralEvaluationExperience() {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
             </div>
             </motion.div>
           </AnimatePresence>
