@@ -621,27 +621,28 @@ export function OralEvaluationExperience() {
                 duration: transitionMs(reduceMotion, 0.9),
                 ease: cinematicEase,
               }}
-              className="relative mx-auto flex min-h-0 w-full max-w-[min(88vw,50rem)] flex-col"
+              className="relative mx-auto flex min-h-0 w-full max-w-[min(92vw,52rem)] flex-col"
             >
             <div
-              className={`oral-scrollbar-none relative z-[1] flex max-h-[88dvh] w-full flex-col overflow-y-auto overflow-x-hidden text-left ${ATMOSPHERE_PANEL}`}
+              className={`oral-scrollbar-none relative z-[1] flex max-h-[90dvh] w-full flex-col overflow-y-auto overflow-x-hidden text-left ${ATMOSPHERE_PANEL}`}
             >
               {sessionPhase !== "feedback" ? (
                 <motion.div
                   animate={{
-                    opacity: evaluating ? 0.5 : 1,
+                    opacity: evaluating ? 0.45 : 1,
                   }}
                   transition={{
                     duration: transitionMs(reduceMotion, 1.2),
                     ease: cinematicEase,
                   }}
-                  style={{ zoom: 1.3 }}
                 >
-                  <h1 className="mt-1 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-white sm:text-[1.65rem] sm:leading-[1.18]">
+                  <p className="text-[0.62rem] font-medium uppercase tracking-[0.22em] text-white/52">
+                    {item.contextLabel}
+                  </p>
+                  <h1 className="mt-3 font-serif text-[1.6rem] font-medium italic leading-[1.22] tracking-[0.01em] text-white sm:text-[1.82rem] sm:leading-[1.18]">
                     {`"${item.promptLine}"`}
                   </h1>
-
-                  <p className="mt-4 max-w-[min(100%,30rem)] text-[0.82rem] font-light leading-[1.65] text-white/78 sm:text-[0.86rem]">
+                  <p className="mt-3 text-[0.88rem] font-light leading-[1.68] text-white/72 sm:text-[0.92rem]">
                     {item.scenario}
                   </p>
                 </motion.div>
@@ -653,14 +654,15 @@ export function OralEvaluationExperience() {
                     duration: transitionMs(reduceMotion, 0.55),
                     ease: cinematicEase,
                   }}
-                  className="mt-1 max-w-[min(100%,30rem)]"
+                  className="mt-1 w-full"
                 >
-                  <p className="text-[0.6rem] font-normal uppercase tracking-[0.26em] text-white/52">
+                  <p className="text-[0.62rem] font-medium uppercase tracking-[0.22em] text-white/48">
                     {item.contextLabel}
                   </p>
-                  <p className="mt-1.5 font-serif text-[0.82rem] font-light italic leading-[1.45] text-white/68 sm:text-[0.86rem]">
+                  <p className="mt-2 font-serif text-[0.86rem] font-light italic leading-[1.45] text-white/62 sm:text-[0.9rem]">
                     {`"${item.promptLine}"`}
                   </p>
+                  <div className="mt-4 h-px w-full bg-white/[0.09]" aria-hidden />
                 </motion.div>
               )}
 
@@ -675,86 +677,70 @@ export function OralEvaluationExperience() {
                       duration: transitionMs(reduceMotion, 0.32),
                       ease: cinematicEase,
                     }}
-                    className="mt-1 w-full pt-2"
-                    style={{ zoom: 1.3 }}
+                    className="mt-7 w-full"
                   >
-                    <label htmlFor="oral-answer" className="sr-only">
-                      Response to the examiner
+                    {/* Section divider */}
+                    <div className="mb-5 h-px w-full bg-white/[0.09]" aria-hidden />
+
+                    {/* Input label */}
+                    <label
+                      htmlFor="oral-answer"
+                      className="mb-2.5 block text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white/52"
+                    >
+                      Your response
                     </label>
-                    {/* Writing-area — dims while examiner is thinking */}
+
+                    {/* Textarea — dims while examiner is thinking */}
                     <div
-                      className={`oral-input-wrap relative mt-3 w-full transition-opacity duration-500 ease-out ${
-                        evaluating ? "opacity-[0.38]" : "opacity-100"
+                      className={`oral-input-wrap w-full transition-opacity duration-500 ease-out ${
+                        evaluating ? "opacity-40" : "opacity-100"
                       }`}
                     >
-                      <div className="flex min-w-0 w-full flex-col">
-                        <textarea
-                          ref={answerRef}
-                          id="oral-answer"
-                          rows={4}
-                          readOnly={evaluating}
-                          placeholder="Begin here — Enter when ready, Shift+Enter for a new line."
-                          aria-invalid={Boolean(answerError)}
-                          aria-describedby={answerError ? "oral-answer-error" : undefined}
-                          onChange={() => {
-                            if (answerError) setAnswerError(null);
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" && !event.shiftKey) {
-                              event.preventDefault();
-                              if (!evaluating) runEvaluation();
-                            }
-                          }}
-                          className="oral-answer-line box-border min-h-[4rem] max-h-[min(22vh,9rem)] w-full resize-none border-0 border-b-2 border-white/40 bg-white/[0.04] pb-2.5 pl-1 pr-1 pt-2 text-[0.9rem] leading-[1.62] text-white focus:outline-none focus-visible:outline-none focus:ring-0 sm:text-[0.95rem]"
-                        />
-                        {/* Writing-line glow under the border */}
-                        <div className="pointer-events-none h-px w-full bg-gradient-to-r from-[#c9b48a]/18 via-[#d9ccb7]/22 to-transparent" aria-hidden />
-                      </div>
+                      <textarea
+                        ref={answerRef}
+                        id="oral-answer"
+                        rows={5}
+                        readOnly={evaluating}
+                        placeholder="Answer here — press Enter when ready, Shift+Enter for new line."
+                        aria-invalid={Boolean(answerError)}
+                        aria-describedby={answerError ? "oral-answer-error" : undefined}
+                        onChange={() => {
+                          if (answerError) setAnswerError(null);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" && !event.shiftKey) {
+                            event.preventDefault();
+                            if (!evaluating) runEvaluation();
+                          }
+                        }}
+                        className="oral-answer-line box-border w-full min-h-[8rem] max-h-[min(28vh,13rem)] resize-none rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-[0.93rem] leading-[1.72] text-white transition-all duration-200 focus:outline-none sm:text-[0.97rem]"
+                      />
                     </div>
+
                     {answerError && (
                       <p
                         id="oral-answer-error"
-                        className="mt-2.5 text-[0.74rem] font-light italic text-rose-300/90"
+                        className="mt-2 text-[0.74rem] font-light italic text-rose-300/90"
                         role="alert"
                       >
                         {answerError}
                       </p>
                     )}
-                    <div
-                      className={`flex flex-wrap items-center gap-x-4 gap-y-1 ${
-                        answerError ? "mt-3" : "mt-2.5"
-                      } ${evaluating ? "justify-end" : "justify-start"}`}
-                    >
-                      {!evaluating ? (
-                        <button
-                          type="button"
-                          onClick={runShowMe}
-                          className={`-ml-0.5 ${FOOTER_WHISPER}`}
-                        >
-                          If you want to hear one.
-                        </button>
-                      ) : null}
-                      {evaluating ? (
-                        <div className="flex items-center gap-2.5">
-                          <span className="sr-only" role="status" aria-live="polite">
-                            Examiner is considering your response.
-                          </span>
-                          {showThinkingCue ? (
+
+                    {/* Bottom row: hint / thinking cue  ↔  Submit button */}
+                    <div className="mt-3.5 flex min-h-[2rem] items-center justify-between gap-4">
+                      {/* Left — hint text or evaluating cue */}
+                      <div className="flex items-center gap-2.5">
+                        <span className="sr-only" role="status" aria-live="polite">
+                          {evaluating ? "Examiner is considering your response." : ""}
+                        </span>
+                        {evaluating ? (
+                          showThinkingCue ? (
                             <>
-                              <motion.div
-                                aria-hidden
-                                className="h-px w-10 origin-right bg-gradient-to-l from-[#d3c4ad]/22 to-transparent"
-                                animate={reduceMotion ? undefined : { opacity: [0.26, 0.58, 0.26], scaleX: [0.8, 1, 0.8] }}
-                                transition={{
-                                  duration: transitionMs(reduceMotion, 1.2),
-                                  ease: "easeInOut",
-                                  repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
-                                }}
-                              />
                               <motion.span
                                 aria-hidden
-                                className="font-serif text-[1.05rem] italic leading-none text-[#f0e6d7]/88"
-                                animate={reduceMotion ? undefined : { opacity: [0.35, 0.9, 0.35], y: [0, -1.5, 0] }}
+                                className="font-serif text-[1rem] italic leading-none text-white/75"
+                                animate={reduceMotion ? undefined : { opacity: [0.4, 0.9, 0.4], y: [0, -1.5, 0] }}
                                 transition={{
                                   duration: transitionMs(reduceMotion, 1.0),
                                   ease: "easeInOut",
@@ -765,8 +751,8 @@ export function OralEvaluationExperience() {
                               </motion.span>
                               <motion.p
                                 aria-hidden
-                                className="max-w-[16rem] font-serif text-[0.8rem] font-light italic leading-snug tracking-[0.01em] text-white/72 sm:text-[0.82rem]"
-                                animate={reduceMotion ? undefined : { opacity: [0.55, 0.88, 0.55] }}
+                                className="font-serif text-[0.82rem] font-light italic text-white/65"
+                                animate={reduceMotion ? undefined : { opacity: [0.55, 0.9, 0.55] }}
                                 transition={{
                                   duration: transitionMs(reduceMotion, 1.35),
                                   ease: "easeInOut",
@@ -777,15 +763,29 @@ export function OralEvaluationExperience() {
                               </motion.p>
                             </>
                           ) : (
-                            <p
-                              aria-hidden
-                              className="font-serif text-[0.8rem] font-light italic text-white/45 sm:text-[0.82rem]"
-                            >
-                              …
-                            </p>
-                          )}
-                        </div>
-                      ) : null}
+                            <p aria-hidden className="font-serif text-[0.82rem] italic text-white/42">…</p>
+                          )
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={runShowMe}
+                            className={FOOTER_WHISPER}
+                          >
+                            If you want to hear one.
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Right — Submit button (hidden while evaluating) */}
+                      {!evaluating && (
+                        <button
+                          type="button"
+                          onClick={runEvaluation}
+                          className={PRIMARY_ACTION}
+                        >
+                          Submit
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 ) : (
@@ -963,92 +963,77 @@ function FeedbackActions({
 
   return (
     <motion.div
-      className="mt-[calc(1.5rem*1.3)] flex flex-col gap-[calc(0.6rem*1.3)] sm:flex-row sm:items-center sm:justify-between sm:gap-[calc(1rem*1.3)]"
+      className="mt-8 flex flex-col gap-4"
       initial={reduceMotion ? false : { opacity: 0 }}
-      animate={{ opacity: reduceMotion ? 1 : 0.88 }}
+      animate={{ opacity: 1 }}
       transition={{
         duration: transitionMs(reduceMotion, 0.55),
         delay: reduceMotion ? 0 : 0.28,
         ease: cinematicEase,
       }}
     >
-      <div className="flex min-w-0 flex-col items-start gap-[calc(0.42rem*1.3)]">
-        {!teaching ? (
-          <p className="font-serif text-[0.75rem] font-light tracking-[0.01em] text-white/70 sm:text-[0.78rem]">
-            <span className="font-medium not-italic text-white/92">
-              Score {score}/3
-            </span>
-            {" — "}
-            <span className="italic">{scoreMeaning}</span>
-          </p>
-        ) : null}
+      {/* Divider above actions */}
+      <div className="h-px w-full bg-white/[0.09]" aria-hidden />
 
-        {/* All 4 actions — whisper-weight, examiner room tone */}
-        <div className="flex min-w-0 flex-wrap items-center gap-x-[calc(0.5rem*1.3)] gap-y-[calc(0.375rem*1.3)]">
-          <button
-            type="button"
-            onClick={onTryAgain}
-            className={SECONDARY_ACTION}
-          >
+      {/* Score line */}
+      {!teaching ? (
+        <p className="text-[0.75rem] font-light tracking-[0.01em] text-white/68 sm:text-[0.78rem]">
+          <span className="font-semibold not-italic text-white/92">
+            Score {score}/3
+          </span>
+          {" — "}
+          <span className="italic">{scoreMeaning}</span>
+        </p>
+      ) : null}
+
+      {/* Action rows */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Left — secondary actions */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+          <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION}>
             Try Again
           </button>
-          {/* Show Me Answer — one-way; disappears once the answer is visible */}
           {!teaching && !showAnswer ? (
             <>
-              <span aria-hidden className="text-white/25">·</span>
-              <button
-                type="button"
-                onClick={onToggleAnswer}
-                className={SECONDARY_ACTION}
-              >
+              <span aria-hidden className="text-white/22 select-none">·</span>
+              <button type="button" onClick={onToggleAnswer} className={SECONDARY_ACTION}>
                 Show Me Answer
               </button>
             </>
           ) : null}
-          <span aria-hidden className="text-white/25">·</span>
-          {/* Review Later — marks and immediately moves on, no popup */}
-          <button
-            type="button"
-            onClick={onReviewLater}
-            className={SECONDARY_ACTION}
-          >
+          <span aria-hidden className="text-white/22 select-none">·</span>
+          <button type="button" onClick={onReviewLater} className={SECONDARY_ACTION}>
             Review Later
           </button>
         </div>
-      </div>
 
-      <div className="flex shrink-0 items-center gap-[calc(0.75rem*1.3)] justify-start sm:justify-end">
-        <AnimatePresence initial={false}>
-          {showCue && !passed && !showAnswer ? (
-            <motion.span
-              key="cue"
+        {/* Right — primary action + pressure cue */}
+        <div className="flex shrink-0 items-center gap-3">
+          <AnimatePresence initial={false}>
+            {showCue && !passed && !showAnswer ? (
+              <motion.span
+                key="cue"
+                aria-hidden
+                className="font-serif text-[0.76rem] font-light italic text-white/48 sm:text-[0.78rem]"
+                initial={reduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={reduceMotion ? undefined : { opacity: 0 }}
+                transition={{ duration: transitionMs(reduceMotion, 0.45), ease: cinematicEase }}
+              >
+                Your move.
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
+          <button type="button" onClick={onNextQuestion} className={PRIMARY_ACTION}>
+            <span>Next Question</span>
+            <span
               aria-hidden
-              className="font-serif text-[0.76rem] font-light italic leading-none tracking-[0.01em] text-white/52 sm:text-[0.78rem]"
-              initial={reduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              transition={{
-                duration: transitionMs(reduceMotion, 0.45),
-                ease: cinematicEase,
-              }}
+              className="rounded border border-white/18 bg-black/25 px-1 py-[1px] text-[0.6rem] tracking-normal text-white/52"
             >
-              Your move.
-            </motion.span>
-          ) : null}
-        </AnimatePresence>
-        <button
-          type="button"
-          onClick={onNextQuestion}
-          className={PRIMARY_ACTION}
-        >
-          <span>Next Question</span>
-          <span
-            aria-hidden
-            className="rounded-[2px] border border-white/20 bg-black/25 px-1 py-[1px] text-[0.62rem] font-normal not-italic tracking-normal text-white/58"
-          >
-            Enter
-          </span>
-        </button>
+              Enter
+            </span>
+          </button>
+        </div>
       </div>
     </motion.div>
   );
