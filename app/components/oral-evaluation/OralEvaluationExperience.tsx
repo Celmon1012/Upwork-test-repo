@@ -182,13 +182,13 @@ function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
   return 1000 + Math.floor(Math.random() * 1001);
 }
 
-/** Blended surface — reads as depth in the cockpit, not a floating card. */
+/** Content panel — glass card that all evaluation text lives inside. */
 const ATMOSPHERE_PANEL =
-  "px-1 py-2 sm:px-2 sm:py-3";
+  "oral-glass-panel px-6 py-6 sm:px-8 sm:py-8";
 
-/** Footer links — examiner-room whispers, not dashboard CTAs. */
+/** Secondary links — visible but not competing with examiner copy. */
 const FOOTER_WHISPER =
-  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.7rem] font-light italic tracking-[0.006em] text-white/[0.2] outline-none transition-[color] duration-200 ease-out hover:text-white/[0.34] focus-visible:text-white/[0.42] focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/14";
+  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.74rem] font-light italic tracking-[0.006em] text-white/50 outline-none transition-[color] duration-200 ease-out hover:text-white/75 focus-visible:text-white/85 focus-visible:ring-1 focus-visible:ring-white/20";
 
 export function OralEvaluationExperience() {
   const reduceMotion = useReducedMotion();
@@ -637,11 +637,11 @@ export function OralEvaluationExperience() {
                   }}
                   style={{ zoom: 1.3 }}
                 >
-                  <h1 className="mt-1 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-[#f7f2ea] sm:text-[1.65rem] sm:leading-[1.18]">
+                  <h1 className="mt-1 font-serif text-[1.45rem] font-medium italic leading-[1.22] tracking-[0.01em] text-white sm:text-[1.65rem] sm:leading-[1.18]">
                     {`"${item.promptLine}"`}
                   </h1>
 
-                  <p className="mt-4 max-w-[min(100%,30rem)] text-[0.8rem] font-light leading-[1.62] text-white/[0.44] sm:text-[0.84rem]">
+                  <p className="mt-4 max-w-[min(100%,30rem)] text-[0.82rem] font-light leading-[1.65] text-white/78 sm:text-[0.86rem]">
                     {item.scenario}
                   </p>
                 </motion.div>
@@ -655,10 +655,10 @@ export function OralEvaluationExperience() {
                   }}
                   className="mt-1 max-w-[min(100%,30rem)]"
                 >
-                  <p className="text-[0.58rem] font-normal uppercase tracking-[0.26em] text-white/[0.22]">
+                  <p className="text-[0.6rem] font-normal uppercase tracking-[0.26em] text-white/52">
                     {item.contextLabel}
                   </p>
-                  <p className="mt-1.5 font-serif text-[0.8rem] font-light italic leading-[1.45] text-white/[0.34] sm:text-[0.84rem]">
+                  <p className="mt-1.5 font-serif text-[0.82rem] font-light italic leading-[1.45] text-white/68 sm:text-[0.86rem]">
                     {`"${item.promptLine}"`}
                   </p>
                 </motion.div>
@@ -705,7 +705,7 @@ export function OralEvaluationExperience() {
                               if (!evaluating) runEvaluation();
                             }
                           }}
-                          className="oral-answer-line box-border min-h-[4rem] max-h-[min(22vh,9rem)] w-full resize-none border-0 border-b-2 border-[#c9b48a]/55 bg-[#050810]/40 pb-2.5 pl-1 pr-1 pt-2 text-[0.9rem] leading-[1.62] text-[#ebe6dc] focus:outline-none focus-visible:outline-none focus:ring-0 sm:text-[0.95rem]"
+                          className="oral-answer-line box-border min-h-[4rem] max-h-[min(22vh,9rem)] w-full resize-none border-0 border-b-2 border-white/40 bg-white/[0.04] pb-2.5 pl-1 pr-1 pt-2 text-[0.9rem] leading-[1.62] text-white focus:outline-none focus-visible:outline-none focus:ring-0 sm:text-[0.95rem]"
                         />
                         {/* Writing-line glow under the border */}
                         <div className="pointer-events-none h-px w-full bg-gradient-to-r from-[#c9b48a]/18 via-[#d9ccb7]/22 to-transparent" aria-hidden />
@@ -714,7 +714,7 @@ export function OralEvaluationExperience() {
                     {answerError && (
                       <p
                         id="oral-answer-error"
-                        className="mt-2.5 text-[0.74rem] font-light italic text-rose-200/65"
+                        className="mt-2.5 text-[0.74rem] font-light italic text-rose-300/90"
                         role="alert"
                       >
                         {answerError}
@@ -765,7 +765,7 @@ export function OralEvaluationExperience() {
                               </motion.span>
                               <motion.p
                                 aria-hidden
-                                className="max-w-[16rem] font-serif text-[0.8rem] font-light italic leading-snug tracking-[0.01em] text-[#b5aa9d]/72 sm:text-[0.82rem]"
+                                className="max-w-[16rem] font-serif text-[0.8rem] font-light italic leading-snug tracking-[0.01em] text-white/72 sm:text-[0.82rem]"
                                 animate={reduceMotion ? undefined : { opacity: [0.55, 0.88, 0.55] }}
                                 transition={{
                                   duration: transitionMs(reduceMotion, 1.35),
@@ -779,7 +779,7 @@ export function OralEvaluationExperience() {
                           ) : (
                             <p
                               aria-hidden
-                              className="font-serif text-[0.8rem] font-light italic text-[#a0988c]/58 sm:text-[0.82rem]"
+                              className="font-serif text-[0.8rem] font-light italic text-white/45 sm:text-[0.82rem]"
                             >
                               …
                             </p>
@@ -835,8 +835,8 @@ export function OralEvaluationExperience() {
                                 : [0, 0.14, 0.28, 1],
                               ease: cinematicEase,
                             }}
-                            className={`text-[0.9rem] leading-[1.95] tracking-[0.01em] text-[#c4beb4]/96 sm:text-[0.95rem] ${
-                              isFirst ? "mt-8" : "mt-7"
+                            className={`text-[0.92rem] leading-[1.9] tracking-[0.01em] text-white/90 sm:text-[0.96rem] ${
+                              isFirst ? "mt-8" : "mt-6"
                             }`}
                           >
                             {segment}
@@ -868,7 +868,7 @@ export function OralEvaluationExperience() {
                               delay: reduceMotion ? 0 : 0.1,
                               ease: cinematicEase,
                             }}
-                            className="mt-6 font-serif text-[0.8rem] font-light italic leading-[1.45] tracking-[0.01em] text-[#b5aa9a]/58 sm:text-[0.84rem]"
+                            className="mt-6 font-serif text-[0.82rem] font-light italic leading-[1.45] tracking-[0.01em] text-white/65 sm:text-[0.86rem]"
                           >
                             Here&rsquo;s what I&rsquo;m looking for.
                           </motion.p>
@@ -882,8 +882,8 @@ export function OralEvaluationExperience() {
                                 delay: reduceMotion ? 0 : 0.18 + index * 0.38,
                                 ease: cinematicEase,
                               }}
-                              className={`text-[0.88rem] leading-[1.88] tracking-[0.01em] text-[#d2ccc4]/92 sm:text-[0.92rem] ${
-                                index === 0 ? "mt-3" : "mt-3.5"
+                              className={`text-[0.9rem] leading-[1.85] tracking-[0.01em] text-white/88 sm:text-[0.94rem] ${
+                                index === 0 ? "mt-3" : "mt-3"
                               }`}
                             >
                               {line}
@@ -929,13 +929,13 @@ export function OralEvaluationExperience() {
  *   Try Again · Show Me Answer · Review Later   /   Next Question
  */
 
-/** Secondary — whisper-weight; examiner copy stays the focus. */
+/** Secondary actions — clear, readable, not competing with examiner text. */
 const SECONDARY_ACTION =
-  "rounded-sm border-0 bg-transparent px-0.5 py-0.5 text-left font-serif text-[0.76rem] font-light not-italic tracking-[0.004em] text-[#b8b0a4]/46 outline-none transition-[color,background-color] duration-200 ease-out hover:bg-white/[0.03] hover:text-[#c9c2b6]/62 focus-visible:text-[#d4cdc2]/72 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/16 sm:text-[0.78rem]";
+  "rounded-sm border-0 bg-transparent px-0.5 py-0.5 text-left font-serif text-[0.78rem] font-light not-italic tracking-[0.004em] text-white/58 outline-none transition-[color,background-color] duration-200 ease-out hover:bg-white/[0.06] hover:text-white/85 focus-visible:text-white/90 focus-visible:ring-1 focus-visible:ring-white/20 sm:text-[0.8rem]";
 
-/** Primary — minimal chrome; slightly brighter on hover so it's still findable. */
+/** Primary — clearly distinguishable as the main forward action. */
 const PRIMARY_ACTION =
-  "inline-flex items-baseline gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.035] px-2.5 py-1 font-sans text-[0.76rem] font-normal not-italic tracking-[0.008em] text-[#d2cbc0]/72 shadow-none outline-none transition-[color,background-color,border-color] duration-200 ease-out hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-[#e4ddd2]/88 focus-visible:border-[#d8c7ad]/22 focus-visible:ring-1 focus-visible:ring-[#d8c7ad]/18 sm:text-[0.78rem]";
+  "inline-flex items-baseline gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 font-sans text-[0.78rem] font-normal not-italic tracking-[0.008em] text-white/88 shadow-none outline-none transition-[color,background-color,border-color] duration-200 ease-out hover:border-white/30 hover:bg-white/16 hover:text-white focus-visible:border-white/35 focus-visible:ring-1 focus-visible:ring-white/25 sm:text-[0.8rem]";
 
 function FeedbackActions({
   score,
@@ -974,8 +974,8 @@ function FeedbackActions({
     >
       <div className="flex min-w-0 flex-col items-start gap-[calc(0.42rem*1.3)]">
         {!teaching ? (
-          <p className="font-serif text-[0.73rem] font-light tracking-[0.01em] text-[#b5aca0]/80 sm:text-[0.76rem]">
-            <span className="font-medium not-italic text-[#ddd6ca]/88">
+          <p className="font-serif text-[0.75rem] font-light tracking-[0.01em] text-white/70 sm:text-[0.78rem]">
+            <span className="font-medium not-italic text-white/92">
               Score {score}/3
             </span>
             {" — "}
@@ -995,7 +995,7 @@ function FeedbackActions({
           {/* Show Me Answer — one-way; disappears once the answer is visible */}
           {!teaching && !showAnswer ? (
             <>
-              <span aria-hidden className="text-white/[0.12]">·</span>
+              <span aria-hidden className="text-white/25">·</span>
               <button
                 type="button"
                 onClick={onToggleAnswer}
@@ -1005,7 +1005,7 @@ function FeedbackActions({
               </button>
             </>
           ) : null}
-          <span aria-hidden className="text-white/[0.12]">·</span>
+          <span aria-hidden className="text-white/25">·</span>
           {/* Review Later — marks and immediately moves on, no popup */}
           <button
             type="button"
@@ -1023,7 +1023,7 @@ function FeedbackActions({
             <motion.span
               key="cue"
               aria-hidden
-              className="font-serif text-[0.76rem] font-light italic leading-none tracking-[0.01em] text-[#b5a896]/48 sm:text-[0.78rem]"
+              className="font-serif text-[0.76rem] font-light italic leading-none tracking-[0.01em] text-white/52 sm:text-[0.78rem]"
               initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -1044,7 +1044,7 @@ function FeedbackActions({
           <span>Next Question</span>
           <span
             aria-hidden
-            className="rounded-[2px] border border-white/[0.1] bg-black/20 px-1 py-[1px] text-[0.62rem] font-normal not-italic tracking-normal text-white/[0.48]"
+            className="rounded-[2px] border border-white/20 bg-black/25 px-1 py-[1px] text-[0.62rem] font-normal not-italic tracking-normal text-white/58"
           >
             Enter
           </span>
@@ -1067,6 +1067,7 @@ function BackgroundStack({
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0">
+      {/* Cockpit image — heavily dimmed: atmosphere only, never competes with content */}
       <Image
         src="/cockpit-bg.png"
         alt=""
@@ -1075,70 +1076,43 @@ function BackgroundStack({
         unoptimized
         className={`object-cover object-center transition-all duration-[1600ms] ease-out ${
           evaluating
-            ? "scale-[1.045] brightness-[0.66] saturate-[0.9]"
+            ? "scale-[1.045] brightness-[0.22] blur-sm saturate-[0.7]"
             : feedback
-              ? "scale-[1.03] brightness-[0.78]"
+              ? "scale-[1.03] brightness-[0.28] blur-[2px] saturate-[0.8]"
               : respond
-                ? "scale-[1.02] brightness-[0.82]"
-                : "brightness-[0.82]"
+                ? "scale-[1.02] brightness-[0.32] blur-[2px]"
+                : "brightness-[0.32] blur-[2px]"
         }`}
       />
+      {/* Permanent heavy base overlay — ensures background never shows through */}
+      <div className="absolute inset-0 bg-black/60" aria-hidden />
+      {/* Per-phase atmospheric gradient — subtle color depth, not darkness source */}
       <div
-        className={`absolute inset-0 bg-gradient-to-b from-[#0a1428]/32 via-[#050810]/10 transition-all duration-[1200ms] ease-out ${
+        className={`absolute inset-0 bg-gradient-to-b transition-all duration-[1200ms] ease-out ${
           evaluating
-            ? "to-[#040608]/52 opacity-100"
+            ? "from-black/40 via-transparent to-black/55 opacity-100"
             : feedback
-              ? "to-[#050810]/40 opacity-100"
-              : respond
-                ? "to-[#050810]/34 opacity-100"
-                : "to-[#060a12]/28 opacity-100"
+              ? "from-black/30 via-transparent to-black/45 opacity-100"
+              : "from-black/25 via-transparent to-black/38 opacity-100"
         }`}
         aria-hidden
       />
-      <div
-        className={`absolute inset-0 transition-opacity duration-[1400ms] ease-out ${
-          evaluating
-            ? "bg-[radial-gradient(ellipse_72%_58%_at_50%_40%,transparent_18%,rgba(3,5,10,0.46)_100%)] opacity-100"
-            : "bg-[radial-gradient(ellipse_95%_75%_at_50%_38%,transparent_32%,rgba(5,8,16,0.24)_100%)] opacity-100"
-        }`}
-        aria-hidden
-      />
-      {respond && !evaluating && (
-        <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_78%_62%_at_38%_42%,transparent_0%,rgba(5,8,16,0.1)_100%)]"
-          aria-hidden
-        />
-      )}
-      {(evaluating || feedback) && (
-        <div
-          className={`absolute inset-0 transition-all duration-[1200ms] ease-out ${
-            evaluating ? "bg-black/[0.14]" : "bg-black/[0.05]"
-          }`}
-          aria-hidden
-        />
-      )}
       {evaluating && (
         <div
-          className="absolute inset-0 bg-amber-950/[0.06] mix-blend-overlay transition-opacity duration-[1200ms] ease-out"
+          className="absolute inset-0 bg-amber-950/[0.08] mix-blend-overlay transition-opacity duration-[1200ms] ease-out"
           aria-hidden
         />
       )}
-      {feedback && (
-        <div
-          className="absolute inset-0 bg-[radial-gradient(ellipse_72%_58%_at_50%_38%,transparent_0%,rgba(5,8,16,0.1)_100%)]"
-          aria-hidden
-        />
-      )}
-      {/* Answer-received beat — a brief environmental acknowledgement. */}
+      {/* Answer-received beat */}
       <div
-        className={`absolute inset-0 bg-[radial-gradient(ellipse_68%_54%_at_50%_42%,transparent_20%,rgba(2,4,9,0.38)_100%)] transition-opacity ease-out ${
+        className={`absolute inset-0 bg-black/20 transition-opacity ease-out ${
           justReceived
             ? "opacity-100 duration-[180ms]"
             : "opacity-0 duration-[520ms]"
         }`}
         aria-hidden
       />
-      <div className="oral-grain absolute inset-0 opacity-[0.022]" aria-hidden />
+      <div className="oral-grain absolute inset-0 opacity-[0.018]" aria-hidden />
     </div>
   );
 }
@@ -1173,17 +1147,17 @@ function JudgmentBlock({
   if (immersive) {
     const headline = teaching ? verdictLine(value, true) : judgment;
     const verdictClass = teaching
-      ? "text-[#f0e8de]"
+      ? "text-white"
       : value <= 1
-        ? "text-[#e8d8d2] sm:text-[#e4d2cb]"
+        ? "text-[#ffd8d0]"
         : value === 2
-          ? "text-[#ebe4d6]"
-          : "text-[#f0e8de]";
+          ? "text-[#fff0d8]"
+          : "text-white";
 
     const softShadow =
       value <= 1 && !teaching
-        ? "0 6px 22px rgba(48,14,10,0.22)"
-        : "0 5px 18px rgba(12,10,8,0.18)";
+        ? "0 2px 12px rgba(0,0,0,0.5)"
+        : "0 2px 8px rgba(0,0,0,0.4)";
 
     const verdictEntryDurationS =
       teaching || value >= 3 ? 0.34 : value === 2 ? 0.4 : 0.48;
@@ -1210,7 +1184,7 @@ function JudgmentBlock({
 
         {!teaching && examinerNote ? (
           <motion.p
-            className="mt-2.5 max-w-[min(100%,28rem)] text-[0.8rem] font-light leading-[1.78] text-[#9c968c]/95 sm:text-[0.84rem]"
+            className="mt-2.5 max-w-[min(100%,28rem)] text-[0.82rem] font-light leading-[1.78] text-white/80 sm:text-[0.86rem]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{
@@ -1234,7 +1208,7 @@ function JudgmentBlock({
           }}
         >
           <div
-            className="mt-4 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-[#a08050]/14 via-[#a08050]/06 to-transparent"
+            className="mt-4 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-white/18 via-white/08 to-transparent"
             aria-hidden
           />
         </motion.div>
@@ -1417,20 +1391,20 @@ function SessionEndScreen({
         duration: transitionMs(reduceMotion, 0.8),
         ease: cinematicEase,
       }}
-      className="mx-auto w-full max-w-[min(88vw,50rem)] px-1 py-2 sm:px-2 sm:py-3"
+      className="oral-glass-panel mx-auto w-full max-w-[min(88vw,50rem)] px-6 py-6 sm:px-8 sm:py-8"
     >
-      <h2 className="font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.012em] text-[#f0e8de] sm:text-[1.48rem]">
+      <h2 className="font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.012em] text-white sm:text-[1.48rem]">
         That covers it.
       </h2>
 
       <div
-        className="mt-4 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-[#a08050]/14 via-[#a08050]/06 to-transparent"
+        className="mt-4 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-white/18 via-white/08 to-transparent"
         aria-hidden
       />
 
       {marked.length > 0 ? (
         <div className="mt-8 flex flex-col">
-          <p className="text-[0.62rem] font-normal uppercase tracking-[0.26em] text-white/[0.22]">
+          <p className="text-[0.62rem] font-normal uppercase tracking-[0.26em] text-white/52">
             {marked.length === 1
               ? "1 question set aside"
               : `${marked.length} questions set aside`}
@@ -1439,10 +1413,10 @@ function SessionEndScreen({
           <div className="mt-5 flex flex-col gap-7">
             {marked.map((item) => (
               <div key={item.id} className="flex flex-col gap-1.5">
-                <p className="text-[0.56rem] font-normal uppercase tracking-[0.28em] text-white/[0.18]">
+                <p className="text-[0.6rem] font-normal uppercase tracking-[0.26em] text-white/45">
                   {item.contextLabel}
                 </p>
-                <p className="max-w-[min(100%,30rem)] font-serif text-[0.82rem] font-light italic leading-[1.42] text-white/[0.36] sm:text-[0.86rem]">
+                <p className="max-w-[min(100%,30rem)] font-serif text-[0.84rem] font-light italic leading-[1.42] text-white/72 sm:text-[0.88rem]">
                   {`\u201c${item.promptLine}\u201d`}
                 </p>
                 <button
@@ -1457,7 +1431,7 @@ function SessionEndScreen({
           </div>
         </div>
       ) : (
-        <p className="mt-8 font-serif text-[0.88rem] font-light italic leading-[1.55] text-white/[0.30] sm:text-[0.92rem]">
+        <p className="mt-8 font-serif text-[0.9rem] font-light italic leading-[1.55] text-white/62 sm:text-[0.94rem]">
           Nothing set aside.
         </p>
       )}

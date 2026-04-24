@@ -70,27 +70,30 @@ body {
 }
 
 /*
- * Glass panel: keep an opaque base fill first.
- * backdrop-filter + opacity/transform on the same node breaks in Chrome/Edge
- * (panel looks empty). Blur is an enhancement on top of a real surface.
+ * Glass panel — the evaluation card. All content lives inside this.
+ * Opaque base fill first (ensures readability even when backdrop-filter
+ * is unavailable). Blur + gradient are enhancements on top.
+ * NOTE: Do not apply backdrop-filter and opacity/transform on the same
+ * node in Chrome/Edge — panel will appear empty. The motion wrapper
+ * handles opacity; this class goes on the inner content div.
  */
 .oral-glass-panel {
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background-color: rgba(18, 22, 32, 0.92);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background-color: rgba(8, 10, 18, 0.90);
   background-image: linear-gradient(
-    168deg,
-    rgba(42, 48, 62, 0.75) 0%,
-    rgba(22, 26, 36, 0.9) 45%,
-    rgba(12, 14, 22, 0.95) 100%
+    160deg,
+    rgba(30, 36, 52, 0.55) 0%,
+    rgba(12, 15, 24, 0.88) 50%,
+    rgba(6, 8, 14, 0.96) 100%
   );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.45),
-    0 32px 100px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 8px 48px rgba(0, 0, 0, 0.80),
+    0 2px 8px rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(20px) saturate(1.1);
+  -webkit-backdrop-filter: blur(20px) saturate(1.1);
 }
 
 /* Debrief: matte record — less “glass card”, more judgment sheet. */
