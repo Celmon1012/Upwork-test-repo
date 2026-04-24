@@ -186,9 +186,9 @@ function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
 const ATMOSPHERE_PANEL =
   "oral-glass-panel px-6 py-6 sm:px-8 sm:py-8";
 
-/** Secondary links — visible but not competing with examiner copy. */
+/** Inline whisper links — e.g. "If you want to hear one." */
 const FOOTER_WHISPER =
-  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.74rem] font-light italic tracking-[0.006em] text-white/50 outline-none transition-[color] duration-200 ease-out hover:text-white/75 focus-visible:text-white/85 focus-visible:ring-1 focus-visible:ring-white/20";
+  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.78rem] font-light italic tracking-[0.006em] text-white/58 outline-none transition-[color] duration-200 ease-out hover:text-white/80 focus-visible:text-white/90 focus-visible:ring-1 focus-visible:ring-white/22";
 
 export function OralEvaluationExperience() {
   const reduceMotion = useReducedMotion();
@@ -835,8 +835,8 @@ export function OralEvaluationExperience() {
                                 : [0, 0.14, 0.28, 1],
                               ease: cinematicEase,
                             }}
-                            className={`text-[0.92rem] leading-[1.9] tracking-[0.01em] text-white/90 sm:text-[0.96rem] ${
-                              isFirst ? "mt-8" : "mt-6"
+                            className={`text-[0.93rem] leading-[1.88] tracking-[0.008em] text-white/92 sm:text-[0.97rem] ${
+                              isFirst ? "mt-8" : "mt-5"
                             }`}
                           >
                             {segment}
@@ -929,13 +929,13 @@ export function OralEvaluationExperience() {
  *   Try Again · Show Me Answer · Review Later   /   Next Question
  */
 
-/** Secondary actions — clear, readable, not competing with examiner text. */
+/** Secondary actions — clearly readable, not competing with examiner copy. */
 const SECONDARY_ACTION =
-  "rounded-sm border-0 bg-transparent px-0.5 py-0.5 text-left font-serif text-[0.78rem] font-light not-italic tracking-[0.004em] text-white/58 outline-none transition-[color,background-color] duration-200 ease-out hover:bg-white/[0.06] hover:text-white/85 focus-visible:text-white/90 focus-visible:ring-1 focus-visible:ring-white/20 sm:text-[0.8rem]";
+  "rounded-md border border-white/15 bg-white/[0.07] px-3 py-1.5 text-left font-sans text-[0.78rem] font-normal not-italic tracking-[0.004em] text-white/82 outline-none transition-all duration-200 ease-out hover:border-white/28 hover:bg-white/[0.12] hover:text-white focus-visible:ring-1 focus-visible:ring-white/30 sm:text-[0.8rem]";
 
-/** Primary — clearly distinguishable as the main forward action. */
+/** Primary — solid, clearly the main forward action. */
 const PRIMARY_ACTION =
-  "inline-flex items-baseline gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 font-sans text-[0.78rem] font-normal not-italic tracking-[0.008em] text-white/88 shadow-none outline-none transition-[color,background-color,border-color] duration-200 ease-out hover:border-white/30 hover:bg-white/16 hover:text-white focus-visible:border-white/35 focus-visible:ring-1 focus-visible:ring-white/25 sm:text-[0.8rem]";
+  "inline-flex items-center gap-2 rounded-lg border border-white/28 bg-white/[0.14] px-4 py-2 font-sans text-[0.82rem] font-medium not-italic tracking-[0.008em] text-white outline-none transition-all duration-200 ease-out hover:border-white/40 hover:bg-white/[0.20] focus-visible:ring-2 focus-visible:ring-white/30 sm:text-[0.85rem]";
 
 function FeedbackActions({
   score,
@@ -976,15 +976,15 @@ function FeedbackActions({
       <div className="h-px w-full bg-white/[0.09]" aria-hidden />
 
       {/* Score line */}
-      {!teaching ? (
-        <p className="text-[0.75rem] font-light tracking-[0.01em] text-white/68 sm:text-[0.78rem]">
-          <span className="font-semibold not-italic text-white/92">
-            Score {score}/3
-          </span>
-          {" — "}
-          <span className="italic">{scoreMeaning}</span>
-        </p>
-      ) : null}
+        {!teaching ? (
+          <p className="text-[0.82rem] tracking-[0.008em] text-white/80 sm:text-[0.85rem]">
+            <span className="font-bold not-italic text-white">
+              Score {score}/3
+            </span>
+            <span className="mx-1.5 text-white/35">—</span>
+            <span className="font-light italic">{scoreMeaning}</span>
+          </p>
+        ) : null}
 
       {/* Action rows */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -995,13 +995,11 @@ function FeedbackActions({
           </button>
           {!teaching && !showAnswer ? (
             <>
-              <span aria-hidden className="text-white/22 select-none">·</span>
               <button type="button" onClick={onToggleAnswer} className={SECONDARY_ACTION}>
                 Show Me Answer
               </button>
             </>
           ) : null}
-          <span aria-hidden className="text-white/22 select-none">·</span>
           <button type="button" onClick={onReviewLater} className={SECONDARY_ACTION}>
             Review Later
           </button>
@@ -1028,7 +1026,7 @@ function FeedbackActions({
             <span>Next Question</span>
             <span
               aria-hidden
-              className="rounded border border-white/18 bg-black/25 px-1 py-[1px] text-[0.6rem] tracking-normal text-white/52"
+              className="rounded border border-white/22 bg-black/30 px-1.5 py-[2px] text-[0.62rem] font-normal tracking-normal text-white/60"
             >
               Enter
             </span>
@@ -1052,7 +1050,7 @@ function BackgroundStack({
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0">
-      {/* Cockpit image — heavily dimmed: atmosphere only, never competes with content */}
+      {/* Cockpit image — photo is visible; dims slightly per phase for focus */}
       <Image
         src="/cockpit-bg.png"
         alt=""
@@ -1061,43 +1059,37 @@ function BackgroundStack({
         unoptimized
         className={`object-cover object-center transition-all duration-[1600ms] ease-out ${
           evaluating
-            ? "scale-[1.045] brightness-[0.22] blur-sm saturate-[0.7]"
+            ? "scale-[1.045] brightness-[0.55] saturate-[0.85]"
             : feedback
-              ? "scale-[1.03] brightness-[0.28] blur-[2px] saturate-[0.8]"
+              ? "scale-[1.03] brightness-[0.65] saturate-[0.9]"
               : respond
-                ? "scale-[1.02] brightness-[0.32] blur-[2px]"
-                : "brightness-[0.32] blur-[2px]"
+                ? "scale-[1.02] brightness-[0.72]"
+                : "brightness-[0.72]"
         }`}
       />
-      {/* Permanent heavy base overlay — ensures background never shows through */}
-      <div className="absolute inset-0 bg-black/60" aria-hidden />
-      {/* Per-phase atmospheric gradient — subtle color depth, not darkness source */}
+      {/* Edge vignette — darkens corners/edges so the card stands out naturally */}
       <div
-        className={`absolute inset-0 bg-gradient-to-b transition-all duration-[1200ms] ease-out ${
-          evaluating
-            ? "from-black/40 via-transparent to-black/55 opacity-100"
-            : feedback
-              ? "from-black/30 via-transparent to-black/45 opacity-100"
-              : "from-black/25 via-transparent to-black/38 opacity-100"
-        }`}
+        className="absolute inset-0 bg-[radial-gradient(ellipse_70%_65%_at_50%_50%,transparent_40%,rgba(0,0,0,0.55)_100%)]"
         aria-hidden
       />
+      {/* Very light overall tint — takes edge off the raw photo without killing it */}
+      <div className="absolute inset-0 bg-black/18" aria-hidden />
       {evaluating && (
         <div
-          className="absolute inset-0 bg-amber-950/[0.08] mix-blend-overlay transition-opacity duration-[1200ms] ease-out"
+          className="absolute inset-0 bg-amber-950/[0.07] mix-blend-overlay transition-opacity duration-[1200ms] ease-out"
           aria-hidden
         />
       )}
       {/* Answer-received beat */}
       <div
-        className={`absolute inset-0 bg-black/20 transition-opacity ease-out ${
+        className={`absolute inset-0 bg-black/15 transition-opacity ease-out ${
           justReceived
             ? "opacity-100 duration-[180ms]"
             : "opacity-0 duration-[520ms]"
         }`}
         aria-hidden
       />
-      <div className="oral-grain absolute inset-0 opacity-[0.018]" aria-hidden />
+      <div className="oral-grain absolute inset-0 opacity-[0.022]" aria-hidden />
     </div>
   );
 }
@@ -1134,15 +1126,15 @@ function JudgmentBlock({
     const verdictClass = teaching
       ? "text-white"
       : value <= 1
-        ? "text-[#ffd8d0]"
+        ? "text-[#ffbcb0]"
         : value === 2
-          ? "text-[#fff0d8]"
+          ? "text-[#ffe4b0]"
           : "text-white";
 
     const softShadow =
       value <= 1 && !teaching
-        ? "0 2px 12px rgba(0,0,0,0.5)"
-        : "0 2px 8px rgba(0,0,0,0.4)";
+        ? "0 0 24px rgba(255,120,90,0.18), 0 2px 10px rgba(0,0,0,0.5)"
+        : "0 2px 8px rgba(0,0,0,0.35)";
 
     const verdictEntryDurationS =
       teaching || value >= 3 ? 0.34 : value === 2 ? 0.4 : 0.48;
@@ -1151,8 +1143,8 @@ function JudgmentBlock({
       <div className="mt-2.5 flex shrink-0 flex-col items-stretch text-left">
         <motion.h2
           id={id}
-          className={`max-w-[min(100%,28rem)] font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.012em] transition-all duration-[700ms] ease-out sm:text-[1.48rem] ${verdictClass} ${
-            settled && !reduceMotion ? "translate-y-px opacity-[0.94]" : ""
+          className={`max-w-[min(100%,30rem)] font-serif text-[1.55rem] font-semibold italic leading-[1.2] tracking-[0.01em] transition-all duration-[700ms] ease-out sm:text-[1.72rem] ${verdictClass} ${
+            settled && !reduceMotion ? "translate-y-px opacity-[0.95]" : ""
           }`}
           initial={reduceMotion ? false : { opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1169,7 +1161,7 @@ function JudgmentBlock({
 
         {!teaching && examinerNote ? (
           <motion.p
-            className="mt-2.5 max-w-[min(100%,28rem)] text-[0.82rem] font-light leading-[1.78] text-white/80 sm:text-[0.86rem]"
+            className="mt-3 max-w-[min(100%,30rem)] text-[0.88rem] font-light leading-[1.72] text-white/88 sm:text-[0.92rem]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{
