@@ -195,6 +195,10 @@ const ORAL_PANEL_SCROLL =
 const FOOTER_WHISPER =
   "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.78rem] font-light italic tracking-[0.006em] text-white/58 outline-none transition-[color] duration-200 ease-out hover:text-white/80 focus-visible:text-white/90 focus-visible:ring-1 focus-visible:ring-white/22";
 
+/** Submit action during response phase. */
+const SUBMIT_ACTION =
+  "inline-flex items-center gap-2 rounded-lg border border-white/28 bg-white/[0.14] px-4 py-2 font-sans text-[0.82rem] font-medium not-italic tracking-[0.008em] text-white outline-none transition-all duration-200 ease-out hover:border-white/40 hover:bg-white/[0.20] focus-visible:ring-2 focus-visible:ring-white/30 sm:text-[0.85rem]";
+
 export function OralEvaluationExperience() {
   const reduceMotion = useReducedMotion();
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("respond");
@@ -785,7 +789,7 @@ export function OralEvaluationExperience() {
                         <button
                           type="button"
                           onClick={runEvaluation}
-                          className={PRIMARY_ACTION}
+                          className={SUBMIT_ACTION}
                         >
                           Submit
                         </button>
@@ -934,13 +938,13 @@ export function OralEvaluationExperience() {
  *   Try Again · Show Me Answer · Review Later   /   Next Question
  */
 
-/** Secondary actions — clearly readable, not competing with examiner copy. */
-const SECONDARY_ACTION =
-  "rounded-md border border-white/15 bg-white/[0.07] px-3 py-1.5 text-left font-sans text-[0.78rem] font-normal not-italic tracking-[0.004em] text-white/82 outline-none transition-all duration-200 ease-out hover:border-white/28 hover:bg-white/[0.12] hover:text-white focus-visible:ring-1 focus-visible:ring-white/30 sm:text-[0.8rem]";
+/** Examiner-style action links — deliberate, quiet, non-app feel. */
+const EXAMINER_ACTION_LINK =
+  "rounded-sm border-0 bg-transparent p-0 font-serif text-[0.82rem] font-light italic tracking-[0.006em] text-white/72 underline decoration-white/20 decoration-[1px] underline-offset-4 outline-none transition-[color,text-decoration-color] duration-200 ease-out hover:text-white/92 hover:decoration-white/45 focus-visible:text-white focus-visible:decoration-white/60";
 
-/** Primary — solid, clearly the main forward action. */
-const PRIMARY_ACTION =
-  "inline-flex items-center gap-2 rounded-lg border border-white/28 bg-white/[0.14] px-4 py-2 font-sans text-[0.82rem] font-medium not-italic tracking-[0.008em] text-white outline-none transition-all duration-200 ease-out hover:border-white/40 hover:bg-white/[0.20] focus-visible:ring-2 focus-visible:ring-white/30 sm:text-[0.85rem]";
+/** Primary next action — still obvious, but reads like examiner direction. */
+const EXAMINER_NEXT_ACTION =
+  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.84rem] font-normal italic tracking-[0.01em] text-white/90 underline decoration-white/35 decoration-[1px] underline-offset-4 outline-none transition-[color,text-decoration-color] duration-200 ease-out hover:text-white hover:decoration-white/70 focus-visible:text-white focus-visible:decoration-white";
 
 function FeedbackActions({
   score,
@@ -977,47 +981,41 @@ function FeedbackActions({
         ease: cinematicEase,
       }}
     >
-      {/* Divider above actions */}
+      {/* Divider above transition options */}
       <div className="h-px w-full bg-white/[0.09]" aria-hidden />
 
-      {/* Score line */}
-        {!teaching ? (
-          <p className="text-[0.82rem] tracking-[0.008em] text-white/80 sm:text-[0.85rem]">
-            <span className="font-bold not-italic text-white">
-              Score {score}/3
-            </span>
-            <span className="mx-1.5 text-white/35">—</span>
-            <span className="font-light italic">{scoreMeaning}</span>
-          </p>
-        ) : null}
+      {/* Subtle examiner record — present but intentionally low emphasis */}
+      {!teaching ? (
+        <p className="text-[0.72rem] tracking-[0.01em] text-white/52 sm:text-[0.76rem]">
+          <span className="font-medium text-white/68">{`${score}/3`}</span>
+          <span className="mx-1.5 text-white/24">·</span>
+          <span className="font-light italic text-white/50">{scoreMeaning}</span>
+        </p>
+      ) : null}
 
-      {/* Action rows */}
+      {/* Natural next-step choices */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Left — secondary actions */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION}>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <button type="button" onClick={onTryAgain} className={EXAMINER_ACTION_LINK}>
             Try Again
           </button>
           {!teaching && !showAnswer ? (
-            <>
-              <button type="button" onClick={onToggleAnswer} className={SECONDARY_ACTION}>
-                Show Me Answer
-              </button>
-            </>
+            <button type="button" onClick={onToggleAnswer} className={EXAMINER_ACTION_LINK}>
+              Show Me Answer
+            </button>
           ) : null}
-          <button type="button" onClick={onReviewLater} className={SECONDARY_ACTION}>
+          <button type="button" onClick={onReviewLater} className={EXAMINER_ACTION_LINK}>
             Review Later
           </button>
         </div>
 
-        {/* Right — primary action + pressure cue */}
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-4">
           <AnimatePresence initial={false}>
             {showCue && !passed && !showAnswer ? (
               <motion.span
                 key="cue"
                 aria-hidden
-                className="font-serif text-[0.76rem] font-light italic text-white/48 sm:text-[0.78rem]"
+                className="font-serif text-[0.76rem] font-light italic text-white/44 sm:text-[0.78rem]"
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -1027,14 +1025,8 @@ function FeedbackActions({
               </motion.span>
             ) : null}
           </AnimatePresence>
-          <button type="button" onClick={onNextQuestion} className={PRIMARY_ACTION}>
-            <span>Next Question</span>
-            <span
-              aria-hidden
-              className="rounded border border-white/22 bg-black/30 px-1.5 py-[2px] text-[0.62rem] font-normal tracking-normal text-white/60"
-            >
-              Enter
-            </span>
+          <button type="button" onClick={onNextQuestion} className={EXAMINER_NEXT_ACTION}>
+            Next Question
           </button>
         </div>
       </div>
