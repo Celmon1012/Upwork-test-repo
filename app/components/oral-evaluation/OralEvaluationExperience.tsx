@@ -187,7 +187,7 @@ function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
  * Only inner content scrolls/changes.
  */
 const ORAL_PANEL_SHELL =
-  "oral-glass-panel flex h-[min(90dvh,33rem)] w-full flex-col overflow-hidden";
+  "oral-glass-panel flex h-[min(90dvh,36rem)] w-full flex-col overflow-hidden";
 const ORAL_PANEL_SCROLL =
   "oral-scrollbar-modern relative z-[1] flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-6 py-6 text-left sm:px-8 sm:py-8";
 
@@ -685,7 +685,7 @@ export function OralEvaluationExperience() {
                       duration: transitionMs(reduceMotion, 0.32),
                       ease: cinematicEase,
                     }}
-                    className="mt-11 flex h-full w-full flex-col"
+                    className="mt-16 flex h-full w-full flex-col"
                   >
                     {/* Section divider */}
                     <div className="mb-5 h-px w-full bg-white/[0.09]" aria-hidden />
@@ -693,7 +693,7 @@ export function OralEvaluationExperience() {
                     {/* Input label */}
                     <label
                       htmlFor="oral-answer"
-                      className="mb-2.5 block text-[0.65rem] font-medium uppercase tracking-[0.22em] text-white/52"
+                      className="mb-2 block font-serif text-[0.84rem] font-light italic tracking-[0.01em] text-white/68 sm:text-[0.88rem]"
                     >
                       Your response
                     </label>
@@ -709,7 +709,7 @@ export function OralEvaluationExperience() {
                         id="oral-answer"
                         rows={5}
                         readOnly={evaluating}
-                        placeholder="Answer here — press Enter when ready, Shift+Enter for new line."
+                        placeholder="Go ahead"
                         aria-invalid={Boolean(answerError)}
                         aria-describedby={answerError ? "oral-answer-error" : undefined}
                         onChange={() => {
@@ -721,7 +721,7 @@ export function OralEvaluationExperience() {
                             if (!evaluating) runEvaluation();
                           }
                         }}
-                        className="oral-answer-line box-border w-full min-h-[8rem] max-h-[min(28vh,13rem)] resize-none rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-[0.93rem] leading-[1.72] text-white transition-all duration-200 focus:outline-none sm:text-[0.97rem]"
+                        className="oral-answer-line box-border w-full min-h-[8.5rem] max-h-[min(30vh,14rem)] resize-none rounded-2xl border border-white/14 bg-white/[0.05] px-4 py-4 font-serif text-[0.96rem] font-light leading-[1.78] text-white/95 transition-all duration-200 focus:outline-none sm:text-[0.99rem]"
                       />
                     </div>
 
@@ -791,7 +791,7 @@ export function OralEvaluationExperience() {
                           onClick={runEvaluation}
                           className={SUBMIT_ACTION}
                         >
-                          Submit
+                          Answer
                         </button>
                       )}
                     </div>
@@ -938,13 +938,17 @@ export function OralEvaluationExperience() {
  *   Try Again · Show Me Answer · Review Later   /   Next Question
  */
 
-/** Examiner-style action links — deliberate, quiet, non-app feel. */
-const EXAMINER_ACTION_LINK =
-  "rounded-sm border-0 bg-transparent p-0 font-serif text-[0.82rem] font-light italic tracking-[0.006em] text-white/72 underline decoration-white/20 decoration-[1px] underline-offset-4 outline-none transition-[color,text-decoration-color] duration-200 ease-out hover:text-white/92 hover:decoration-white/45 focus-visible:text-white focus-visible:decoration-white/60";
+/** Secondary actions: medium size, outlined/subtle. */
+const SECONDARY_ACTION_BUTTON =
+  "inline-flex h-11 items-center rounded-md border border-white/20 bg-white/[0.08] px-4 text-left font-sans text-[0.82rem] font-medium tracking-[0.006em] text-white/88 outline-none transition-all duration-220 ease-out hover:border-white/34 hover:bg-white/[0.14] hover:text-white focus-visible:ring-2 focus-visible:ring-white/26 sm:text-[0.84rem]";
 
-/** Primary next action — still obvious, but reads like examiner direction. */
-const EXAMINER_NEXT_ACTION =
-  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.84rem] font-normal italic tracking-[0.01em] text-white/90 underline decoration-white/35 decoration-[1px] underline-offset-4 outline-none transition-[color,text-decoration-color] duration-200 ease-out hover:text-white hover:decoration-white/70 focus-visible:text-white focus-visible:decoration-white";
+/** Primary action: dominant, solid white, ~48px. */
+const PRIMARY_NEXT_ACTION_BUTTON =
+  "inline-flex h-12 items-center rounded-xl border border-white/85 bg-white px-5 text-left font-sans text-[0.88rem] font-semibold tracking-[0.008em] text-slate-900 outline-none shadow-[0_10px_30px_rgba(0,0,0,0.42)] transition-all duration-220 ease-out hover:-translate-y-[1px] hover:bg-white/95 hover:shadow-[0_12px_36px_rgba(0,0,0,0.52)] focus-visible:ring-2 focus-visible:ring-white/60 sm:text-[0.9rem]";
+
+/** Tertiary action: low emphasis, not competing. */
+const TERTIARY_ACTION_LINK =
+  "rounded-sm border-0 bg-transparent p-0 font-serif text-[0.78rem] font-light italic tracking-[0.006em] text-white/54 underline decoration-white/16 decoration-[1px] underline-offset-4 outline-none transition-[color,text-decoration-color] duration-220 ease-out hover:text-white/78 hover:decoration-white/32 focus-visible:text-white/84 focus-visible:decoration-white/48";
 
 function FeedbackActions({
   score,
@@ -972,12 +976,12 @@ function FeedbackActions({
 
   return (
     <motion.div
-      className="mt-8 flex flex-col gap-4"
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
+      className="mt-9 flex flex-col gap-5"
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: transitionMs(reduceMotion, 0.55),
-        delay: reduceMotion ? 0 : 0.28,
+        delay: reduceMotion ? 0 : 1.05,
         ease: cinematicEase,
       }}
     >
@@ -993,23 +997,27 @@ function FeedbackActions({
         </p>
       ) : null}
 
-      {/* Natural next-step choices */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <button type="button" onClick={onTryAgain} className={EXAMINER_ACTION_LINK}>
-            Try Again
-          </button>
-          {!teaching && !showAnswer ? (
-            <button type="button" onClick={onToggleAnswer} className={EXAMINER_ACTION_LINK}>
-              Show Me Answer
+      {/* Primary/secondary decision groups */}
+      <div className="grid grid-cols-1 gap-7 pt-2 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-x-11">
+        <div className="flex flex-col gap-3.5">
+          <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+            <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION_BUTTON}>
+              Try Again
             </button>
-          ) : null}
-          <button type="button" onClick={onReviewLater} className={EXAMINER_ACTION_LINK}>
-            Review Later
-          </button>
+            {!teaching && !showAnswer ? (
+              <button type="button" onClick={onToggleAnswer} className={SECONDARY_ACTION_BUTTON}>
+                Show Me Answer
+              </button>
+            ) : null}
+          </div>
+          <div className="pt-0.5">
+            <button type="button" onClick={onReviewLater} className={TERTIARY_ACTION_LINK}>
+              Review Later
+            </button>
+          </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-4">
+        <div className="flex items-end justify-start gap-4 sm:justify-end">
           <AnimatePresence initial={false}>
             {showCue && !passed && !showAnswer ? (
               <motion.span
@@ -1025,7 +1033,7 @@ function FeedbackActions({
               </motion.span>
             ) : null}
           </AnimatePresence>
-          <button type="button" onClick={onNextQuestion} className={EXAMINER_NEXT_ACTION}>
+          <button type="button" onClick={onNextQuestion} className={PRIMARY_NEXT_ACTION_BUTTON}>
             Next Question
           </button>
         </div>
