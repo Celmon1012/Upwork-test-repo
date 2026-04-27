@@ -938,17 +938,25 @@ export function OralEvaluationExperience() {
  *   Try Again · Show Me Answer · Review Later   /   Next Question
  */
 
-/** Secondary actions: medium size, outlined/subtle. */
+/** Bottom command strip shell — keeps all actions in one visual system. */
+const ACTION_STRIP =
+  "rounded-xl border border-white/18 bg-[#0d1624]/80 p-1.5 shadow-[0_12px_34px_rgba(0,0,0,0.42)]";
+
+/** Shared command-tab sizing/structure so every action conforms. */
+const ACTION_TAB_BASE =
+  "inline-flex h-11 items-center gap-2 rounded-lg border px-3.5 font-sans text-[0.8rem] font-semibold tracking-[0.006em] outline-none transition-all duration-220 ease-out focus-visible:ring-2 sm:text-[0.82rem]";
+
+/** Secondary tabs: intentional, but lower than primary Next. */
 const SECONDARY_ACTION_BUTTON =
-  "inline-flex h-11 items-center rounded-md border border-white/20 bg-white/[0.08] px-4 text-left font-sans text-[0.82rem] font-medium tracking-[0.006em] text-white/88 outline-none transition-all duration-220 ease-out hover:border-white/34 hover:bg-white/[0.14] hover:text-white focus-visible:ring-2 focus-visible:ring-white/26 sm:text-[0.84rem]";
+  `${ACTION_TAB_BASE} border-white/28 bg-white/[0.09] text-white/92 hover:border-white/46 hover:bg-white/[0.16] hover:text-white focus-visible:ring-white/34`;
 
-/** Primary action: dominant, solid white, ~48px. */
+/** Tertiary tab participates in the same strip geometry. */
+const TERTIARY_ACTION_BUTTON =
+  `${ACTION_TAB_BASE} border-white/20 bg-white/[0.05] text-white/72 hover:border-white/34 hover:bg-white/[0.10] hover:text-white/90 focus-visible:ring-white/26`;
+
+/** Primary tab: emphasized but still in the same tab strip footprint. */
 const PRIMARY_NEXT_ACTION_BUTTON =
-  "inline-flex h-12 items-center rounded-xl border border-white/85 bg-white px-5 text-left font-sans text-[0.88rem] font-semibold tracking-[0.008em] text-slate-900 outline-none shadow-[0_10px_30px_rgba(0,0,0,0.42)] transition-all duration-220 ease-out hover:-translate-y-[1px] hover:bg-white/95 hover:shadow-[0_12px_36px_rgba(0,0,0,0.52)] focus-visible:ring-2 focus-visible:ring-white/60 sm:text-[0.9rem]";
-
-/** Tertiary action: low emphasis, not competing. */
-const TERTIARY_ACTION_LINK =
-  "rounded-sm border-0 bg-transparent p-0 font-serif text-[0.78rem] font-light italic tracking-[0.006em] text-white/54 underline decoration-white/16 decoration-[1px] underline-offset-4 outline-none transition-[color,text-decoration-color] duration-220 ease-out hover:text-white/78 hover:decoration-white/32 focus-visible:text-white/84 focus-visible:decoration-white/48";
+  `${ACTION_TAB_BASE} border-white/80 bg-white text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-[1px] hover:bg-white/95 hover:shadow-[0_10px_30px_rgba(0,0,0,0.46)] focus-visible:ring-white/60`;
 
 function FeedbackActions({
   score,
@@ -990,52 +998,66 @@ function FeedbackActions({
 
       {/* Subtle examiner record — present but intentionally low emphasis */}
       {!teaching ? (
-        <p className="text-[0.72rem] tracking-[0.01em] text-white/52 sm:text-[0.76rem]">
-          <span className="font-medium text-white/68">{`${score}/3`}</span>
-          <span className="mx-1.5 text-white/24">·</span>
-          <span className="font-light italic text-white/50">{scoreMeaning}</span>
+        <p className="text-[0.69rem] tracking-[0.012em] text-white/38 sm:text-[0.72rem]">
+          <span className="font-medium text-white/50">{`${score}/3`}</span>
+          <span className="mx-1.5 text-white/18">·</span>
+          <span className="font-light italic text-white/36">{scoreMeaning}</span>
         </p>
       ) : null}
 
-      {/* Primary/secondary decision groups */}
-      <div className="grid grid-cols-1 gap-7 pt-2 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-x-11">
-        <div className="flex flex-col gap-3.5">
-          <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
+      <div className="flex flex-col gap-3.5 pt-2">
+        <AnimatePresence initial={false}>
+          {showCue && !passed && !showAnswer ? (
+            <motion.span
+              key="cue"
+              aria-hidden
+              className="font-serif text-[0.76rem] font-light italic text-white/44 sm:text-[0.78rem]"
+              initial={reduceMotion ? false : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={reduceMotion ? undefined : { opacity: 0 }}
+              transition={{ duration: transitionMs(reduceMotion, 0.45), ease: cinematicEase }}
+            >
+              Your move.
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
+
+        <div className={ACTION_STRIP}>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION_BUTTON}>
-              Try Again
+              <span aria-hidden>↺</span>
+              <span>Try Again</span>
             </button>
+
             {!teaching && !showAnswer ? (
               <button type="button" onClick={onToggleAnswer} className={SECONDARY_ACTION_BUTTON}>
-                Show Me Answer
+                <span aria-hidden>◎</span>
+                <span>Show Answer</span>
               </button>
-            ) : null}
-          </div>
-          <div className="pt-0.5">
-            <button type="button" onClick={onReviewLater} className={TERTIARY_ACTION_LINK}>
-              Review Later
+            ) : (
+              <button type="button" onClick={onReviewLater} className={TERTIARY_ACTION_BUTTON}>
+                <span aria-hidden>☆</span>
+                <span>Review Later</span>
+              </button>
+            )}
+
+            {!teaching && !showAnswer ? (
+              <button type="button" onClick={onReviewLater} className={TERTIARY_ACTION_BUTTON}>
+                <span aria-hidden>☆</span>
+                <span>Review Later</span>
+              </button>
+            ) : (
+              <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION_BUTTON}>
+                <span aria-hidden>↺</span>
+                <span>Try Again</span>
+              </button>
+            )}
+
+            <button type="button" onClick={onNextQuestion} className={PRIMARY_NEXT_ACTION_BUTTON}>
+              <span aria-hidden>→</span>
+              <span>Next Question</span>
             </button>
           </div>
-        </div>
-
-        <div className="flex items-end justify-start gap-4 sm:justify-end">
-          <AnimatePresence initial={false}>
-            {showCue && !passed && !showAnswer ? (
-              <motion.span
-                key="cue"
-                aria-hidden
-                className="font-serif text-[0.76rem] font-light italic text-white/44 sm:text-[0.78rem]"
-                initial={reduceMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={reduceMotion ? undefined : { opacity: 0 }}
-                transition={{ duration: transitionMs(reduceMotion, 0.45), ease: cinematicEase }}
-              >
-                Your move.
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
-          <button type="button" onClick={onNextQuestion} className={PRIMARY_NEXT_ACTION_BUTTON}>
-            Next Question
-          </button>
         </div>
       </div>
     </motion.div>
