@@ -36,13 +36,13 @@ function pick<T>(arr: readonly T[]): T {
 /** Bias toward the client’s two patterns: “I didn’t hear X.” / “Where’s your X?” */
 function gapOne(label: string): string {
   const primary: readonly string[] = [
-    `I didn't hear your ${label} callout.`,
-    `Walk me through your ${label} piece.`,
+    `I didn't hear the ${label} piece.`,
+    `Talk me through your ${label} piece.`,
   ];
   const secondary: readonly string[] = [
     `I'm still not hearing ${label}.`,
     `You skipped ${label}.`,
-    `That answer is still missing ${label}.`,
+    `You're still missing ${label}.`,
   ];
   return Math.random() < 0.62 ? pick(primary) : pick([...primary, ...secondary]);
 }
@@ -54,13 +54,13 @@ function gapLinesFromTopMisses(missed: readonly RubricPoint[]): readonly string[
   if (a && b) {
     if (Math.random() < 0.5) {
       return [
-        `Walk me through your ${a} piece.`,
-        `I still didn't hear your ${b} callout.`,
+        `Talk me through your ${a} piece.`,
+        `I still didn't hear the ${b} piece.`,
       ];
     }
     return [
-      `I still didn't hear your ${a} callout.`,
-      `Now give me your ${b} piece.`,
+      `I still didn't hear the ${a} piece.`,
+      `Now give me the ${b} piece.`,
     ];
   }
   if (a) return [gapOne(a)];
@@ -77,9 +77,9 @@ function gapLinesFromTopMisses(missed: readonly RubricPoint[]): readonly string[
 
 const escalationJudgmentPool: readonly string[] = [
   "Still not there.",
-  "Same problem as before.",
+  "Same gap as before.",
   "Not there yet.",
-  "You didn't fix the core miss.",
+  "You still didn't fix the main miss.",
 ];
 
 function pickEscalationJudgment(repeatDepth: number): string {
@@ -124,28 +124,28 @@ const escalationByItem: Record<string, readonly EscalationScript[]> = {
   "lost-comms-vfr": [
     {
       kind: "structured",
-      pressure: "You still gave me fragments instead of a sequence.",
+      pressure: "You're still giving me fragments instead of a sequence.",
       orderBeats: [
         "Start by confirming the failure and squawking 7600.",
-        "Then continue VFR and walk the route and altitude stack in order.",
+        "Then stay VFR and walk the route and altitude stack in order.",
       ],
       retry: "Take a breath and run it again from the top.",
     },
     {
       kind: "structured",
-      pressure: "I need this in an executable order, not keywords.",
+      pressure: "I need this in flyable order, not just keywords.",
       orderBeats: [
         "7600 is first.",
-        "Then route, then altitude, and then your landing intention.",
+        "Then route, then altitude, then your landing intention.",
       ],
-      retry: "Give it to me again exactly like you would brief it.",
+      retry: "Give it to me again the way you'd brief it.",
     },
     {
       kind: "structured",
       pressure: "Third pass now, so I need a complete answer with no blanks.",
       orderBeats: [
-        "State the code and then fly the 91.185 order without skipping steps.",
-        "If you're landing VFR, tell me why that choice is legal in this case.",
+        "State the code, then fly the 91.185 order without skipping steps.",
+        "If you're landing VFR, tell me why that's legal here.",
       ],
       retry: "Run it now, cleanly and in order.",
     },
@@ -175,7 +175,7 @@ function buildEscalatedTurn(
     depth >= 3
       ? "Third miss now, so change the structure and make it complete."
       : depth >= 2
-        ? "You're circling the same gap, so give me a different and clearer structure."
+        ? "You're circling the same gap, so give me a cleaner structure."
         : "You're still missing the same piece, so I need more detail.";
   return {
     judgment: pickEscalationJudgment(depth),
@@ -192,7 +192,7 @@ const weakJudgmentPool: readonly string[] = [
   "Not enough.",
   "Too general.",
   "Insufficient.",
-  "That won't fly.",
+  "That doesn't work yet.",
 ];
 
 // ---------- Adequate judgments (score 2) ----------
@@ -221,7 +221,7 @@ const adequatePressurePool: Record<string, readonly string[]> = {
   "lost-comms-vfr": [
     "I can hear the idea, but I still can't grade the order.",
     "You said the right words, but not in a flyable sequence.",
-    "You're giving me pieces, but not the full order I need.",
+    "You're giving me pieces, not the full order I need.",
   ],
 };
 
@@ -229,7 +229,7 @@ const passPressurePool: readonly string[] = [
   "That's a checkride-ready answer.",
   "That was clean and in order.",
   "That holds up under pressure.",
-  "That works as given.",
+  "That works.",
 ];
 
 const passCloserPool: readonly string[] = [
@@ -247,9 +247,9 @@ const retryPushLostComms: readonly string[] = [
 
 const weakPressurePool: Record<string, readonly string[]> = {
   "lost-comms-vfr": [
-    "You jumped straight to the end without building the sequence.",
+    "You jumped to the end without building the sequence.",
     "That answer is still out of order.",
-    "You went to the landing outcome before establishing the setup.",
+    "You went to the landing outcome before setting it up.",
   ],
 };
 
@@ -257,7 +257,7 @@ const weakPressureFallback: readonly string[] = [
   "That doesn't hold up yet.",
   "That answer isn't enough yet.",
   "It's still too thin for a checkride standard.",
-  "Go again, but tighten the structure.",
+  "Go again and tighten the structure.",
 ];
 
 export function buildExaminerSpokenTurn(

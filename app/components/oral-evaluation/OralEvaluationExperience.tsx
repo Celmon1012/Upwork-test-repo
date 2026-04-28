@@ -570,9 +570,7 @@ export function OralEvaluationExperience() {
     if (sessionPhase !== "feedback" || !allSegmentsRevealed) return;
     // User opened the full model answer — stay with them.
     if (showAnswer) return;
-    // Failed / incomplete — hold. No timed cue, no auto-advance. The "Your
-    // move." cue is derived in render for this path so the user sees it
-    // immediately; the room pressures through silence, not through the clock.
+    // Failed / incomplete — hold. No timed cue, no auto-advance.
     if (evaluation.score < 3 && !showMeMode) return;
 
     const dwell = readingDwellAfterSpeechMs(reduceMotion, evaluation.score);
@@ -911,10 +909,6 @@ export function OralEvaluationExperience() {
                         onTryAgain={tryAgain}
                         onNextQuestion={advanceFromFeedback}
                         onReviewLater={reviewLater}
-                        showCue={
-                          showTransitionCue ||
-                          (evaluation.score < 3 && !showMeMode)
-                        }
                         reduceMotion={reduceMotion}
                       />
                     )}
@@ -954,6 +948,10 @@ const SECONDARY_ACTION_BUTTON =
 const TERTIARY_ACTION_BUTTON =
   `${ACTION_TAB_BASE} border-white/20 bg-white/[0.05] text-white/72 hover:border-white/34 hover:bg-white/[0.10] hover:text-white/90 focus-visible:ring-white/26`;
 
+/** Review-later is intentionally quieter than the main exam flow actions. */
+const REVIEW_LATER_ACTION_BUTTON =
+  `${ACTION_TAB_BASE} border-white/12 bg-transparent text-white/52 hover:border-white/22 hover:bg-white/[0.06] hover:text-white/70 focus-visible:ring-white/20`;
+
 /** Primary tab: emphasized but still in the same tab strip footprint. */
 const PRIMARY_NEXT_ACTION_BUTTON =
   `${ACTION_TAB_BASE} border-white/80 bg-white text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-[1px] hover:bg-white/95 hover:shadow-[0_10px_30px_rgba(0,0,0,0.46)] focus-visible:ring-white/60`;
@@ -966,7 +964,6 @@ function FeedbackActions({
   onTryAgain,
   onNextQuestion,
   onReviewLater,
-  showCue,
   reduceMotion,
 }: {
   score: ScoreValue;
@@ -976,7 +973,6 @@ function FeedbackActions({
   onTryAgain: () => void;
   onNextQuestion: () => void;
   onReviewLater: () => void;
-  showCue: boolean;
   reduceMotion: boolean | null;
 }) {
   const passed = teaching || score >= 3;
@@ -1006,22 +1002,6 @@ function FeedbackActions({
       ) : null}
 
       <div className="flex flex-col gap-3.5 pt-2">
-        <AnimatePresence initial={false}>
-          {showCue && !passed && !showAnswer ? (
-            <motion.span
-              key="cue"
-              aria-hidden
-              className="font-serif text-[0.76rem] font-light italic text-white/44 sm:text-[0.78rem]"
-              initial={reduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={reduceMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: transitionMs(reduceMotion, 0.45), ease: cinematicEase }}
-            >
-              Your move.
-            </motion.span>
-          ) : null}
-        </AnimatePresence>
-
         <div className={ACTION_STRIP}>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION_BUTTON}>
@@ -1035,14 +1015,22 @@ function FeedbackActions({
                 <span>Show Answer</span>
               </button>
             ) : (
-              <button type="button" onClick={onReviewLater} className={TERTIARY_ACTION_BUTTON}>
+              <button
+                type="button"
+                onClick={onReviewLater}
+                className={REVIEW_LATER_ACTION_BUTTON}
+              >
                 <span aria-hidden>☆</span>
                 <span>Review Later</span>
               </button>
             )}
 
             {!teaching && !showAnswer ? (
-              <button type="button" onClick={onReviewLater} className={TERTIARY_ACTION_BUTTON}>
+              <button
+                type="button"
+                onClick={onReviewLater}
+                className={REVIEW_LATER_ACTION_BUTTON}
+              >
                 <span aria-hidden>☆</span>
                 <span>Review Later</span>
               </button>
