@@ -21,15 +21,16 @@ export function getSupabasePublicEnv(): { url: string; anonKey: string } {
 
   const u = url.trim();
   const k = anonKey.trim();
-  if (
-    u.includes("your-project-ref") ||
-    u.includes("YOUR_PROJECT_REF") ||
-    u.includes("your-project-ref.supabase.co")
-  ) {
+  const isPlaceholderUrl =
+    /your-project-ref|YOUR_PROJECT_REF/i.test(u) ||
+    /^https?:\/\/example\.supabase\.co/i.test(u);
+  if (isPlaceholderUrl) {
     throw new Error(
-      "[Supabase] NEXT_PUBLIC_SUPABASE_URL is still a placeholder (your-project-ref). " +
-        "Set your real URL from Supabase → Project Settings → API. On Vercel, add it under " +
-        "Environment Variables and redeploy so the client bundle picks it up.",
+      `[Supabase] NEXT_PUBLIC_SUPABASE_URL is not your real project URL (got: "${u}"). ` +
+        "Supabase → Project Settings → API → copy Project URL. " +
+        "Vercel → Settings → Environment Variables → set for Production AND Preview → " +
+        "Deployments → Redeploy (uncheck “Use existing Build Cache” once). " +
+        "Do not copy .env.example placeholders into Vercel.",
     );
   }
 
