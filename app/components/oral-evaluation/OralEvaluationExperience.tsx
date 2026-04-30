@@ -15,7 +15,6 @@ import {
   useState,
 } from "react";
 import {
-  ORAL_ITEMS,
   type EvaluationBlock,
   type OralItem,
   type ScoreValue,
@@ -26,48 +25,8 @@ import {
 } from "./examiner-scripts";
 
 type SessionPhase = "respond" | "evaluating" | "feedback";
-type RubricPoint = { label: string; keywords: readonly string[] };
 
 const cinematicEase = [0.16, 1, 0.3, 1] as const;
-
-/** Phase 2: scenario rubrics for 0–3 scoring. */
-const rubricByItem: Record<string, readonly RubricPoint[]> = {
-  "lost-comms-vfr": [
-    { label: "7600", keywords: ["7600", "transponder", "squawk"] },
-    { label: "route stack", keywords: ["assigned", "expected", "filed", "route"] },
-    { label: "altitude stack", keywords: ["mea", "minimum", "altitude", "highest"] },
-    { label: "91.185", keywords: ["91.185", "regulation", "rule"] },
-    { label: "clear order", keywords: ["first", "then", "order", "sequence"] },
-  ],
-  "weather-briefing-go-no-go": [
-    { label: "weather sources", keywords: ["metar", "taf", "radar", "winds aloft"] },
-    { label: "hazard assessment", keywords: ["ceiling", "visibility", "icing", "convection", "thunderstorm"] },
-    { label: "go/no-go logic", keywords: ["go", "no-go", "decision", "personal minimum"] },
-    { label: "alternate plan", keywords: ["alternate", "divert", "plan b"] },
-    { label: "clear sequence", keywords: ["first", "then", "next", "sequence"] },
-  ],
-  "notams-and-airspace-brief": [
-    { label: "NOTAM coverage", keywords: ["notam", "departure", "destination", "alternate"] },
-    { label: "restriction check", keywords: ["tfr", "closure", "outage", "restriction"] },
-    { label: "airspace legality", keywords: ["airspace", "class", "legal", "clearance"] },
-    { label: "route adjustment", keywords: ["reroute", "revise", "change route", "avoid"] },
-    { label: "communication/equipment", keywords: ["comms", "radio", "transponder", "equipment"] },
-  ],
-  "runway-performance-assessment": [
-    { label: "performance inputs", keywords: ["weight", "altitude", "temperature", "wind"] },
-    { label: "POH corrections", keywords: ["poh", "surface", "slope", "obstacle"] },
-    { label: "distance comparison", keywords: ["required distance", "available runway", "margin"] },
-    { label: "runway suitability decision", keywords: ["suitable", "unsuitable", "accept", "reject"] },
-    { label: "mitigation", keywords: ["reduce weight", "delay", "another runway", "another airport"] },
-  ],
-  "weight-balance-fuel-plan": [
-    { label: "weight and CG", keywords: ["weight", "cg", "center of gravity", "envelope"] },
-    { label: "envelope compliance", keywords: ["within limits", "max gross", "limits"] },
-    { label: "fuel components", keywords: ["taxi", "trip", "reserve", "contingency"] },
-    { label: "wind adjustment", keywords: ["headwind", "wind correction", "extra fuel"] },
-    { label: "final go/no-go", keywords: ["go", "no-go", "offload", "delay"] },
-  ],
-};
 
 function transitionMs(reduce: boolean | null, ms: number) {
   return reduce ? 0 : ms;
@@ -199,7 +158,11 @@ const FOOTER_WHISPER =
 const SUBMIT_ACTION =
   "inline-flex items-center gap-2 rounded-lg border border-white/28 bg-white/[0.14] px-4 py-2 font-sans text-[0.82rem] font-medium not-italic tracking-[0.008em] text-white outline-none transition-all duration-200 ease-out hover:border-white/40 hover:bg-white/[0.20] focus-visible:ring-2 focus-visible:ring-white/30 sm:text-[0.85rem]";
 
-export function OralEvaluationExperience() {
+function OralEvaluationExperienceInner({
+  oralItems,
+}: {
+  oralItems: readonly OralItem[];
+}) {
   const reduceMotion = useReducedMotion();
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("respond");
   const [itemIndex, setItemIndex] = useState(0);
@@ -228,7 +191,7 @@ export function OralEvaluationExperience() {
   const dialogLabelId = useId();
   const evaluationTimerRef = useRef<number | null>(null);
 
-  const item = ORAL_ITEMS[itemIndex]!;
+  const item = oralItems[itemIndex]!;
   const evaluation = evaluated ?? item.evaluation;
   const explanationSegments = useMemo(
     () => composeExplanationSegments(evaluation, showMeMode),
@@ -329,12 +292,12 @@ export function OralEvaluationExperience() {
     if (fromReview) {
       setFromReview(false);
       setSessionDone(true);
-    } else if (itemIndex >= ORAL_ITEMS.length - 1) {
+    } else if (itemIndex >= oralItems.length - 1) {
       setSessionDone(true);
     } else {
       setItemIndex((i) => i + 1);
     }
-  }, [fromReview, itemIndex]);
+  }, [fromReview, itemIndex, oralItems.length]);
 
   // The pushback. Same question, cleared textarea, focus restored.
   // The examiner isn't giving up the answer — they're making the user talk again.
@@ -375,7 +338,7 @@ export function OralEvaluationExperience() {
 
   // Jump to a specific item from the end-of-session review screen.
   const startReviewItem = useCallback((id: string) => {
-    const index = ORAL_ITEMS.findIndex((o) => o.id === id);
+    const index = oralItems.findIndex((o) => o.id === id);
     if (index === -1) return;
     setItemIndex(index);
     setFromReview(true);
@@ -392,7 +355,7 @@ export function OralEvaluationExperience() {
     setJustReceived(false);
     setOralRepeatMissCount(0);
     if (answerRef.current) answerRef.current.value = "";
-  }, []);
+  }, [oralItems]);
 
   // Restart entire session from question one.
   const startOver = useCallback(() => {
@@ -600,6 +563,7 @@ export function OralEvaluationExperience() {
         <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
           <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-10 sm:py-8">
             <SessionEndScreen
+              oralItems={oralItems}
               markedItems={markedItems}
               onRetryItem={startReviewItem}
               onStartOver={startOver}
@@ -1325,7 +1289,7 @@ function evaluateAnswer(
   answer: string,
   repeatMissDepth: number = 0,
 ): EvaluationBlock {
-  const rubric = rubricByItem[item.id] ?? [];
+  const rubric = item.rubricPoints;
   const normalized = normalize(answer);
   const matched = rubric.filter((point) =>
     point.keywords.some((keyword) => normalized.includes(normalize(keyword))),
@@ -1364,16 +1328,18 @@ function normalize(value: string) {
  * wrapping up the table session, not a results dashboard.
  */
 function SessionEndScreen({
+  oralItems,
   markedItems,
   onRetryItem,
   onStartOver,
 }: {
+  oralItems: readonly OralItem[];
   markedItems: ReadonlySet<string>;
   onRetryItem: (id: string) => void;
   onStartOver: () => void;
 }) {
   const reduceMotion = useReducedMotion();
-  const marked = ORAL_ITEMS.filter((item) => markedItems.has(item.id));
+  const marked = oralItems.filter((item) => markedItems.has(item.id));
 
   return (
     <motion.div
@@ -1439,4 +1405,37 @@ function SessionEndScreen({
       </div>
     </motion.div>
   );
+}
+
+export function OralEvaluationExperience({
+  oralItems,
+  loadError = null,
+}: {
+  oralItems: readonly OralItem[];
+  /** Server-side fetch diagnostic when `oralItems` is empty */
+  loadError?: string | null;
+}) {
+  if (oralItems.length === 0) {
+    return (
+      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full items-center justify-center overflow-hidden bg-[#0a1018] px-6">
+        <div className="max-w-lg space-y-5 text-center">
+          {loadError ? (
+            <p className="font-sans text-[0.8rem] font-normal not-italic leading-relaxed tracking-normal text-amber-100/90">
+              {loadError}
+            </p>
+          ) : null}
+          <p className="font-serif text-[0.92rem] font-light italic leading-[1.55] text-white/65">
+            No oral questions are available. Confirm you are signed in,
+            <span className="not-italic text-white/80"> question_sets.slug</span>{" "}
+            is{" "}
+            <span className="not-italic text-white/80">mvp-orals-v1</span> (or set{" "}
+            <span className="not-italic text-white/80">ORAL_QUESTION_SET_SLUG</span>
+            ), rows are <span className="not-italic text-white/80">published</span>
+            , and questions point at that set — then reload.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  return <OralEvaluationExperienceInner oralItems={oralItems} />;
 }

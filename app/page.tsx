@@ -1,5 +1,5 @@
-import { OralEvaluationExperience } from "@/app/components/oral-evaluation/OralEvaluationExperience";
+import { LandingPage } from "@/app/components/LandingPage";
 
 export default function Home() {
-  return <OralEvaluationExperience />;
+  return <LandingPage />;
 }
