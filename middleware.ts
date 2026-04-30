@@ -7,32 +7,41 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
-  const { url, anonKey } = getSupabasePublicEnv();
+  try {
+    const { url, anonKey } = getSupabasePublicEnv();
 
-  const supabase = createServerClient(
-    url,
-    anonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
+    const supabase = createServerClient(
+      url,
+      anonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value),
+            );
+            supabaseResponse = NextResponse.next({
+              request,
+            });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options),
+            );
+          },
         },
       },
-    },
-  );
+    );
 
-  await supabase.auth.getUser();
+    await supabase.auth.getUser();
+  } catch (err) {
+    console.error("[middleware] Supabase session refresh skipped:", err);
+    /* Still allow the request — avoids 500 when env is missing on first deploy.
+       Auth cookie refresh simply won’t run until NEXT_PUBLIC_* are set and redeployed. */
+    return NextResponse.next({
+      request,
+    });
+  }
 
   return supabaseResponse;
 }
