@@ -19,5 +19,19 @@ export function getSupabasePublicEnv(): { url: string; anonKey: string } {
     );
   }
 
-  return { url: url.trim(), anonKey: anonKey.trim() };
+  const u = url.trim();
+  const k = anonKey.trim();
+  if (
+    u.includes("your-project-ref") ||
+    u.includes("YOUR_PROJECT_REF") ||
+    u.includes("your-project-ref.supabase.co")
+  ) {
+    throw new Error(
+      "[Supabase] NEXT_PUBLIC_SUPABASE_URL is still a placeholder (your-project-ref). " +
+        "Set your real URL from Supabase → Project Settings → API. On Vercel, add it under " +
+        "Environment Variables and redeploy so the client bundle picks it up.",
+    );
+  }
+
+  return { url: u, anonKey: k };
 }
