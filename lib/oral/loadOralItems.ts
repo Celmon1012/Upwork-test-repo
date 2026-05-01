@@ -274,6 +274,7 @@ export async function loadOralCatalog(
     );
     const evaluation = evaluationFromRow(row.evaluation);
     out.push({
+      questionDbId: row.id,
       id: row.slug,
       contextLabel: row.context_label,
       promptLine: String(row.prompt_line ?? ""),

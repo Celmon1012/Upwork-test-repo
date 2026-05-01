@@ -31,6 +31,8 @@ export type EvaluationBlock = {
 export type RubricPoint = { label: string; keywords: readonly string[] };
 
 export type OralItem = {
+  /** Database primary key (`questions.id`) for persistence tables. */
+  questionDbId: string;
   id: string;
   /** Short scene context only (e.g. "Preflight preparation") — not a course breadcrumb. */
   contextLabel: string;

@@ -23,8 +23,20 @@ import {
   buildExaminerSpokenTurn,
   compactSpokenBeats,
 } from "./examiner-scripts";
+import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type SessionPhase = "respond" | "evaluating" | "feedback";
+type SnapshotPayload = {
+  currentIndex?: number;
+  sessionDone?: boolean;
+  fromReview?: boolean;
+  answerDraft?: string;
+  sessionId?: string;
+};
+type PersistenceContext = {
+  userId: string;
+  sessionId: string;
+};
 
 const cinematicEase = [0.16, 1, 0.3, 1] as const;
 
@@ -177,6 +189,7 @@ function OralEvaluationExperienceInner({
   );
   const [sessionDone, setSessionDone] = useState(false);
   const [fromReview, setFromReview] = useState(false);
+  const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
 
   const [showMeMode, setShowMeMode] = useState(false);
   // Gated reveal of the strong sample answer block.
@@ -190,8 +203,13 @@ function OralEvaluationExperienceInner({
   const answerRef = useRef<HTMLTextAreaElement>(null);
   const dialogLabelId = useId();
   const evaluationTimerRef = useRef<number | null>(null);
+  const supabaseRef = useRef(createSupabaseBrowserClient());
+  const persistenceRef = useRef<PersistenceContext | null>(null);
+  const hydratedProgressRef = useRef(false);
+  const [resumeReady, setResumeReady] = useState(false);
 
   const item = oralItems[itemIndex]!;
+  const currentAnswerDraft = answerDrafts[item.id] ?? "";
   const evaluation = evaluated ?? item.evaluation;
   const explanationSegments = useMemo(
     () => composeExplanationSegments(evaluation, showMeMode),
@@ -216,9 +234,197 @@ function OralEvaluationExperienceInner({
     () => item.sampleAnswer.slice(),
     [item],
   );
+  const questionDbIdSet = useMemo(
+    () => oralItems.map((o) => o.questionDbId),
+    [oralItems],
+  );
+  const indexByQuestionDbId = useMemo(() => {
+    const map = new Map<string, number>();
+    oralItems.forEach((o, i) => {
+      map.set(o.questionDbId, i);
+    });
+    return map;
+  }, [oralItems]);
+  const slugByQuestionDbId = useMemo(() => {
+    const map = new Map<string, string>();
+    oralItems.forEach((o) => {
+      map.set(o.questionDbId, o.id);
+    });
+    return map;
+  }, [oralItems]);
+
+  const persistSnapshot = useCallback(
+    async (overrides?: SnapshotPayload) => {
+      const ctx = persistenceRef.current;
+      if (!ctx || !hydratedProgressRef.current) return;
+      const active = oralItems[itemIndex];
+      if (!active?.questionDbId) return;
+      const answerDraft =
+        overrides && "answerDraft" in overrides
+          ? overrides.answerDraft
+          : answerDrafts[active.id] ?? "";
+      const payload: SnapshotPayload = {
+        currentIndex: itemIndex,
+        sessionDone: sessionDone,
+        fromReview: fromReview,
+        answerDraft,
+        sessionId: ctx.sessionId,
+        ...overrides,
+      };
+      await supabaseRef.current.from("progress_snapshots").upsert(
+        {
+          user_id: ctx.userId,
+          question_id: active.questionDbId,
+          payload,
+          version: 1,
+        },
+        { onConflict: "user_id,question_id" },
+      );
+    },
+    [answerDrafts, fromReview, itemIndex, oralItems, sessionDone],
+  );
+
+  const persistAttempt = useCallback(
+    async (answer: string, block: EvaluationBlock) => {
+      const ctx = persistenceRef.current;
+      if (!ctx || !item.questionDbId) return;
+      const { data: created, error } = await supabaseRef.current
+        .from("attempts")
+        .insert({
+          user_id: ctx.userId,
+          question_id: item.questionDbId,
+          raw_answer: answer,
+          session_id: ctx.sessionId,
+        })
+        .select("id")
+        .single();
+      if (error || !created?.id) return;
+      await supabaseRef.current.from("attempt_scores").insert({
+        attempt_id: created.id,
+        rules_score: block.score,
+        final_score: block.score,
+        score_source: "rules",
+        matched_points: [],
+        missed_points: block.missed,
+      });
+    },
+    [item.questionDbId],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrate = async () => {
+      if (questionDbIdSet.length === 0) {
+        hydratedProgressRef.current = true;
+        setResumeReady(true);
+        return;
+      }
+      const {
+        data: { user },
+      } = await supabaseRef.current.auth.getUser();
+      if (cancelled) return;
+      if (!user?.id) {
+        hydratedProgressRef.current = true;
+        setResumeReady(true);
+        return;
+      }
+      const [bookmarksRes, snapshotsRes, attemptsRes] = await Promise.all([
+        supabaseRef.current
+          .from("bookmarks")
+          .select("question_id")
+          .eq("user_id", user.id)
+          .in("question_id", questionDbIdSet),
+        supabaseRef.current
+          .from("progress_snapshots")
+          .select("question_id,payload,updated_at")
+          .eq("user_id", user.id)
+          .in("question_id", questionDbIdSet)
+          .order("updated_at", { ascending: false }),
+        supabaseRef.current
+          .from("attempts")
+          .select("question_id,raw_answer,submitted_at")
+          .eq("user_id", user.id)
+          .in("question_id", questionDbIdSet)
+          .order("submitted_at", { ascending: false }),
+      ]);
+      if (cancelled) return;
+
+      if (bookmarksRes.data) {
+        const nextMarked = new Set<string>();
+        for (const row of bookmarksRes.data) {
+          const slug = slugByQuestionDbId.get(String(row.question_id));
+          if (slug) nextMarked.add(slug);
+        }
+        setMarkedItems(nextMarked);
+      }
+
+      const snapshots = snapshotsRes.data ?? [];
+      const latest = snapshots[0];
+      const payload =
+        latest?.payload && typeof latest.payload === "object"
+          ? (latest.payload as SnapshotPayload)
+          : null;
+      const persistedSessionId =
+        typeof payload?.sessionId === "string" && payload.sessionId.length > 0
+          ? payload.sessionId
+          : null;
+      persistenceRef.current = {
+        userId: user.id,
+        sessionId: persistedSessionId ?? crypto.randomUUID(),
+      };
+
+      const draftsByQuestionId = new Map<string, string>();
+      for (const snapshot of snapshots) {
+        if (!snapshot?.question_id) continue;
+        const snapshotPayload =
+          snapshot.payload && typeof snapshot.payload === "object"
+            ? (snapshot.payload as SnapshotPayload)
+            : null;
+        if (typeof snapshotPayload?.answerDraft === "string") {
+          draftsByQuestionId.set(String(snapshot.question_id), snapshotPayload.answerDraft);
+        }
+      }
+      if (attemptsRes.data) {
+        for (const row of attemptsRes.data) {
+          const questionId = String(row.question_id ?? "");
+          if (!questionId || draftsByQuestionId.has(questionId)) continue;
+          if (typeof row.raw_answer === "string") {
+            draftsByQuestionId.set(questionId, row.raw_answer);
+          }
+        }
+      }
+      if (draftsByQuestionId.size > 0) {
+        const nextDrafts: Record<string, string> = {};
+        draftsByQuestionId.forEach((draft, questionId) => {
+          const slug = slugByQuestionDbId.get(questionId);
+          if (slug) nextDrafts[slug] = draft;
+        });
+        setAnswerDrafts(nextDrafts);
+      }
+      if (payload) {
+        const resumeIndex = Number(payload.currentIndex);
+        if (Number.isFinite(resumeIndex)) {
+          const bounded = Math.max(0, Math.min(oralItems.length - 1, resumeIndex));
+          setItemIndex(bounded);
+        } else if (latest?.question_id) {
+          const fromQuestion = indexByQuestionDbId.get(String(latest.question_id));
+          if (typeof fromQuestion === "number") setItemIndex(fromQuestion);
+        }
+        setSessionDone(Boolean(payload.sessionDone));
+        setFromReview(Boolean(payload.fromReview));
+      }
+
+      hydratedProgressRef.current = true;
+      setResumeReady(true);
+    };
+    hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [indexByQuestionDbId, oralItems.length, questionDbIdSet, slugByQuestionDbId]);
 
   const runEvaluation = useCallback(() => {
-    const answer = answerRef.current?.value.trim() ?? "";
+    const answer = currentAnswerDraft.trim();
     if (!answer) {
       setAnswerError("Nothing there yet.");
       answerRef.current?.focus();
@@ -230,6 +436,7 @@ function OralEvaluationExperienceInner({
     }
     setAnswerError(null);
     const block = evaluateAnswer(item, answer, oralRepeatMissCount);
+    void persistAttempt(answer, block);
     setEvaluated(block);
     if (block.score >= 3) setOralRepeatMissCount(0);
     setShowMeMode(false);
@@ -240,13 +447,21 @@ function OralEvaluationExperienceInner({
     setShowThinkingCue(true);
     setJustReceived(true);
     setSessionPhase("evaluating");
+    void persistSnapshot({ answerDraft: answer });
     const pauseMs = examinerThinkingPauseMs(reduceMotion);
     evaluationTimerRef.current = window.setTimeout(() => {
       setSessionPhase("feedback");
       setShowThinkingCue(false);
       evaluationTimerRef.current = null;
     }, pauseMs);
-  }, [item, oralRepeatMissCount, reduceMotion]);
+  }, [
+    currentAnswerDraft,
+    item,
+    oralRepeatMissCount,
+    persistAttempt,
+    persistSnapshot,
+    reduceMotion,
+  ]);
 
   // Skip answering — go straight to the examiner showing you a strong answer.
   // Same environmental pacing, shorter think-pause (they aren't grading).
@@ -287,7 +502,6 @@ function OralEvaluationExperienceInner({
     setShowTransitionCue(false);
     setShowThinkingCue(false);
     setJustReceived(false);
-    if (answerRef.current) answerRef.current.value = "";
     setOralRepeatMissCount(0);
     if (fromReview) {
       setFromReview(false);
@@ -312,29 +526,58 @@ function OralEvaluationExperienceInner({
     setShowTransitionCue(false);
     setShowThinkingCue(false);
     setJustReceived(false);
-    if (answerRef.current) answerRef.current.value = "";
+    setAnswerDrafts((prev) => ({ ...prev, [item.id]: "" }));
+    void persistSnapshot({ answerDraft: "" });
     setOralRepeatMissCount((n) => n + 1);
     // itemIndex intentionally unchanged — same item, another pass.
-  }, []);
+  }, [item.id, persistSnapshot]);
 
   const toggleMark = useCallback(() => {
+    const ctx = persistenceRef.current;
+    if (ctx?.userId && item.questionDbId) {
+      if (markedItems.has(item.id)) {
+        void supabaseRef.current
+          .from("bookmarks")
+          .delete()
+          .eq("user_id", ctx.userId)
+          .eq("question_id", item.questionDbId);
+      } else {
+        void supabaseRef.current.from("bookmarks").upsert(
+          {
+            user_id: ctx.userId,
+            question_id: item.questionDbId,
+          },
+          { onConflict: "user_id,question_id" },
+        );
+      }
+    }
     setMarkedItems((prev) => {
       const next = new Set(prev);
       if (next.has(item.id)) next.delete(item.id);
       else next.add(item.id);
       return next;
     });
-  }, [item.id]);
+  }, [item.id, item.questionDbId, markedItems]);
 
   // Mark current item for later and immediately move on — no confirmation.
   const reviewLater = useCallback(() => {
+    const ctx = persistenceRef.current;
+    if (ctx?.userId && item.questionDbId) {
+      void supabaseRef.current.from("bookmarks").upsert(
+        {
+          user_id: ctx.userId,
+          question_id: item.questionDbId,
+        },
+        { onConflict: "user_id,question_id" },
+      );
+    }
     setMarkedItems((prev) => {
       const next = new Set(prev);
       next.add(item.id);
       return next;
     });
     advanceFromFeedback();
-  }, [advanceFromFeedback, item.id]);
+  }, [advanceFromFeedback, item.id, item.questionDbId]);
 
   // Jump to a specific item from the end-of-session review screen.
   const startReviewItem = useCallback((id: string) => {
@@ -354,11 +597,25 @@ function OralEvaluationExperienceInner({
     setShowThinkingCue(false);
     setJustReceived(false);
     setOralRepeatMissCount(0);
-    if (answerRef.current) answerRef.current.value = "";
   }, [oralItems]);
 
   // Restart entire session from question one.
   const startOver = useCallback(() => {
+    const ctx = persistenceRef.current;
+    if (ctx?.userId) {
+      void Promise.all([
+        supabaseRef.current
+          .from("bookmarks")
+          .delete()
+          .eq("user_id", ctx.userId)
+          .in("question_id", questionDbIdSet),
+        supabaseRef.current
+          .from("progress_snapshots")
+          .delete()
+          .eq("user_id", ctx.userId)
+          .in("question_id", questionDbIdSet),
+      ]);
+    }
     setSessionDone(false);
     setFromReview(false);
     setItemIndex(0);
@@ -374,7 +631,12 @@ function OralEvaluationExperienceInner({
     setShowThinkingCue(false);
     setJustReceived(false);
     setOralRepeatMissCount(0);
-    if (answerRef.current) answerRef.current.value = "";
+    setAnswerDrafts({});
+  }, [questionDbIdSet]);
+
+  const openReviewLaterList = useCallback(() => {
+    setSessionDone(true);
+    setFromReview(false);
   }, []);
 
   const evaluating = sessionPhase === "evaluating";
@@ -384,6 +646,19 @@ function OralEvaluationExperienceInner({
   useEffect(() => {
     setOralRepeatMissCount(0);
   }, [itemIndex]);
+
+  useEffect(() => {
+    if (!resumeReady) return;
+    void persistSnapshot();
+  }, [fromReview, itemIndex, persistSnapshot, resumeReady, sessionDone]);
+
+  useEffect(() => {
+    if (!resumeReady) return;
+    const timer = window.setTimeout(() => {
+      void persistSnapshot({ answerDraft: currentAnswerDraft });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [currentAnswerDraft, persistSnapshot, resumeReady]);
 
   /** Open: hide all chrome first, then show answer body; close: restore immediately. */
   const toggleAnswer = useCallback(() => {
@@ -556,6 +831,14 @@ function OralEvaluationExperienceInner({
     showMeMode,
   ]);
 
+  if (!resumeReady) {
+    return (
+      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
+        <BackgroundStack phase="respond" justReceived={false} />
+      </div>
+    );
+  }
+
   if (sessionDone) {
     return (
       <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
@@ -670,11 +953,16 @@ function OralEvaluationExperienceInner({
                         ref={answerRef}
                         id="oral-answer"
                         rows={5}
+                        value={currentAnswerDraft}
                         readOnly={evaluating}
                         placeholder="Go ahead"
                         aria-invalid={Boolean(answerError)}
                         aria-describedby={answerError ? "oral-answer-error" : undefined}
-                        onChange={() => {
+                        onChange={(event) => {
+                          setAnswerDrafts((prev) => ({
+                            ...prev,
+                            [item.id]: event.target.value,
+                          }));
                           if (answerError) setAnswerError(null);
                         }}
                         onKeyDown={(event) => {
@@ -736,13 +1024,24 @@ function OralEvaluationExperienceInner({
                             <p aria-hidden className="font-serif text-[0.82rem] italic text-white/42">…</p>
                           )
                         ) : (
-                          <button
-                            type="button"
-                            onClick={runShowMe}
-                            className={FOOTER_WHISPER}
-                          >
-                            If you want to hear one.
-                          </button>
+                          <div className="flex items-center gap-4">
+                            <button
+                              type="button"
+                              onClick={runShowMe}
+                              className={FOOTER_WHISPER}
+                            >
+                              If you want to hear one.
+                            </button>
+                            {markedItems.size > 0 ? (
+                              <button
+                                type="button"
+                                onClick={openReviewLaterList}
+                                className={FOOTER_WHISPER}
+                              >
+                                Review Later ({markedItems.size})
+                              </button>
+                            ) : null}
+                          </div>
                         )}
                       </div>
 

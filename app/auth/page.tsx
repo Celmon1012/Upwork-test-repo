@@ -91,6 +91,14 @@ function AuthForm() {
           return;
         }
 
+        // Supabase can return an obfuscated user (empty identities) for existing emails.
+        // Treat it as "already registered" so duplicate sign-up is blocked in UX.
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          setMessage("This email is already registered. Please sign in instead.");
+          setIsError(true);
+          return;
+        }
+
         if (data.user && !data.session) {
           setMessage(
             "Check your email to confirm your account, then sign in.",
