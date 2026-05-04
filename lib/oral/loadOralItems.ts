@@ -293,6 +293,22 @@ export async function loadOralCatalog(
     };
   }
 
+  /**
+   * Optional: restrict practice to one question slug (e.g. while tuning UX).
+   * Omit env var or set `*` for the **full** catalog from this question set.
+   */
+  const onlySlug =
+    typeof process.env.ORAL_PRACTICE_ONLY_SLUG === "string"
+      ? process.env.ORAL_PRACTICE_ONLY_SLUG.trim()
+      : "";
+  if (onlySlug === "" || onlySlug === "*") {
+    return { items: out, error: null };
+  }
+  const locked = out.filter((item) => item.id === onlySlug);
+  if (locked.length > 0) {
+    return { items: locked, error: null };
+  }
+  /* Typo or missing slug: still ship full set so practice is usable. */
   return { items: out, error: null };
 }
 

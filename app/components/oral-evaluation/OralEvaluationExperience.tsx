@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ArrowRight, Bookmark, Eye, EyeOff, RotateCcw } from "lucide-react";
 import {
   AnimatePresence,
   motion,
@@ -66,28 +67,11 @@ const SCORE_MEANING: Record<ScoreValue, string> = {
  */
 
 /**
- * Verdict hold before the first spoken beat after the headline judgment.
- *
- * Deliberately uneven: usually the room lets the verdict sit, sometimes the
- * examiner cuts in early, sometimes they wait too long. Misses get a bit more
- * air than a pass so the headline reads as a real oral moment.
+ * Verdict sits alone before any supporting examiner copy (client spec: ~800–1200ms).
  */
-function explanationRevealDelayMs(
-  reduce: boolean | null,
-  score: ScoreValue,
-  teaching: boolean,
-): number {
-  if (reduce) return teaching ? 640 : 920;
-  if (teaching) return 460 + Math.floor(Math.random() * 220);
-  const roll = Math.random();
-  // ~11% — cuts in early (still happens, but verdict usually gets the room).
-  if (roll < 0.11) return 300 + Math.floor(Math.random() * 240);
-  // ~17% — uncomfortable hold before they start talking at you.
-  if (roll < 0.28) return 2080 + Math.floor(Math.random() * 780);
-  const jitter = Math.floor(Math.random() * 420);
-  if (score <= 1) return 1260 + jitter;
-  if (score === 2) return 1100 + jitter;
-  return 760 + jitter;
+function verdictSoloHoldMs(reduce: boolean | null): number {
+  if (reduce) return 420;
+  return 800 + Math.floor(Math.random() * 401);
 }
 
 /**
@@ -144,31 +128,28 @@ function readingDwellAfterSpeechMs(reduce: boolean | null, score: ScoreValue): n
   return 12800 + jitter;
 }
 
-/**
- * Phase 1: fixed examiner "think" window after typed submit — 1–2 seconds
- * before the judgment and spoken beats appear (no snap / long-tail modes).
- */
+/** Examiner think pause after submit (1.2–1.8s, slightly randomized). */
 function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
-  if (reduceMotion) return 1400;
-  return 1000 + Math.floor(Math.random() * 1001);
+  if (reduceMotion) return 1500;
+  return 1200 + Math.floor(Math.random() * 601);
 }
 
 /**
- * Fixed outer panel: stable footprint across question/evaluation.
- * Only inner content scrolls/changes.
+ * Same fixed footprint for question + feedback so the glass panel does not
+ * jump between phases. Inner area scrolls when content exceeds the viewport.
  */
 const ORAL_PANEL_SHELL =
-  "oral-glass-panel flex h-[min(90dvh,36rem)] w-full flex-col overflow-hidden";
+  "oral-glass-panel flex h-[min(88dvh,680px)] w-full max-w-[960px] flex-col overflow-hidden";
 const ORAL_PANEL_SCROLL =
-  "oral-scrollbar-modern relative z-[1] flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-6 py-6 text-left sm:px-8 sm:py-8";
+  "oral-scrollbar-modern relative z-[1] flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-8 py-7 text-left sm:px-11 sm:py-9";
 
-/** Inline whisper links — e.g. "If you want to hear one." */
+/** Subtle tertiary text control */
 const FOOTER_WHISPER =
-  "rounded-sm border-0 bg-transparent p-0 text-left font-serif text-[0.78rem] font-light italic tracking-[0.006em] text-white/58 outline-none transition-[color] duration-200 ease-out hover:text-white/80 focus-visible:text-white/90 focus-visible:ring-1 focus-visible:ring-white/22";
+  "rounded-sm border-0 bg-transparent p-0 text-left font-sans text-[0.74rem] font-normal tracking-[0.06em] text-white/40 outline-none transition-[color] duration-200 ease-out hover:text-white/65 focus-visible:text-white/85 focus-visible:ring-1 focus-visible:ring-amber-200/25";
 
-/** Submit action during response phase. */
+/** Primary Answer — high contrast, premium */
 const SUBMIT_ACTION =
-  "inline-flex items-center gap-2 rounded-lg border border-white/28 bg-white/[0.14] px-4 py-2 font-sans text-[0.82rem] font-medium not-italic tracking-[0.008em] text-white outline-none transition-all duration-200 ease-out hover:border-white/40 hover:bg-white/[0.20] focus-visible:ring-2 focus-visible:ring-white/30 sm:text-[0.85rem]";
+  "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-xl border border-white/22 bg-gradient-to-b from-white to-slate-100 px-8 py-3 font-sans text-[0.8rem] font-semibold tracking-[0.075em] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.88),0_14px_44px_rgba(0,0,0,0.48)] outline-none transition-[transform,box-shadow,filter] duration-200 ease-out hover:from-slate-50 hover:to-slate-100 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_18px_52px_rgba(0,0,0,0.52)] active:translate-y-px focus-visible:ring-2 focus-visible:ring-amber-200/55 sm:text-[0.82rem]";
 
 function OralEvaluationExperienceInner({
   oralItems,
@@ -192,9 +173,9 @@ function OralEvaluationExperienceInner({
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
 
   const [showMeMode, setShowMeMode] = useState(false);
-  // Gated reveal of the strong sample answer block.
-  // Never open by default — the user has to ask for it.
   const [showAnswer, setShowAnswer] = useState(false);
+  /** Command rail only after spoken feedback + optional model checklist beat. */
+  const [feedbackRailReady, setFeedbackRailReady] = useState(false);
   /** While true, bookmark + feedback actions stay hidden so the sample answer can land alone. */
   const [answerRevealChromeHidden, setAnswerRevealChromeHidden] =
     useState(false);
@@ -211,24 +192,20 @@ function OralEvaluationExperienceInner({
   const item = oralItems[itemIndex]!;
   const currentAnswerDraft = answerDrafts[item.id] ?? "";
   const evaluation = evaluated ?? item.evaluation;
-  const explanationSegments = useMemo(
-    () => composeExplanationSegments(evaluation, showMeMode),
+  const feedbackLines = useMemo(
+    () => getFeedbackLines(evaluation, showMeMode),
     [evaluation, showMeMode],
   );
-  // Per-segment reveal duration — uniform across all lines and all responses.
-  // Variation lives in the *pauses between* lines (see segmentRevealDelayMs),
-  // not in how long each line takes to fade in.
   const SEGMENT_FADE_SECONDS = 0.88;
   const segmentDurations = useMemo(
-    () => explanationSegments.map(() => SEGMENT_FADE_SECONDS),
-    [explanationSegments],
+    () => feedbackLines.map(() => SEGMENT_FADE_SECONDS),
+    [feedbackLines],
   );
-  const segmentCount = explanationSegments.filter((s) => s.trim().length > 0)
-    .length;
+  const segmentCount = feedbackLines.length;
   const allSegmentsRevealed =
     segmentCount === 0 ? true : revealedSegments >= segmentCount;
 
-  // Static sample answer lines — used by "Show Me Answer" after evaluation.
+  // Static sample answer lines — hidden until "Show Me Answer"; toggle also hides/shows.
   // Pulled directly from item.sampleAnswer (clean, per-question, no mixing).
   const sampleAnswerLines = useMemo(
     () => item.sampleAnswer.slice(),
@@ -441,6 +418,7 @@ function OralEvaluationExperienceInner({
     if (block.score >= 3) setOralRepeatMissCount(0);
     setShowMeMode(false);
     setShowAnswer(false);
+    setFeedbackRailReady(false);
     setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
@@ -474,6 +452,7 @@ function OralEvaluationExperienceInner({
     setEvaluated(null);
     setShowMeMode(true);
     setShowAnswer(false);
+    setFeedbackRailReady(false);
     setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
@@ -482,8 +461,8 @@ function OralEvaluationExperienceInner({
     setOralRepeatMissCount(0);
     setSessionPhase("evaluating");
     const pauseMs = reduceMotion
-      ? 1400
-      : 1000 + Math.floor(Math.random() * 1001);
+      ? 1500
+      : 1200 + Math.floor(Math.random() * 601);
     evaluationTimerRef.current = window.setTimeout(() => {
       setSessionPhase("feedback");
       setShowThinkingCue(false);
@@ -497,6 +476,7 @@ function OralEvaluationExperienceInner({
     setEvaluated(null);
     setShowMeMode(false);
     setShowAnswer(false);
+    setFeedbackRailReady(false);
     setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
@@ -521,6 +501,7 @@ function OralEvaluationExperienceInner({
     setEvaluated(null);
     setShowMeMode(false);
     setShowAnswer(false);
+    setFeedbackRailReady(false);
     setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
@@ -591,6 +572,7 @@ function OralEvaluationExperienceInner({
     setEvaluated(null);
     setShowMeMode(false);
     setShowAnswer(false);
+    setFeedbackRailReady(false);
     setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
@@ -625,6 +607,7 @@ function OralEvaluationExperienceInner({
     setEvaluated(null);
     setShowMeMode(false);
     setShowAnswer(false);
+    setFeedbackRailReady(false);
     setAnswerRevealChromeHidden(false);
     setRevealedSegments(0);
     setShowTransitionCue(false);
@@ -727,7 +710,8 @@ function OralEvaluationExperienceInner({
   }, [advanceFromFeedback]);
 
   useEffect(() => {
-    if (sessionPhase !== "feedback" || !allSegmentsRevealed) return;
+    if (sessionPhase !== "feedback" || !allSegmentsRevealed || !feedbackRailReady)
+      return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey) {
         if (showAnswer && answerRevealChromeHidden) {
@@ -743,6 +727,7 @@ function OralEvaluationExperienceInner({
   }, [
     allSegmentsRevealed,
     answerRevealChromeHidden,
+    feedbackRailReady,
     primaryAfterFeedback,
     sessionPhase,
     showAnswer,
@@ -758,31 +743,24 @@ function OralEvaluationExperienceInner({
 
   useEffect(() => {
     if (sessionPhase !== "feedback") return;
-    const segments = explanationSegments.filter((s) => s.trim().length > 0);
-    if (segments.length === 0) return;
+    if (feedbackLines.length === 0) return;
 
     const timers: number[] = [];
-    let cumulative = explanationRevealDelayMs(
-      reduceMotion,
-      evaluation.score,
-      showMeMode,
-    );
-    for (let i = 0; i < segments.length; i++) {
+    let cumulative = verdictSoloHoldMs(reduceMotion);
+    for (let i = 0; i < feedbackLines.length; i++) {
       const index = i;
       timers.push(
         window.setTimeout(() => {
           setRevealedSegments(index + 1);
         }, cumulative),
       );
-      if (i < segments.length - 1) {
-        let gap = segmentRevealDelayMs(segments[i]!, reduceMotion);
-        // Extra breath after the first pressure line on a miss — examiner
-        // lets the first hit land before leaning in again.
+      if (i < feedbackLines.length - 1) {
+        let gap = segmentRevealDelayMs(feedbackLines[i]!.text, reduceMotion);
         if (
           i === 0 &&
           evaluation.score < 3 &&
           !showMeMode &&
-          segments.length > 1
+          feedbackLines.length > 1
         ) {
           gap += 200 + Math.floor(Math.random() * 280);
         }
@@ -794,8 +772,34 @@ function OralEvaluationExperienceInner({
     };
   }, [
     evaluation.score,
-    explanationSegments,
+    feedbackLines,
     reduceMotion,
+    sessionPhase,
+    showMeMode,
+  ]);
+
+  useEffect(() => {
+    if (sessionPhase !== "feedback" || !allSegmentsRevealed) {
+      setFeedbackRailReady(false);
+      return;
+    }
+    if (showMeMode) {
+      setFeedbackRailReady(true);
+      return;
+    }
+    if (sampleAnswerLines.length === 0) {
+      setFeedbackRailReady(true);
+      return;
+    }
+    // Strong answer stays hidden until user taps "Show Me Answer"; rail after a short beat.
+    const ms = reduceMotion ? 160 : 280;
+    const id = window.setTimeout(() => setFeedbackRailReady(true), ms);
+    return () => window.clearTimeout(id);
+  }, [
+    allSegmentsRevealed,
+    item.id,
+    reduceMotion,
+    sampleAnswerLines.length,
     sessionPhase,
     showMeMode,
   ]);
@@ -833,7 +837,7 @@ function OralEvaluationExperienceInner({
 
   if (!resumeReady) {
     return (
-      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
+      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
         <BackgroundStack phase="respond" justReceived={false} />
       </div>
     );
@@ -841,7 +845,7 @@ function OralEvaluationExperienceInner({
 
   if (sessionDone) {
     return (
-      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
+      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
         <BackgroundStack phase="respond" justReceived={false} />
         <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
           <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-10 sm:py-8">
@@ -858,11 +862,11 @@ function OralEvaluationExperienceInner({
   }
 
   return (
-    <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[#0a1018]">
+    <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
       <BackgroundStack phase={sessionPhase} justReceived={justReceived} />
 
       <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-visible px-4 py-3 sm:px-10 sm:py-4">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-visible px-5 py-6 sm:px-12 sm:py-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={item.id}
@@ -875,29 +879,56 @@ function OralEvaluationExperienceInner({
                 duration: transitionMs(reduceMotion, 0.9),
                 ease: cinematicEase,
               }}
-              className="relative mx-auto flex min-h-0 w-full max-w-[min(92vw,52rem)] flex-col"
+              className="relative mx-auto flex min-h-0 w-full max-w-[min(96vw,960px)] flex-col"
             >
-            <div className={ORAL_PANEL_SHELL}>
+            <div
+              className={`${ORAL_PANEL_SHELL} transition-[box-shadow,ring-color] duration-700 ease-out ${
+                evaluating
+                  ? "ring-1 ring-amber-200/[0.14] shadow-[0_40px_120px_rgba(0,0,0,0.88)]"
+                  : "ring-1 ring-white/[0.05] shadow-[0_32px_100px_rgba(0,0,0,0.72)]"
+              }`}
+            >
             <div className={ORAL_PANEL_SCROLL}>
+              <header className="mb-6 shrink-0 sm:mb-7">
+                <div className="flex items-baseline justify-between gap-6 pb-4">
+                  <p className="max-w-[72%] font-sans text-[0.72rem] font-medium uppercase leading-snug tracking-[0.2em] text-white/55 sm:text-[0.74rem]">
+                    {item.contextLabel}
+                  </p>
+                  <p className="shrink-0 tabular-nums font-sans text-[0.68rem] font-medium uppercase tracking-[0.22em] text-white/38">
+                    {itemIndex + 1} of {oralItems.length}
+                  </p>
+                </div>
+                <div
+                  className="h-[3px] w-full overflow-hidden rounded-full bg-white/[0.06]"
+                  aria-hidden
+                >
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-200/35 via-amber-100/25 to-amber-50/15 transition-[width] duration-700 ease-out"
+                    style={{
+                      width: `${Math.max(6, ((itemIndex + 1) / oralItems.length) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </header>
+
               {sessionPhase !== "feedback" ? (
                 <motion.div
                   animate={{
-                    opacity: evaluating ? 0.45 : 1,
+                    opacity: evaluating ? 0.5 : 1,
                   }}
                   transition={{
-                    duration: transitionMs(reduceMotion, 1.2),
+                    duration: transitionMs(reduceMotion, 1.0),
                     ease: cinematicEase,
                   }}
                 >
-                  <p className="text-[0.62rem] font-medium uppercase tracking-[0.22em] text-white/52">
-                    {item.contextLabel}
-                  </p>
-                  <h1 className="mt-3 font-serif text-[1.6rem] font-medium italic leading-[1.22] tracking-[0.01em] text-white sm:text-[1.82rem] sm:leading-[1.18]">
-                    {`"${item.promptLine}"`}
+                  <h1 className="max-w-[42rem] font-serif text-[1.75rem] font-medium leading-[1.28] tracking-[-0.02em] text-white [text-shadow:0_2px_32px_rgba(0,0,0,0.5)] sm:text-[2.12rem] sm:leading-[1.22]">
+                    {item.promptLine}
                   </h1>
-                  <p className="mt-3 text-[0.88rem] font-light leading-[1.68] text-white/72 sm:text-[0.92rem]">
-                    {item.scenario}
-                  </p>
+                  {item.scenario ? (
+                    <p className="mt-5 max-w-[38rem] font-sans text-[0.84rem] font-normal leading-[1.78] tracking-[0.018em] text-white/58 sm:mt-6 sm:text-[0.88rem]">
+                      {item.scenario}
+                    </p>
+                  ) : null}
                 </motion.div>
               ) : (
                 <motion.div
@@ -907,15 +938,12 @@ function OralEvaluationExperienceInner({
                     duration: transitionMs(reduceMotion, 0.55),
                     ease: cinematicEase,
                   }}
-                  className="mt-1 w-full"
+                  className="w-full"
                 >
-                  <p className="text-[0.62rem] font-medium uppercase tracking-[0.22em] text-white/48">
-                    {item.contextLabel}
+                  <p className="max-w-[40rem] font-serif text-[0.92rem] font-light leading-[1.58] tracking-[0.015em] text-white/62 sm:text-[0.97rem]">
+                    {item.promptLine}
                   </p>
-                  <p className="mt-2 font-serif text-[0.86rem] font-light italic leading-[1.45] text-white/62 sm:text-[0.9rem]">
-                    {`"${item.promptLine}"`}
-                  </p>
-                  <div className="mt-4 h-px w-full bg-white/[0.09]" aria-hidden />
+                  <div className="mt-6 h-px w-full max-w-[16rem] bg-gradient-to-r from-white/22 via-white/10 to-transparent" aria-hidden />
                 </motion.div>
               )}
 
@@ -930,23 +958,15 @@ function OralEvaluationExperienceInner({
                       duration: transitionMs(reduceMotion, 0.32),
                       ease: cinematicEase,
                     }}
-                    className="mt-16 flex h-full w-full flex-col"
+                    className="mt-9 flex min-h-0 flex-1 flex-col sm:mt-10"
                   >
-                    {/* Section divider */}
-                    <div className="mb-5 h-px w-full bg-white/[0.09]" aria-hidden />
-
-                    {/* Input label */}
-                    <label
-                      htmlFor="oral-answer"
-                      className="mb-2 block font-serif text-[0.84rem] font-light italic tracking-[0.01em] text-white/68 sm:text-[0.88rem]"
-                    >
-                      Your response
+                    <label htmlFor="oral-answer" className="sr-only">
+                      Your answer to the examiner
                     </label>
 
-                    {/* Textarea — dims while examiner is thinking */}
                     <div
-                      className={`oral-input-wrap w-full transition-opacity duration-500 ease-out ${
-                        evaluating ? "opacity-40" : "opacity-100"
+                      className={`oral-input-wrap flex min-h-0 flex-1 flex-col transition-[opacity,filter] duration-500 ease-out ${
+                        evaluating ? "opacity-45" : "opacity-100"
                       }`}
                     >
                       <textarea
@@ -955,7 +975,7 @@ function OralEvaluationExperienceInner({
                         rows={5}
                         value={currentAnswerDraft}
                         readOnly={evaluating}
-                        placeholder="Go ahead"
+                        placeholder="Go ahead."
                         aria-invalid={Boolean(answerError)}
                         aria-describedby={answerError ? "oral-answer-error" : undefined}
                         onChange={(event) => {
@@ -971,81 +991,49 @@ function OralEvaluationExperienceInner({
                             if (!evaluating) runEvaluation();
                           }
                         }}
-                        className="oral-answer-line box-border w-full min-h-[8.5rem] max-h-[min(30vh,14rem)] resize-none rounded-2xl border border-white/14 bg-white/[0.05] px-4 py-4 font-serif text-[0.96rem] font-light leading-[1.78] text-white/95 transition-all duration-200 focus:outline-none sm:text-[0.99rem]"
+                        className="oral-answer-line box-border min-h-[9rem] w-full flex-1 resize-none rounded-[18px] border border-white/[0.12] bg-[linear-gradient(165deg,rgba(255,255,255,0.07)_0%,rgba(3,5,12,0.74)_45%,rgba(2,3,10,0.9)_100%)] px-5 py-5 font-serif text-[1rem] font-light leading-[1.85] tracking-[0.008em] text-white/[0.94] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-20px_40px_rgba(0,0,0,0.22)] transition-all duration-200 focus:outline-none sm:text-[1.04rem]"
                       />
                     </div>
 
                     {answerError && (
                       <p
                         id="oral-answer-error"
-                        className="mt-2 text-[0.74rem] font-light italic text-rose-300/90"
+                        className="mt-2 text-[0.74rem] font-normal text-rose-300/90"
                         role="alert"
                       >
                         {answerError}
                       </p>
                     )}
 
-                    {/* Bottom row: hint / thinking cue  ↔  Submit button */}
-                    <div className="mt-auto flex min-h-[2rem] items-center justify-between gap-4 pt-3.5">
-                      {/* Left — hint text or evaluating cue */}
-                      <div className="flex items-center gap-2.5">
+                    <div className="mt-7 flex flex-col gap-5 sm:mt-8 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+                      <div className="flex min-h-[1.75rem] flex-col justify-end gap-2">
                         <span className="sr-only" role="status" aria-live="polite">
-                          {evaluating ? "Examiner is considering your response." : ""}
+                          {evaluating ? "Examiner is evaluating." : ""}
                         </span>
-                        {evaluating ? (
-                          showThinkingCue ? (
-                            <>
-                              <motion.span
-                                aria-hidden
-                                className="font-serif text-[1rem] italic leading-none text-white/75"
-                                animate={reduceMotion ? undefined : { opacity: [0.4, 0.9, 0.4], y: [0, -1.5, 0] }}
-                                transition={{
-                                  duration: transitionMs(reduceMotion, 1.0),
-                                  ease: "easeInOut",
-                                  repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
-                                }}
-                              >
-                                …
-                              </motion.span>
-                              <motion.p
-                                aria-hidden
-                                className="font-serif text-[0.82rem] font-light italic text-white/65"
-                                animate={reduceMotion ? undefined : { opacity: [0.55, 0.9, 0.55] }}
-                                transition={{
-                                  duration: transitionMs(reduceMotion, 1.35),
-                                  ease: "easeInOut",
-                                  repeat: reduceMotion ? 0 : Number.POSITIVE_INFINITY,
-                                }}
-                              >
-                                Hang on.
-                              </motion.p>
-                            </>
-                          ) : (
-                            <p aria-hidden className="font-serif text-[0.82rem] italic text-white/42">…</p>
-                          )
-                        ) : (
-                          <div className="flex items-center gap-4">
-                            <button
-                              type="button"
-                              onClick={runShowMe}
-                              className={FOOTER_WHISPER}
-                            >
-                              If you want to hear one.
-                            </button>
-                            {markedItems.size > 0 ? (
-                              <button
-                                type="button"
-                                onClick={openReviewLaterList}
-                                className={FOOTER_WHISPER}
-                              >
-                                Review Later ({markedItems.size})
-                              </button>
-                            ) : null}
-                          </div>
-                        )}
+                        {evaluating && showThinkingCue ? (
+                          <p className="font-sans text-[0.72rem] font-medium uppercase tracking-[0.22em] text-white/38">
+                            Examiner is evaluating…
+                          </p>
+                        ) : !evaluating ? (
+                          <button
+                            type="button"
+                            onClick={runShowMe}
+                            className="self-start text-left font-sans text-[0.74rem] font-medium uppercase tracking-[0.16em] text-white/38 underline decoration-white/12 underline-offset-[6px] transition-colors hover:text-amber-100/55 hover:decoration-amber-200/25"
+                          >
+                            Show Me Answer
+                          </button>
+                        ) : null}
+                        {!evaluating && markedItems.size > 0 ? (
+                          <button
+                            type="button"
+                            onClick={openReviewLaterList}
+                            className={`self-start ${FOOTER_WHISPER}`}
+                          >
+                            Review later ({markedItems.size})
+                          </button>
+                        ) : null}
                       </div>
 
-                      {/* Right — Submit button (hidden while evaluating) */}
                       {!evaluating && (
                         <button
                           type="button"
@@ -1067,6 +1055,7 @@ function OralEvaluationExperienceInner({
                       duration: transitionMs(reduceMotion, 0.42),
                       ease: cinematicEase,
                     }}
+                    className="flex min-h-0 flex-1 flex-col pb-1"
                   >
                     <span className="sr-only">{item.contextLabel}</span>
 
@@ -1080,46 +1069,74 @@ function OralEvaluationExperienceInner({
                       teaching={showMeMode}
                     />
 
-                    <div className="flex flex-col" aria-live="polite">
-                      {explanationSegments.map((segment, index) => {
-                        if (!segment || index >= revealedSegments) return null;
-                        const isFirst = index === 0;
+                    {sessionPhase === "feedback" &&
+                    revealedSegments >= 1 &&
+                    !showMeMode ? (
+                      <p className="mt-6 inline-flex w-fit items-center rounded-lg border border-white/[0.06] bg-white/[0.025] px-3 py-1.5 font-sans text-[0.62rem] font-medium tabular-nums tracking-[0.14em] text-white/38">
+                        Score {evaluation.score} / 3
+                      </p>
+                    ) : null}
+
+                    <div className="mt-1 flex flex-col gap-0" aria-live="polite">
+                      {feedbackLines.map((unit, index) => {
+                        if (index >= revealedSegments) return null;
+                        const prevSection =
+                          index > 0 ? feedbackLines[index - 1]!.section : null;
+                        const showEyebrow = unit.section !== prevSection;
                         const duration = segmentDurations[index] ?? 0.88;
                         return (
-                          <motion.p
-                            key={`${item.id}-seg-${index}`}
-                            initial={reduceMotion ? false : { opacity: 0, y: 6 }}
-                            animate={
-                              reduceMotion
-                                ? { opacity: 1, y: 0 }
-                                : {
-                                    opacity: [0, 0.16, 0.42, 1],
-                                    y: [7, 5, 3, 0],
-                                  }
+                          <div
+                            key={`${item.id}-fb-${index}`}
+                            className={
+                              showEyebrow
+                                ? `border-l border-amber-200/20 pl-5 sm:pl-6 ${index === 0 ? "mt-9" : "mt-11"}`
+                                : "mt-3 pl-5 sm:mt-3.5 sm:pl-6"
                             }
-                            transition={{
-                              duration: transitionMs(reduceMotion, duration),
-                              times: reduceMotion
-                                ? undefined
-                                : [0, 0.14, 0.28, 1],
-                              ease: cinematicEase,
-                            }}
-                            className={`text-[0.93rem] leading-[1.88] tracking-[0.008em] text-white/92 sm:text-[0.97rem] ${
-                              isFirst ? "mt-8" : "mt-5"
-                            }`}
                           >
-                            {segment}
-                          </motion.p>
+                            {showEyebrow ? (
+                              <motion.p
+                                initial={reduceMotion ? false : { opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{
+                                  duration: transitionMs(reduceMotion, 0.35),
+                                  ease: cinematicEase,
+                                }}
+                                className="font-sans text-[0.6rem] font-semibold uppercase tracking-[0.26em] text-amber-100/45"
+                              >
+                                {unit.section}
+                              </motion.p>
+                            ) : null}
+                            <motion.p
+                              initial={reduceMotion ? false : { opacity: 0, y: 5 }}
+                              animate={
+                                reduceMotion
+                                  ? { opacity: 1, y: 0 }
+                                  : {
+                                      opacity: [0, 0.2, 0.5, 1],
+                                      y: [6, 4, 2, 0],
+                                    }
+                              }
+                              transition={{
+                                duration: transitionMs(reduceMotion, duration),
+                                times: reduceMotion
+                                  ? undefined
+                                  : [0, 0.15, 0.32, 1],
+                                ease: cinematicEase,
+                              }}
+                              className="mt-2.5 max-w-[42rem] font-serif text-[0.95rem] font-light leading-[1.86] tracking-[0.012em] text-white/[0.91] sm:text-[0.99rem]"
+                            >
+                              {unit.text}
+                            </motion.p>
+                          </div>
                         );
                       })}
                     </div>
 
-                    {/* Sample answer reveal — shown after "Show Me Answer" is clicked post-evaluation. */}
                     <AnimatePresence initial={false}>
                       {allSegmentsRevealed && showAnswer && !showMeMode && (
                         <motion.div
                           key="answer-reveal"
-                          className="flex flex-col"
+                          className="mt-10 flex flex-col rounded-[18px] border border-white/[0.1] bg-[linear-gradient(142deg,rgba(255,255,255,0.07)_0%,rgba(12,16,28,0.72)_42%,rgba(4,6,14,0.92)_100%)] px-5 py-6 pl-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_4px_0_0_rgba(251,191,36,0.2)] sm:mt-11 sm:px-7 sm:py-7 sm:pl-6"
                           initial={reduceMotion ? false : { opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={reduceMotion ? undefined : { opacity: 0, height: 0 }}
@@ -1128,31 +1145,30 @@ function OralEvaluationExperienceInner({
                             ease: cinematicEase,
                           }}
                         >
-                          {/* Spoken examiner preamble before the model answer lines */}
                           <motion.p
                             initial={reduceMotion ? false : { opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{
                               duration: transitionMs(reduceMotion, 0.4),
-                              delay: reduceMotion ? 0 : 0.1,
+                              delay: reduceMotion ? 0 : 0.08,
                               ease: cinematicEase,
                             }}
-                            className="mt-6 font-serif text-[0.82rem] font-light italic leading-[1.45] tracking-[0.01em] text-white/65 sm:text-[0.86rem]"
+                            className="font-sans text-[0.62rem] font-semibold uppercase tracking-[0.26em] text-amber-100/48"
                           >
-                            Here&rsquo;s what I&rsquo;m looking for.
+                            Strong answer
                           </motion.p>
                           {sampleAnswerLines.map((line, index) => (
                             <motion.p
                               key={`${item.id}-sample-${index}`}
-                              initial={reduceMotion ? false : { opacity: 0, y: 4 }}
+                              initial={reduceMotion ? false : { opacity: 0, y: 3 }}
                               animate={{ opacity: 1, y: 0 }}
                               transition={{
-                                duration: transitionMs(reduceMotion, 0.65),
-                                delay: reduceMotion ? 0 : 0.18 + index * 0.38,
+                                duration: transitionMs(reduceMotion, 0.55),
+                                delay: reduceMotion ? 0 : 0.12 + index * 0.22,
                                 ease: cinematicEase,
                               }}
-                              className={`text-[0.9rem] leading-[1.85] tracking-[0.01em] text-white/88 sm:text-[0.94rem] ${
-                                index === 0 ? "mt-3" : "mt-3"
+                              className={`font-serif text-[0.92rem] font-light leading-[1.84] tracking-[0.01em] text-white/[0.9] sm:text-[0.96rem] ${
+                                index === 0 ? "mt-3.5" : "mt-2.5"
                               }`}
                             >
                               {line}
@@ -1163,18 +1179,19 @@ function OralEvaluationExperienceInner({
                     </AnimatePresence>
 
                     {allSegmentsRevealed &&
+                      feedbackRailReady &&
                       !(showAnswer && answerRevealChromeHidden) && (
-                      <FeedbackActions
-                        score={evaluation.score}
-                        teaching={showMeMode}
-                        showAnswer={showAnswer}
-                        onToggleAnswer={toggleAnswer}
-                        onTryAgain={tryAgain}
-                        onNextQuestion={advanceFromFeedback}
-                        onReviewLater={reviewLater}
-                        reduceMotion={reduceMotion}
-                      />
-                    )}
+                        <FeedbackCommandRail
+                          score={evaluation.score}
+                          teaching={showMeMode}
+                          showAnswer={showAnswer}
+                          onToggleAnswer={toggleAnswer}
+                          onTryAgain={tryAgain}
+                          onNextQuestion={advanceFromFeedback}
+                          onReviewLater={reviewLater}
+                          reduceMotion={reduceMotion}
+                        />
+                      )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1188,38 +1205,13 @@ function OralEvaluationExperienceInner({
   );
 }
 
-/**
- * Feedback action row — Phase 2.
- *
- * Score line + four explicit post-eval actions in-panel, directly under evaluator output:
- *   Try Again · Show Me Answer · Review Later   /   Next Question
- */
+const SECONDARY_RAIL_BTN =
+  "inline-flex h-11 min-h-[44px] items-center gap-2 rounded-xl border border-white/18 bg-white/[0.06] px-5 font-sans text-[0.78rem] font-medium tracking-[0.035em] text-white/88 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] outline-none transition-[border-color,background-color,color,box-shadow,transform] hover:border-white/26 hover:bg-white/[0.1] hover:text-white active:translate-y-px focus-visible:ring-2 focus-visible:ring-amber-200/35";
 
-/** Bottom command strip shell — keeps all actions in one visual system. */
-const ACTION_STRIP =
-  "rounded-xl border border-white/18 bg-[#0d1624]/80 p-1.5 shadow-[0_12px_34px_rgba(0,0,0,0.42)]";
+const PRIMARY_RAIL_BTN =
+  "inline-flex h-12 min-h-[48px] min-w-[11.75rem] shrink-0 items-center justify-center gap-2 rounded-xl border border-white/28 bg-gradient-to-b from-white via-slate-50 to-slate-100 px-7 font-sans text-[0.8rem] font-semibold tracking-[0.055em] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_16px_44px_rgba(0,0,0,0.5)] outline-none transition-[transform,box-shadow,filter] hover:brightness-[1.03] focus-visible:ring-2 focus-visible:ring-amber-200/55 active:translate-y-px";
 
-/** Shared command-tab sizing/structure so every action conforms. */
-const ACTION_TAB_BASE =
-  "inline-flex h-11 items-center gap-2 rounded-lg border px-3.5 font-sans text-[0.8rem] font-semibold tracking-[0.006em] outline-none transition-all duration-220 ease-out focus-visible:ring-2 sm:text-[0.82rem]";
-
-/** Secondary tabs: intentional, but lower than primary Next. */
-const SECONDARY_ACTION_BUTTON =
-  `${ACTION_TAB_BASE} border-white/28 bg-white/[0.09] text-white/92 hover:border-white/46 hover:bg-white/[0.16] hover:text-white focus-visible:ring-white/34`;
-
-/** Tertiary tab participates in the same strip geometry. */
-const TERTIARY_ACTION_BUTTON =
-  `${ACTION_TAB_BASE} border-white/20 bg-white/[0.05] text-white/72 hover:border-white/34 hover:bg-white/[0.10] hover:text-white/90 focus-visible:ring-white/26`;
-
-/** Review-later is intentionally quieter than the main exam flow actions. */
-const REVIEW_LATER_ACTION_BUTTON =
-  `${ACTION_TAB_BASE} border-white/12 bg-transparent text-white/52 hover:border-white/22 hover:bg-white/[0.06] hover:text-white/70 focus-visible:ring-white/20`;
-
-/** Primary tab: emphasized but still in the same tab strip footprint. */
-const PRIMARY_NEXT_ACTION_BUTTON =
-  `${ACTION_TAB_BASE} border-white/80 bg-white text-slate-900 shadow-[0_8px_24px_rgba(0,0,0,0.35)] hover:-translate-y-[1px] hover:bg-white/95 hover:shadow-[0_10px_30px_rgba(0,0,0,0.46)] focus-visible:ring-white/60`;
-
-function FeedbackActions({
+function FeedbackCommandRail({
   score,
   teaching,
   showAnswer,
@@ -1238,79 +1230,75 @@ function FeedbackActions({
   onReviewLater: () => void;
   reduceMotion: boolean | null;
 }) {
-  const passed = teaching || score >= 3;
   const scoreMeaning = SCORE_MEANING[score];
 
   return (
     <motion.div
-      className="mt-9 flex flex-col gap-5"
-      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      className="relative mt-12 pt-10 sm:mt-14 sm:pt-11"
+      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: transitionMs(reduceMotion, 0.55),
-        delay: reduceMotion ? 0 : 1.05,
+        duration: transitionMs(reduceMotion, 0.5),
         ease: cinematicEase,
       }}
     >
-      {/* Divider above transition options */}
-      <div className="h-px w-full bg-white/[0.09]" aria-hidden />
+      <div
+        className="pointer-events-none absolute inset-x-4 -top-px h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent sm:inset-x-8"
+        aria-hidden
+      />
 
-      {/* Subtle examiner record — present but intentionally low emphasis */}
-      {!teaching ? (
-        <p className="text-[0.69rem] tracking-[0.012em] text-white/38 sm:text-[0.72rem]">
-          <span className="font-medium text-white/50">{`${score}/3`}</span>
-          <span className="mx-1.5 text-white/18">·</span>
-          <span className="font-light italic text-white/36">{scoreMeaning}</span>
-        </p>
-      ) : null}
+      <div className="oral-action-dock relative overflow-hidden px-5 py-6 backdrop-blur-[2px] sm:px-7 sm:py-7">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/22 to-transparent"
+          aria-hidden
+        />
 
-      <div className="flex flex-col gap-3.5 pt-2">
-        <div className={ACTION_STRIP}>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION_BUTTON}>
-              <span aria-hidden>↺</span>
-              <span>Try Again</span>
+        <div className="flex flex-col gap-7 sm:flex-row sm:items-end sm:justify-between sm:gap-10">
+          <div className="flex flex-wrap items-center gap-3 sm:min-w-0 sm:flex-1">
+            <button type="button" onClick={onTryAgain} className={SECONDARY_RAIL_BTN}>
+              <RotateCcw className="size-[15px] shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+              Try Again
             </button>
+            {!teaching ? (
+              <button type="button" onClick={onToggleAnswer} className={SECONDARY_RAIL_BTN}>
+                {showAnswer ? (
+                  <EyeOff className="size-[15px] shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                ) : (
+                  <Eye className="size-[15px] shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                )}
+                {showAnswer ? "Hide answer" : "Show Me Answer"}
+              </button>
+            ) : null}
+          </div>
 
-            {!teaching && !showAnswer ? (
-              <button type="button" onClick={onToggleAnswer} className={SECONDARY_ACTION_BUTTON}>
-                <span aria-hidden>◎</span>
-                <span>Show Answer</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onReviewLater}
-                className={REVIEW_LATER_ACTION_BUTTON}
-              >
-                <span aria-hidden>☆</span>
-                <span>Review Later</span>
-              </button>
-            )}
-
-            {!teaching && !showAnswer ? (
-              <button
-                type="button"
-                onClick={onReviewLater}
-                className={REVIEW_LATER_ACTION_BUTTON}
-              >
-                <span aria-hidden>☆</span>
-                <span>Review Later</span>
-              </button>
-            ) : (
-              <button type="button" onClick={onTryAgain} className={SECONDARY_ACTION_BUTTON}>
-                <span aria-hidden>↺</span>
-                <span>Try Again</span>
-              </button>
-            )}
-
-            <button type="button" onClick={onNextQuestion} className={PRIMARY_NEXT_ACTION_BUTTON}>
-              <span aria-hidden>→</span>
-              <span>Next Question</span>
+          <div className="flex shrink-0 flex-col items-stretch gap-1 sm:items-end">
+            <span className="sr-only">Primary action</span>
+            <button type="button" onClick={onNextQuestion} className={PRIMARY_RAIL_BTN}>
+              Next Question
+              <ArrowRight className="size-[15px] shrink-0" strokeWidth={2.25} aria-hidden />
             </button>
           </div>
         </div>
+
+        <div className="mt-6 border-t border-white/[0.06] pt-5">
+          <button
+            type="button"
+            onClick={onReviewLater}
+            className="inline-flex items-center gap-2 font-sans text-[0.68rem] font-medium uppercase tracking-[0.18em] text-white/28 transition-colors hover:text-amber-100/42 focus-visible:text-white/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-200/22"
+          >
+            <Bookmark className="size-3.5 opacity-50" strokeWidth={2} aria-hidden />
+            Review Later
+          </button>
+        </div>
       </div>
+
+      {!teaching ? (
+        <p className="mt-6 text-center font-sans text-[0.6rem] font-normal uppercase tracking-[0.2em] text-white/22 sm:text-[0.62rem]">
+          <span className="tabular-nums text-white/34">{`${score}/3`}</span>
+          <span className="mx-2.5 text-white/10">·</span>
+          <span className="font-normal normal-case tracking-normal text-white/26">{scoreMeaning}</span>
+        </p>
+      ) : null}
     </motion.div>
   );
 }
@@ -1337,26 +1325,31 @@ function BackgroundStack({
         unoptimized
         className={`object-cover object-center transition-all duration-[1600ms] ease-out ${
           evaluating
-            ? "scale-[1.045] brightness-[0.55] saturate-[0.85]"
+            ? "scale-[1.042] brightness-[0.52] saturate-[0.82]"
             : feedback
-              ? "scale-[1.03] brightness-[0.65] saturate-[0.9]"
+              ? "scale-[1.028] brightness-[0.62] saturate-[0.88]"
               : respond
-                ? "scale-[1.02] brightness-[0.72]"
-                : "brightness-[0.72]"
+                ? "scale-[1.018] brightness-[0.68] saturate-[0.9]"
+                : "brightness-[0.68]"
         }`}
       />
-      {/* Edge vignette — darkens corners/edges so the card stands out naturally */}
       <div
-        className="absolute inset-0 bg-[radial-gradient(ellipse_70%_65%_at_50%_50%,transparent_40%,rgba(0,0,0,0.55)_100%)]"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_72%_68%_at_50%_48%,transparent_32%,rgba(0,0,0,0.62)_100%)]"
         aria-hidden
       />
-      {/* Very light overall tint — takes edge off the raw photo without killing it */}
-      <div className="absolute inset-0 bg-black/18" aria-hidden />
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/25 via-transparent to-[#04060c]/80" aria-hidden />
+      <div className="absolute inset-0 bg-black/14" aria-hidden />
       {evaluating && (
-        <div
-          className="absolute inset-0 bg-amber-950/[0.07] mix-blend-overlay transition-opacity duration-[1200ms] ease-out"
-          aria-hidden
-        />
+        <>
+          <div
+            className="absolute inset-0 bg-amber-950/[0.08] mix-blend-overlay transition-opacity duration-[1200ms] ease-out"
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0 backdrop-blur-[2px] transition-opacity duration-[1200ms] ease-out"
+            aria-hidden
+          />
+        </>
       )}
       {/* Answer-received beat */}
       <div
@@ -1367,7 +1360,7 @@ function BackgroundStack({
         }`}
         aria-hidden
       />
-      <div className="oral-grain absolute inset-0 opacity-[0.022]" aria-hidden />
+      <div className="oral-grain absolute inset-0 opacity-[0.028]" aria-hidden />
     </div>
   );
 }
@@ -1407,21 +1400,25 @@ function JudgmentBlock({
         ? "text-[#ffbcb0]"
         : value === 2
           ? "text-[#ffe4b0]"
-          : "text-white";
+          : "text-[#ecfdf5]";
 
     const softShadow =
       value <= 1 && !teaching
-        ? "0 0 24px rgba(255,120,90,0.18), 0 2px 10px rgba(0,0,0,0.5)"
-        : "0 2px 8px rgba(0,0,0,0.35)";
+        ? "0 0 24px rgba(255,120,90,0.2), 0 2px 10px rgba(0,0,0,0.52)"
+        : value >= 3 && !teaching
+          ? "0 0 32px rgba(52,211,153,0.28), 0 2px 10px rgba(0,0,0,0.42)"
+          : value === 2 && !teaching
+            ? "0 0 20px rgba(251,191,36,0.14), 0 2px 8px rgba(0,0,0,0.38)"
+            : "0 2px 8px rgba(0,0,0,0.35)";
 
     const verdictEntryDurationS =
       teaching || value >= 3 ? 0.34 : value === 2 ? 0.4 : 0.48;
 
     return (
-      <div className="mt-2.5 flex shrink-0 flex-col items-stretch text-left">
+      <div className="mt-1 flex shrink-0 flex-col items-stretch text-left">
         <motion.h2
           id={id}
-          className={`max-w-[min(100%,30rem)] font-serif text-[1.55rem] font-semibold italic leading-[1.2] tracking-[0.01em] transition-all duration-[700ms] ease-out sm:text-[1.72rem] ${verdictClass} ${
+          className={`max-w-[min(100%,36rem)] font-serif text-[1.78rem] font-semibold italic leading-[1.16] tracking-[0.02em] transition-all duration-[700ms] ease-out sm:text-[2.05rem] ${verdictClass} ${
             settled && !reduceMotion ? "translate-y-px opacity-[0.95]" : ""
           }`}
           initial={reduceMotion ? false : { opacity: 0, y: 5 }}
@@ -1463,7 +1460,7 @@ function JudgmentBlock({
           }}
         >
           <div
-            className="mt-4 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-white/18 via-white/08 to-transparent"
+            className="mt-6 h-px w-full max-w-[min(100%,12rem)] bg-gradient-to-r from-amber-200/25 via-white/10 to-transparent"
             aria-hidden
           />
         </motion.div>
@@ -1562,25 +1559,95 @@ function compactSpokenLines(parts: readonly string[]): string[] {
   return parts.map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
+type FeedbackLineUnit = { section: string; text: string };
+
 /**
- * Phase 1 — spoken beats after the headline judgment (JudgmentBlock = line 1 only):
- * pressure → 1–2 gap **lines** (rubric-driven, separate sentences) → retry. Teaching mode still streams the
- * standard answer from static `evaluation` copy.
+ * Structured examiner notes (not app sections): right / missing / stronger,
+ * revealed line-by-line. Checklist bullets stay in the model-answer panel.
  */
-function composeExplanationSegments(
+function getFeedbackLines(
   evaluation: EvaluationBlock,
-  teaching: boolean = false,
-): readonly string[] {
+  teaching: boolean,
+): FeedbackLineUnit[] {
   if (teaching) {
-    return compactSpokenLines([
+    const body = compactSpokenLines([
       "Here's what I'm listening for.",
       ...refineToShorterLines([
         ...splitSpokenChunks(evaluation.stronger),
         ...splitSpokenChunks(evaluation.why),
       ]),
     ]);
+    return body.map((text, i) => ({
+      section: i === 0 ? "What I'm listening for" : "What I'm listening for",
+      text,
+    }));
   }
-  return compactSpokenLines(refineToShorterLines([...evaluation.missed]));
+
+  const lines: FeedbackLineUnit[] = [];
+  const rightLabel = "What was right";
+  const missLabel = evaluation.score >= 3 ? "Notes" : "What was missing";
+  const strongLabel = "A stronger answer would sound like";
+
+  const rightSource =
+    evaluation.correct.length > 0
+      ? evaluation.correct
+      : evaluation.score >= 3
+        ? []
+        : [
+            "I didn't hear enough concrete pieces to credit specific checklist items yet.",
+          ];
+
+  for (const raw of rightSource) {
+    const t = raw.trim();
+    if (t) lines.push({ section: rightLabel, text: t });
+  }
+
+  if (evaluation.score >= 3 && lines.every((l) => l.section !== rightLabel)) {
+    lines.unshift({
+      section: rightLabel,
+      text: "That meets the standard I was looking for on this item.",
+    });
+  }
+
+  for (const raw of evaluation.missed) {
+    const t = raw.trim();
+    if (t) lines.push({ section: missLabel, text: t });
+  }
+
+  for (const raw of refineToShorterLines([
+    ...splitSpokenChunks(evaluation.stronger),
+  ])) {
+    if (raw.trim()) lines.push({ section: strongLabel, text: raw.trim() });
+  }
+  for (const raw of refineToShorterLines([
+    ...splitSpokenChunks(evaluation.why),
+  ])) {
+    if (raw.trim()) lines.push({ section: strongLabel, text: raw.trim() });
+  }
+
+  return lines;
+}
+
+function buildCorrectAcknowledgment(
+  matched: readonly { label: string }[],
+  score: ScoreValue,
+): readonly string[] {
+  if (matched.length === 0) return [];
+  const labels = matched
+    .map((p) => p.label.trim())
+    .filter((s) => s.length > 0);
+  if (labels.length === 0) return [];
+  if (score >= 3) {
+    return [
+      `You worked the checklist I needed: ${labels.join(", ")}.`,
+    ];
+  }
+  if (labels.length === 1) {
+    return [`What registered: ${labels[0]}.`];
+  }
+  const lead = labels.slice(0, 2).join(" and ");
+  const tail = labels.length > 2 ? ` I also caught ${labels[2]}.` : "";
+  return [`What registered: ${lead}.${tail}`];
 }
 
 function evaluateAnswer(
@@ -1603,13 +1670,14 @@ function evaluateAnswer(
     repeatMissDepth: repeatMissDepth,
   });
   const spoken = compactSpokenBeats(turn.spokenBeats);
+  const correct = buildCorrectAcknowledgment(matched, score);
 
   return {
     score,
     outcomeLabel: "Examiner assessment",
     judgment: turn.judgment,
     examinerNote: turn.examinerNote,
-    correct: [],
+    correct: [...correct],
     missed: spoken.length > 0 ? spoken : ["Say it again — I'm listening."],
     stronger: item.evaluation.stronger,
     why: item.evaluation.why,
@@ -1648,14 +1716,14 @@ function SessionEndScreen({
         duration: transitionMs(reduceMotion, 0.8),
         ease: cinematicEase,
       }}
-      className="oral-glass-panel mx-auto w-full max-w-[min(88vw,50rem)] px-6 py-6 sm:px-8 sm:py-8"
+      className="oral-glass-panel mx-auto w-full max-w-[min(90vw,52rem)] px-8 py-9 sm:px-11 sm:py-10"
     >
-      <h2 className="font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.012em] text-white sm:text-[1.48rem]">
+      <h2 className="font-serif text-[1.42rem] font-medium italic leading-[1.2] tracking-[0.02em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.4)] sm:text-[1.52rem]">
         That covers it.
       </h2>
 
       <div
-        className="mt-4 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-white/18 via-white/08 to-transparent"
+        className="mt-5 h-px w-full max-w-[min(100%,12rem)] bg-gradient-to-r from-amber-200/20 via-white/10 to-transparent"
         aria-hidden
       />
 
@@ -1716,7 +1784,7 @@ export function OralEvaluationExperience({
 }) {
   if (oralItems.length === 0) {
     return (
-      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full items-center justify-center overflow-hidden bg-[#0a1018] px-6">
+      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)] px-6">
         <div className="max-w-lg space-y-5 text-center">
           {loadError ? (
             <p className="font-sans text-[0.8rem] font-normal not-italic leading-relaxed tracking-normal text-amber-100/90">
