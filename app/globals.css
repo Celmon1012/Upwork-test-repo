@@ -164,6 +164,23 @@ body {
     0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
+/* Pinned feedback dock — separates transcript scroll from evaluator controls */
+.oral-evaluator-dock-wrap {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(7, 9, 18, 0.94) 0%,
+    rgba(4, 6, 12, 0.99) 100%
+  );
+  box-shadow:
+    0 -16px 56px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.oral-evaluator-dock-inner {
+  position: relative;
+}
+
 /* Debrief: matte record — less “glass card”, more judgment sheet. */
 .oral-debrief-matte {
   border-radius: 2px;
