@@ -148,9 +148,85 @@ body {
   -webkit-backdrop-filter: blur(36px) saturate(1.12);
 }
 
+/* Cinematic oral chamber — subtle vignette + warm edge (DPE table feel) */
+.oral-glass-panel--chamber {
+  background-image:
+    radial-gradient(
+      ellipse 85% 55% at 50% 0%,
+      rgba(180, 155, 110, 0.06) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      120% 85% at 50% -25%,
+      rgba(100, 130, 190, 0.1) 0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      100% 70% at 50% 120%,
+      rgba(0, 0, 0, 0.55) 0%,
+      transparent 45%
+    ),
+    linear-gradient(
+      168deg,
+      rgba(22, 24, 38, 0.65) 0%,
+      rgba(6, 8, 16, 0.98) 42%,
+      rgba(1, 2, 8, 1) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 0 100px rgba(0, 0, 0, 0.35),
+    inset 0 -40px 72px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(212, 175, 95, 0.06),
+    0 48px 140px rgba(0, 0, 0, 0.88),
+    0 20px 56px rgba(0, 0, 0, 0.6);
+}
+
+/* Question recap during feedback — thin instrument strip */
+.oral-prompt-recap {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(
+    92deg,
+    rgba(212, 175, 95, 0.09) 0%,
+    rgba(12, 14, 24, 0.65) 22%,
+    rgba(5, 7, 14, 0.82) 100%
+  );
+  box-shadow: inset 3px 0 0 rgba(212, 175, 95, 0.42);
+}
+
+.oral-debrief-row-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+/* Debrief scroll well — structured record, not chat */
+.oral-debrief-well {
+  background: linear-gradient(
+    180deg,
+    rgba(6, 8, 14, 0.5) 0%,
+    rgba(3, 5, 12, 0.28) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Premium command rail — brass edge, flatter depth */
+.oral-action-dock--premium {
+  border: 1px solid rgba(212, 175, 95, 0.12);
+  background: linear-gradient(
+    165deg,
+    rgba(18, 16, 28, 0.92) 0%,
+    rgba(6, 7, 14, 0.88) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
 /* Command rail — quiet instrument strip (supports judgment, not quiz chrome) */
 .oral-action-dock {
-  border-radius: 18px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.065);
   background-color: rgba(5, 7, 14, 0.42);
   background-image: linear-gradient(
@@ -161,7 +237,7 @@ body {
   );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 10px 40px rgba(0, 0, 0, 0.4);
+    0 4px 20px rgba(0, 0, 0, 0.32);
 }
 
 /* Pinned feedback dock — separates transcript scroll from evaluator controls */
@@ -173,12 +249,22 @@ body {
     rgba(4, 6, 12, 0.99) 100%
   );
   box-shadow:
-    0 -16px 56px rgba(0, 0, 0, 0.55),
+    0 -6px 28px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .oral-evaluator-dock-inner {
   position: relative;
+}
+
+.oral-evaluator-dock-wrap--in-scroll {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(
+    180deg,
+    rgba(8, 10, 18, 0.9) 0%,
+    rgba(4, 6, 12, 0.78) 100%
+  );
+  box-shadow: none;
 }
 
 /* Debrief: matte record — less “glass card”, more judgment sheet. */
