@@ -116,7 +116,7 @@ export default function UpdatePasswordPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              className="w-full rounded-lg border border-white/20 bg-black/25 px-3 py-2.5 text-sm text-white outline-none transition focus:border-white/40"
+              className="min-h-[3.25rem] w-full rounded-lg border border-white/20 bg-black/25 px-3 py-3 text-sm text-white outline-none transition focus:border-white/40"
               placeholder="New password"
             />
           </label>
@@ -127,14 +127,14 @@ export default function UpdatePasswordPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
-              className="w-full rounded-lg border border-white/20 bg-black/25 px-3 py-2.5 text-sm text-white outline-none transition focus:border-white/40"
+              className="min-h-[3.25rem] w-full rounded-lg border border-white/20 bg-black/25 px-3 py-3 text-sm text-white outline-none transition focus:border-white/40"
               placeholder="Confirm new password"
             />
           </label>
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex w-full items-center justify-center rounded-lg border border-white/70 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[3.25rem] w-full items-center justify-center rounded-lg border border-white/70 bg-white px-4 py-3 text-sm font-medium text-slate-900 transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending ? "Please wait…" : "Update password"}
           </button>

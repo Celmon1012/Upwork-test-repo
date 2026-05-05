@@ -298,6 +298,54 @@ body {
     0 24px 80px rgba(0, 0, 0, 0.75);
 }
 
+/* Trust / positioning — confidence without clutter (training vs examination) */
+.oral-trust-footnote {
+  font-size: 0.62rem;
+  letter-spacing: 0.07em;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+@media (min-width: 640px) {
+  .oral-trust-footnote {
+    max-width: 17rem;
+    text-align: right;
+  }
+}
+
+/* Phase strip — clear IA like a premium training product, darker than retail catalog */
+.oral-phase-pill {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition:
+    border-color 0.25s ease,
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.oral-phase-pill--active {
+  border-color: rgba(251, 191, 36, 0.38);
+  background-color: rgba(251, 191, 36, 0.08);
+  color: rgba(254, 243, 199, 0.92);
+  box-shadow:
+    0 0 28px rgba(251, 191, 36, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.oral-phase-pill--done {
+  border-color: rgba(52, 211, 153, 0.22);
+  background-color: rgba(16, 185, 129, 0.06);
+  color: rgba(167, 243, 208, 0.72);
+}
+
+.oral-phase-pill--idle {
+  color: rgba(255, 255, 255, 0.28);
+}
+
 .feedback-outcome {
   box-shadow: 0 0 120px rgba(0, 0, 0, 0.65);
 }
@@ -305,6 +353,9 @@ body {
 /* Answer textarea — bordered rounded input, no browser chrome. */
 .oral-answer-line {
   caret-color: rgba(255, 255, 255, 0.85);
+  /* Keep last line + descenders clear of the bottom edge (flex/scroll clipping). */
+  scroll-padding-block: 0.75rem;
+  overflow-y: auto;
 }
 
 .oral-answer-line:focus,

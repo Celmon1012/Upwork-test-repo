@@ -139,7 +139,7 @@ function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
  * jump between phases. Inner area scrolls when content exceeds the viewport.
  */
 const ORAL_PANEL_SHELL =
-  "oral-glass-panel oral-glass-panel--chamber flex h-[min(90dvh,720px)] w-full max-w-[960px] flex-col overflow-hidden";
+  "oral-glass-panel oral-glass-panel--chamber flex h-[min(92dvh,820px)] w-full max-w-[960px] flex-col overflow-hidden";
 
 const PRIMARY_RAIL_BTN_DISABLED =
   "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
@@ -993,6 +993,13 @@ function OralEvaluationExperienceInner({
                     }}
                   />
                 </div>
+                <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.04] pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                  <SessionPhaseStrip phase={sessionPhase} />
+                  <p className="oral-trust-footnote font-sans sm:shrink-0">
+                    Training simulation — supplements ACS prep; not an FAA examination or
+                    endorsement.
+                  </p>
+                </div>
               </header>
 
               <AnimatePresence mode="wait" initial={false}>
@@ -1048,14 +1055,17 @@ function OralEvaluationExperienceInner({
                           Your response
                         </p>
                         <div
-                          className={`oral-debrief-well oral-input-wrap flex min-h-0 flex-1 flex-col transition-[opacity,filter] duration-500 ease-out ${
+                          className={`oral-debrief-well oral-input-wrap relative min-h-[13rem] flex-1 min-w-0 overflow-hidden transition-[opacity,filter] duration-500 ease-out sm:min-h-[16rem] ${
                             evaluating ? "opacity-45" : "opacity-100"
                           }`}
                         >
+                          {/*
+                            Inset pulls the field off the border; internal padding refines type area.
+                          */}
                           <textarea
                             ref={answerRef}
                             id="oral-answer"
-                            rows={8}
+                            rows={7}
                             value={currentAnswerDraft}
                             readOnly={evaluating}
                             placeholder="State your answer clearly, as you would to the examiner."
@@ -1074,7 +1084,7 @@ function OralEvaluationExperienceInner({
                                 if (!evaluating) runEvaluation();
                               }
                             }}
-                            className="oral-answer-line box-border min-h-[14rem] w-full flex-1 resize-none rounded-[10px] border-0 bg-transparent px-4 py-4 font-serif text-[1rem] font-light leading-[1.85] tracking-[0.01em] text-white/[0.94] shadow-none transition-all duration-200 focus:outline-none sm:min-h-[16rem] sm:px-5 sm:py-5 sm:text-[1.04rem]"
+                            className="oral-answer-line absolute inset-2.5 box-border resize-none rounded-[8px] border-0 bg-transparent px-4 pb-6 pt-3.5 font-serif text-[1rem] font-light leading-[1.85] tracking-[0.01em] text-white/[0.94] shadow-none transition-all duration-200 focus:outline-none sm:inset-3 sm:rounded-[9px] sm:px-5 sm:pb-7 sm:pt-4 sm:text-[1.04rem]"
                           />
                         </div>
                         {answerError && (
@@ -1443,6 +1453,58 @@ function FeedbackCommandRail({
   );
 }
 
+function SessionPhaseStrip({
+  phase,
+}: {
+  phase: SessionPhase;
+}) {
+  const steps: readonly { id: SessionPhase; label: string; hint: string }[] = [
+    { id: "respond", label: "Respond", hint: "Your oral answer" },
+    { id: "evaluating", label: "Deliberation", hint: "Examiner review" },
+    { id: "feedback", label: "Debrief", hint: "Structured feedback" },
+  ];
+  const activeIndex =
+    phase === "respond" ? 0 : phase === "evaluating" ? 1 : 2;
+
+  return (
+    <div
+      className="flex flex-wrap items-center gap-y-2 sm:gap-x-1"
+      role="list"
+      aria-label="Session phase"
+    >
+      {steps.map((step, i) => {
+        const active = i === activeIndex;
+        const done = i < activeIndex;
+        return (
+          <span key={step.id} className="flex items-center" role="listitem">
+            {i > 0 ? (
+              <span
+                className="mx-1 hidden text-[0.55rem] text-white/15 sm:inline"
+                aria-hidden
+              >
+                →
+              </span>
+            ) : null}
+            <span
+              className={`oral-phase-pill inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 ${
+                active
+                  ? "oral-phase-pill--active"
+                  : done
+                    ? "oral-phase-pill--done"
+                    : "oral-phase-pill--idle"
+              }`}
+              title={step.hint}
+            >
+              <span className="tabular-nums opacity-80">{i + 1}</span>
+              {step.label}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function BackgroundStack({
   phase,
   justReceived,
@@ -1500,7 +1562,7 @@ function BackgroundStack({
         }`}
         aria-hidden
       />
-      <div className="oral-grain absolute inset-0 opacity-[0.028]" aria-hidden />
+      <div className="oral-grain absolute inset-0 opacity-[0.038]" aria-hidden />
     </div>
   );
 }
@@ -1895,14 +1957,21 @@ function SessionEndScreen({
         duration: transitionMs(reduceMotion, 0.8),
         ease: cinematicEase,
       }}
-      className="oral-glass-panel mx-auto w-full max-w-[min(90vw,52rem)] px-8 py-9 sm:px-11 sm:py-10"
+      className="oral-glass-panel oral-glass-panel--chamber mx-auto w-full max-w-[min(90vw,52rem)] px-8 py-9 sm:px-11 sm:py-10"
     >
-      <h2 className="font-serif text-[1.42rem] font-medium italic leading-[1.2] tracking-[0.02em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.4)] sm:text-[1.52rem]">
+      <p className="font-sans text-[0.56rem] font-semibold uppercase tracking-[0.26em] text-amber-100/38">
+        Session complete
+      </p>
+      <h2 className="mt-2 font-serif text-[1.42rem] font-medium italic leading-[1.2] tracking-[0.02em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.4)] sm:text-[1.52rem]">
         That covers it.
       </h2>
+      <p className="mt-4 max-w-[36rem] font-sans text-[0.72rem] font-normal leading-relaxed tracking-[0.02em] text-white/45">
+        Save this review for your CFI discussion. This tool builds oral discipline — it does not
+        replace the ACS or your examiner.
+      </p>
 
       <div
-        className="mt-5 h-px w-full max-w-[min(100%,12rem)] bg-gradient-to-r from-amber-200/20 via-white/10 to-transparent"
+        className="mt-6 h-px w-full max-w-[min(100%,12rem)] bg-gradient-to-r from-amber-200/20 via-white/10 to-transparent"
         aria-hidden
       />
 
@@ -1940,14 +2009,18 @@ function SessionEndScreen({
         </p>
       )}
 
-      <div className="mt-12">
+      <div className="mt-12 flex flex-col gap-6 border-t border-white/[0.06] pt-8">
         <button
           type="button"
           onClick={onStartOver}
-          className={FOOTER_WHISPER}
+          className={`self-start ${FOOTER_WHISPER}`}
         >
           Start over.
         </button>
+        <p className="oral-trust-footnote font-sans">
+          Built as a single-purpose oral studio: the clarity of a structured training product, with a
+          darker checkride-style presentation — not a course catalog.
+        </p>
       </div>
     </motion.div>
   );
