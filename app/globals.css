@@ -149,6 +149,17 @@ body {
 }
 
 /* Cinematic oral chamber — subtle vignette + warm edge (DPE table feel) */
+/* Softer chamber — less “product card”, more dim room */
+.oral-chamber--immersive {
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 28px 96px rgba(0, 0, 0, 0.72),
+    0 12px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(28px) saturate(1.05);
+  -webkit-backdrop-filter: blur(28px) saturate(1.05);
+}
+
 .oral-glass-panel--chamber {
   background-image:
     radial-gradient(

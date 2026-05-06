@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, Bookmark, Eye, EyeOff, RotateCcw } from "lucide-react";
 import {
   AnimatePresence,
   LayoutGroup,
@@ -128,8 +127,8 @@ function judgmentFollowDelayS(reduce: boolean | null, score: ScoreValue): number
  * spoken feedback line so judgment and evaluation don’t land together.
  */
 function debriefSpokenLeadMs(reduce: boolean | null): number {
-  if (reduce) return 520;
-  return 1200 + Math.floor(Math.random() * 900);
+  if (reduce) return 480;
+  return 820 + Math.floor(Math.random() * 520);
 }
 
 function segmentRevealDelayMs(segmentText: string, reduce: boolean | null): number {
@@ -142,9 +141,9 @@ function segmentRevealDelayMs(segmentText: string, reduce: boolean | null): numb
     const readRoom = Math.min(1300, Math.floor(segmentText.length * 10));
     return 2200 + readRoom + Math.floor(Math.random() * 900);
   }
-  const base = 980;
-  const readRoom = Math.min(1100, Math.floor(segmentText.length * 8));
-  const jitter = Math.floor(Math.random() * 640);
+  const base = 760;
+  const readRoom = Math.min(900, Math.floor(segmentText.length * 7));
+  const jitter = Math.floor(Math.random() * 520);
   return base + readRoom + jitter;
 }
 
@@ -156,11 +155,11 @@ function segmentRevealDelayMs(segmentText: string, reduce: boolean | null): numb
  * Lower scores get a touch more dwell. Light jitter avoids a metronome feel.
  */
 function readingDwellAfterSpeechMs(reduce: boolean | null, score: ScoreValue): number {
-  if (reduce) return 12000;
-  const jitter = Math.floor(Math.random() * 1600);
-  if (score <= 1) return 16800 + jitter;
-  if (score === 2) return 14800 + jitter;
-  return 12800 + jitter;
+  if (reduce) return 10000;
+  const jitter = Math.floor(Math.random() * 1200);
+  if (score <= 1) return 13800 + jitter;
+  if (score === 2) return 12000 + jitter;
+  return 10400 + jitter;
 }
 
 /** Examiner think pause after submit (1.2–1.8s, slightly randomized). */
@@ -174,7 +173,7 @@ function examinerThinkingPauseMs(reduceMotion: boolean | null): number {
  * jump between phases. Inner area scrolls when content exceeds the viewport.
  */
 const ORAL_PANEL_SHELL =
-  "oral-glass-panel oral-glass-panel--chamber flex h-[min(92dvh,820px)] w-full max-w-[960px] flex-col overflow-hidden";
+  "oral-glass-panel oral-glass-panel--chamber oral-chamber--immersive flex h-[min(92dvh,820px)] w-full max-w-[960px] flex-col overflow-hidden";
 
 /** Same type ramp for full-screen moment + debrief so layoutId does not “snap” styles. */
 const ORAL_JUDGMENT_HEADLINE_CLASS =
@@ -191,16 +190,16 @@ const FOOTER_WHISPER =
 const PRIMARY_RAIL_BTN_DISABLED =
   "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
 
-/** Primary Answer — clear and restrained (not quiz chrome) */
+/** Submit — examiner table, not SaaS primary */
 const SUBMIT_ACTION =
-  "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg border border-white/20 bg-gradient-to-b from-white to-slate-100 px-8 py-3 font-sans text-[0.79rem] font-semibold tracking-[0.07em] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_12px_40px_rgba(0,0,0,0.44)] outline-none transition-[transform,box-shadow,filter] duration-200 ease-out hover:from-slate-50 hover:to-slate-100 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_14px_44px_rgba(0,0,0,0.48)] active:translate-y-px focus-visible:ring-2 focus-visible:ring-amber-200/50 sm:text-[0.81rem]";
+  "inline-flex min-h-[2.75rem] items-center justify-center rounded-sm border border-white/[0.14] bg-white/[0.04] px-7 py-2.5 font-serif text-[0.8rem] font-medium tracking-[0.04em] text-white/[0.88] outline-none transition-[background-color,border-color,color,opacity] duration-200 ease-out hover:border-white/22 hover:bg-white/[0.07] hover:text-white focus-visible:ring-1 focus-visible:ring-amber-200/35 active:bg-white/[0.05] sm:px-8 sm:text-[0.82rem]";
 
-/** Secondary — single quiet control (icon + label, no extra chrome) */
+/** Secondary rail — text-first, low chrome */
 const SECONDARY_RAIL_BTN =
-  "group inline-flex h-10 min-h-[42px] items-center gap-2 rounded-[10px] border border-white/[0.12] bg-white/[0.04] px-3.5 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-white/[0.88] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none transition-[border-color,background-color,color,transform,opacity] hover:border-amber-200/30 hover:bg-white/[0.07] hover:text-white active:translate-y-px focus-visible:ring-2 focus-visible:ring-amber-200/35 disabled:pointer-events-none disabled:opacity-30 sm:px-4 sm:tracking-[0.13em]";
+  "inline-flex min-h-[2.25rem] items-center rounded-sm border-0 bg-transparent px-0 py-1 font-serif text-[0.74rem] font-normal tracking-[0.03em] text-white/42 underline decoration-white/[0.12] underline-offset-[5px] outline-none transition-[color,opacity] hover:text-amber-100/65 hover:decoration-amber-200/25 focus-visible:ring-1 focus-visible:ring-amber-200/30 disabled:pointer-events-none disabled:opacity-28 sm:text-[0.76rem]";
 
 const PRIMARY_RAIL_BTN =
-  `inline-flex h-11 min-h-[46px] min-w-[11rem] shrink-0 items-center justify-center gap-2 rounded-[11px] border border-white/22 bg-gradient-to-b from-[#f8f6f1] via-[#ebe8e2] to-[#c9c4bc] px-5 font-serif text-[0.82rem] font-semibold tracking-[0.03em] text-[#1a1816] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_28px_rgba(0,0,0,0.45)] outline-none transition-[transform,box-shadow,filter,opacity] hover:brightness-[1.03] focus-visible:ring-2 focus-visible:ring-amber-200/50 active:translate-y-px sm:min-w-[11.5rem] sm:text-[0.84rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
+  `inline-flex min-h-[2.5rem] shrink-0 items-center justify-center rounded-sm border border-white/[0.16] bg-white/[0.06] px-5 py-2 font-serif text-[0.8rem] font-medium tracking-[0.04em] text-white/[0.9] outline-none transition-[background-color,border-color,color,opacity] hover:border-white/24 hover:bg-white/[0.09] focus-visible:ring-1 focus-visible:ring-amber-200/35 active:translate-y-px sm:px-6 sm:text-[0.82rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
 
 function OralEvaluationExperienceInner({
   oralItems,
@@ -248,6 +247,10 @@ function OralEvaluationExperienceInner({
   const persistenceRef = useRef<PersistenceContext | null>(null);
   const hydratedProgressRef = useRef(false);
   const [resumeReady, setResumeReady] = useState(false);
+  /** Best score per item this session (for examiner-style closing; not shown as product UI). */
+  const [sessionBestScoreByItemId, setSessionBestScoreByItemId] = useState<
+    Record<string, ScoreValue>
+  >({});
 
   const item = oralItems[itemIndex]!;
   const currentAnswerDraft = answerDrafts[item.id] ?? "";
@@ -541,6 +544,13 @@ function OralEvaluationExperienceInner({
   }, [reduceMotion]);
 
   const advanceFromFeedback = useCallback(() => {
+    setSessionBestScoreByItemId((prev) => {
+      if (!evaluated || showMeMode) return prev;
+      const cur = prev[item.id];
+      const next = evaluated.score;
+      if (cur != null && next <= cur) return prev;
+      return { ...prev, [item.id]: Math.max(cur ?? 0, next) as ScoreValue };
+    });
     setSessionPhase("respond");
     setAnswerError(null);
     setEvaluated(null);
@@ -562,7 +572,14 @@ function OralEvaluationExperienceInner({
     } else {
       setItemIndex((i) => i + 1);
     }
-  }, [fromReview, itemIndex, oralItems.length]);
+  }, [
+    evaluated,
+    fromReview,
+    item.id,
+    itemIndex,
+    oralItems.length,
+    showMeMode,
+  ]);
 
   // The pushback. Same question, cleared textarea, focus restored.
   // The examiner isn't giving up the answer — they're making the user talk again.
@@ -689,6 +706,7 @@ function OralEvaluationExperienceInner({
     setJustReceived(false);
     setOralRepeatMissCount(0);
     setAnswerDrafts({});
+    setSessionBestScoreByItemId({});
   }, [questionDbIdSet]);
 
   const openReviewLaterList = useCallback(() => {
@@ -1116,6 +1134,7 @@ function OralEvaluationExperienceInner({
             <SessionEndScreen
               oralItems={oralItems}
               markedItems={markedItems}
+              sessionBestScoreByItemId={sessionBestScoreByItemId}
               onRetryItem={startReviewItem}
               onStartOver={startOver}
             />
@@ -1128,6 +1147,14 @@ function OralEvaluationExperienceInner({
   return (
     <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
       <BackgroundStack phase={sessionPhase} justReceived={justReceived} />
+      {sessionPhase === "evaluating" ? (
+        <span className="sr-only" aria-live="polite">
+          Please wait.
+        </span>
+      ) : null}
+      <p className="sr-only">
+        Training simulation — supplements ACS preparation; not an FAA examination or endorsement.
+      </p>
 
       <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
         <div
@@ -1171,41 +1198,15 @@ function OralEvaluationExperienceInner({
 
                   <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col overflow-hidden">
                     {feedbackEvalStage !== "judgment" ? (
-                      <header className="shrink-0 border-b border-white/[0.08] bg-gradient-to-b from-black/35 to-black/10 px-5 pb-3 pt-5 backdrop-blur-[6px] sm:px-10 sm:pb-3.5 sm:pt-6">
-                        <div className="mx-auto flex w-full max-w-[min(96vw,960px)] items-start justify-between gap-6">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-sans text-[0.56rem] font-semibold uppercase tracking-[0.28em] text-amber-100/45">
-                              Oral evaluation
-                            </p>
-                            <p className="mt-1 max-w-[85%] font-sans text-[0.76rem] font-medium leading-snug tracking-[0.04em] text-white/[0.72] sm:text-[0.8rem]">
-                              {item.contextLabel}
-                            </p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="font-sans text-[0.52rem] font-semibold uppercase tracking-[0.2em] text-white/32">
-                              Item
-                            </p>
-                            <p className="mt-0.5 tabular-nums font-sans text-[0.8rem] font-medium tracking-[0.06em] text-white/[0.55]">
-                              {String(itemIndex + 1).padStart(2, "0")}
-                              <span className="text-white/25">/</span>
-                              {String(oralItems.length).padStart(2, "0")}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="mx-auto mt-3 h-px w-full max-w-[min(96vw,960px)] overflow-hidden rounded-full bg-white/[0.06]">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-amber-200/35 via-white/12 to-white/[0.06]"
-                            style={{
-                              width: `${Math.max(4, ((itemIndex + 1) / oralItems.length) * 100)}%`,
-                            }}
-                          />
-                        </div>
-                        <div className="mx-auto mt-3 flex max-w-[min(96vw,960px)] flex-col gap-2 border-t border-white/[0.04] pt-3 sm:flex-row sm:items-start sm:justify-between">
-                          <SessionPhaseStrip phase={sessionPhase} />
-                          <p className="oral-trust-footnote font-sans sm:shrink-0">
-                            Training simulation — supplements ACS prep; not an FAA examination or
-                            endorsement.
+                      <header className="shrink-0 border-b border-white/[0.05] px-5 pb-2.5 pt-4 sm:px-10 sm:pb-3 sm:pt-5">
+                        <div className="mx-auto w-full max-w-[min(96vw,960px)]">
+                          <p className="max-w-[min(40rem,92vw)] font-serif text-[0.78rem] font-normal leading-snug tracking-[0.02em] text-white/[0.62] sm:text-[0.82rem]">
+                            {item.contextLabel}
                           </p>
+                          <div
+                            className="mt-2.5 h-px w-10 bg-gradient-to-r from-amber-200/25 to-transparent"
+                            aria-hidden
+                          />
                         </div>
                       </header>
                     ) : null}
@@ -1242,10 +1243,7 @@ function OralEvaluationExperienceInner({
                       >
                       {feedbackEvalStage !== "judgment" ? (
                         <div className="w-full min-w-0">
-                          <p className="font-sans text-[0.52rem] font-semibold uppercase tracking-[0.26em] text-white/36">
-                            Item recap
-                          </p>
-                          <p className="mt-1 font-serif text-[0.9rem] font-light leading-snug tracking-[0.02em] text-white/70 sm:text-[0.95rem]">
+                          <p className="font-serif text-[0.92rem] font-light leading-snug tracking-[0.02em] text-white/[0.68] sm:text-[0.96rem]">
                             {item.promptLine}
                           </p>
                         </div>
@@ -1287,17 +1285,8 @@ function OralEvaluationExperienceInner({
                         }}
                       >
                         {feedbackEvalStage === "judgment" ? (
-                          <span
-                            className={`mb-5 block font-serif text-[0.68rem] font-semibold not-italic sm:mb-6 sm:text-[0.74rem] ${
-                              showMeMode
-                                ? "uppercase tracking-[0.28em] text-amber-100/55"
-                                : evaluation.score <= 1
-                                  ? "tracking-[0.14em] text-amber-100/[0.78]"
-                                  : "tracking-[0.12em] text-amber-100/[0.72]"
-                            }`}
-                            aria-hidden
-                          >
-                            {showMeMode ? "Model track" : "Examiner disposition"}
+                          <span className="sr-only">
+                            {showMeMode ? "Model reference." : "Examiner judgment."}
                           </span>
                         ) : null}
                         {judgmentHeadline}
@@ -1363,9 +1352,9 @@ function OralEvaluationExperienceInner({
                                     delay: reduceMotion ? 0 : 0.08,
                                     ease: cinematicEase,
                                   }}
-                                  className="font-sans text-[0.58rem] font-semibold uppercase tracking-[0.24em] text-amber-100/50"
+                                  className="font-serif text-[0.72rem] font-normal tracking-[0.02em] text-white/38"
                                 >
-                                  Checkride-standard answer
+                                  Reference answer
                                 </motion.p>
                                 {sampleAnswerLines.map((line, lineIdx) => (
                                   <motion.p
@@ -1410,9 +1399,9 @@ function OralEvaluationExperienceInner({
                           duration: transitionMs(reduceMotion, 0.4),
                           ease: cinematicEase,
                         }}
-                        className="pointer-events-none fixed bottom-0 left-0 z-40 pt-2 pb-[max(0.85rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-0 sm:pl-[max(2.5rem,env(safe-area-inset-left))] sm:pr-0 right-[max(14px,env(safe-area-inset-right))] sm:right-[max(18px,env(safe-area-inset-right))]"
+                        className="pointer-events-none fixed bottom-0 left-0 right-0 z-40 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-2 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:px-[max(1.5rem,env(safe-area-inset-left))] sm:pr-[max(1.5rem,env(safe-area-inset-right))]"
                       >
-                        <div className="pointer-events-auto mx-auto w-full max-w-[min(96vw,920px)]">
+                        <div className="pointer-events-auto mx-auto w-full max-w-[min(96vw,960px)]">
                           <FeedbackCommandRail
                             score={evaluation.score}
                             teaching={showMeMode}
@@ -1440,46 +1429,14 @@ function OralEvaluationExperienceInner({
                   }`}
                 >
                   <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                    <header className="shrink-0 border-b border-white/[0.07] bg-gradient-to-b from-white/[0.04] to-transparent px-8 pb-3.5 pt-6 sm:px-11 sm:pb-4 sm:pt-7">
-                      <div className="flex items-start justify-between gap-6">
-                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                          <span
-                            className="mt-1.5 h-8 w-0.5 shrink-0 rounded-full bg-gradient-to-b from-amber-200/70 via-amber-100/35 to-transparent"
-                            aria-hidden
-                          />
-                          <div className="min-w-0">
-                            <p className="font-sans text-[0.56rem] font-semibold uppercase tracking-[0.28em] text-amber-100/45">
-                              Oral evaluation
-                            </p>
-                            <p className="mt-1.5 max-w-[85%] font-sans text-[0.76rem] font-medium leading-snug tracking-[0.04em] text-white/[0.72] sm:text-[0.8rem]">
-                              {item.contextLabel}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="font-sans text-[0.52rem] font-semibold uppercase tracking-[0.2em] text-white/32">
-                            Item
-                          </p>
-                          <p className="mt-0.5 tabular-nums font-sans text-[0.8rem] font-medium tracking-[0.06em] text-white/[0.55]">
-                            {String(itemIndex + 1).padStart(2, "0")}
-                            <span className="text-white/25">/</span>
-                            {String(oralItems.length).padStart(2, "0")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-4 h-px w-full overflow-hidden rounded-full bg-white/[0.06]" aria-hidden>
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-amber-200/35 via-white/12 to-white/[0.06] transition-[width] duration-700 ease-out"
-                          style={{
-                            width: `${Math.max(4, ((itemIndex + 1) / oralItems.length) * 100)}%`,
-                          }}
+                    <header className="shrink-0 border-b border-white/[0.05] px-8 pb-3 pt-5 sm:px-11 sm:pb-3.5 sm:pt-6">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span
+                          className="mt-1 h-7 w-px shrink-0 bg-gradient-to-b from-amber-200/35 to-transparent"
+                          aria-hidden
                         />
-                      </div>
-                      <div className="mt-4 flex flex-col gap-3 border-t border-white/[0.04] pt-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-                        <SessionPhaseStrip phase={sessionPhase} />
-                        <p className="oral-trust-footnote font-sans sm:shrink-0">
-                          Training simulation — supplements ACS prep; not an FAA examination or
-                          endorsement.
+                        <p className="min-w-0 max-w-[min(40rem,92vw)] font-serif text-[0.78rem] font-normal leading-snug tracking-[0.02em] text-white/[0.62] sm:text-[0.82rem]">
+                          {item.contextLabel}
                         </p>
                       </div>
                     </header>
@@ -1506,9 +1463,7 @@ function OralEvaluationExperienceInner({
                           ease: cinematicEase,
                         }}
                       >
-                        <p className="font-sans text-[0.56rem] font-semibold uppercase tracking-[0.26em] text-white/32">
-                          Examiner asks
-                        </p>
+                        <span className="sr-only">Examiner question</span>
                         <h1 className="mt-2 max-w-[42rem] font-serif text-[1.72rem] font-medium leading-[1.28] tracking-[-0.02em] text-white [text-shadow:0_2px_40px_rgba(0,0,0,0.55)] sm:text-[2.05rem] sm:leading-[1.2]">
                           {item.promptLine}
                         </h1>
@@ -1529,14 +1484,14 @@ function OralEvaluationExperienceInner({
                         }}
                         className="mt-8 flex min-h-0 flex-1 flex-col sm:mt-9"
                       >
-                        <label htmlFor="oral-answer" className="sr-only">
-                          Your answer to the examiner
+                        <label
+                          htmlFor="oral-answer"
+                          className="mb-2 block font-serif text-[0.72rem] font-normal tracking-[0.02em] text-white/35"
+                        >
+                          Your answer
                         </label>
-                        <p className="mb-2 font-sans text-[0.56rem] font-semibold uppercase tracking-[0.22em] text-white/28">
-                          Your response
-                        </p>
                         <div
-                          className={`oral-debrief-well oral-input-wrap relative min-h-[13rem] flex-1 min-w-0 overflow-hidden transition-[opacity,filter] duration-500 ease-out sm:min-h-[16rem] ${
+                          className={`oral-input-wrap relative min-h-[13rem] flex-1 min-w-0 overflow-hidden rounded-sm border border-white/[0.06] bg-black/20 transition-[opacity,filter] duration-500 ease-out sm:min-h-[16rem] ${
                             evaluating ? "opacity-45" : "opacity-100"
                           }`}
                         >
@@ -1580,50 +1535,42 @@ function OralEvaluationExperienceInner({
                       </motion.div>
                     </div>
 
-                    <div className="oral-evaluator-dock-wrap shrink-0">
-                      <div className="oral-evaluator-dock-inner px-3 py-2 sm:px-5 sm:py-2.5">
-                        <div className="oral-action-dock oral-action-dock--premium relative overflow-hidden rounded-[14px] px-3 py-2.5 sm:px-4 sm:py-3">
-                          <div
-                            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
-                            aria-hidden
-                          />
-                          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                            <div className="flex min-h-[2.25rem] min-w-0 flex-1 flex-col justify-center gap-2">
-                              <span className="sr-only" role="status" aria-live="polite">
-                                {evaluating ? "Examiner is evaluating." : ""}
-                              </span>
-                              {evaluating && showThinkingCue ? (
-                                <p className="font-sans text-[0.7rem] font-medium uppercase tracking-[0.2em] text-amber-100/45">
-                                  Examiner deliberating…
-                                </p>
-                              ) : !evaluating ? (
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                                  <button
-                                    type="button"
-                                    onClick={runShowMe}
-                                    className="text-left font-sans text-[0.72rem] font-medium uppercase tracking-[0.14em] text-white/35 underline decoration-white/10 underline-offset-[5px] transition-colors hover:text-amber-100/55 hover:decoration-amber-200/28"
-                                  >
-                                    Show model answer
-                                  </button>
-                                  {markedItems.size > 0 ? (
-                                    <button
-                                      type="button"
-                                      onClick={openReviewLaterList}
-                                      className={FOOTER_WHISPER}
-                                    >
-                                      Review later ({markedItems.size})
-                                    </button>
-                                  ) : null}
-                                </div>
+                    <div className="shrink-0 border-t border-white/[0.05] bg-gradient-to-t from-black/35 to-transparent px-3 py-2.5 sm:px-5 sm:py-3">
+                      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                        <div className="flex min-h-[2.25rem] min-w-0 flex-1 flex-col justify-center gap-2">
+                          <span className="sr-only" role="status" aria-live="polite">
+                            {evaluating ? "Examiner is evaluating." : ""}
+                          </span>
+                          {evaluating && showThinkingCue ? (
+                            <p className="font-serif text-[0.72rem] font-normal italic text-white/32">
+                              One moment.
+                            </p>
+                          ) : !evaluating ? (
+                            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                              <button
+                                type="button"
+                                onClick={runShowMe}
+                                className="text-left font-serif text-[0.74rem] font-normal tracking-[0.02em] text-white/38 underline decoration-white/[0.12] underline-offset-[5px] transition-colors hover:text-amber-100/55 hover:decoration-amber-200/25"
+                              >
+                                Show model answer
+                              </button>
+                              {markedItems.size > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={openReviewLaterList}
+                                  className={FOOTER_WHISPER}
+                                >
+                                  Review later ({markedItems.size})
+                                </button>
                               ) : null}
                             </div>
-                            {!evaluating && (
-                              <button type="button" onClick={runEvaluation} className={SUBMIT_ACTION}>
-                                Submit for evaluation
-                              </button>
-                            )}
-                          </div>
+                          ) : null}
                         </div>
+                        {!evaluating && (
+                          <button type="button" onClick={runEvaluation} className={SUBMIT_ACTION}>
+                            Submit answer
+                          </button>
+                        )}
                       </div>
                     </div>
                       </motion.div>
@@ -1667,113 +1614,62 @@ function FeedbackCommandRail({
   return (
     <motion.div
       className="relative"
-      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: transitionMs(reduceMotion, 0.38),
+        duration: transitionMs(reduceMotion, 0.32),
         ease: cinematicEase,
       }}
     >
-      <div className="oral-evaluator-dock-inner w-full py-1.5 sm:py-2">
-        <div className="oral-action-dock oral-action-dock--premium relative w-full overflow-hidden rounded-[16px] border border-white/[0.08] px-4 py-3 shadow-[0_-28px_80px_rgba(0,0,0,0.55)] backdrop-blur-[8px] sm:px-5 sm:py-3.5">
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-amber-200/55 via-amber-100/25 to-amber-200/35"
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent"
-            aria-hidden
-          />
-
-          <div className="mb-2.5 pl-1 sm:mb-3">
-            <p className="font-sans text-[0.5rem] font-semibold uppercase tracking-[0.34em] text-amber-100/45">
-              {!teaching && score < 3 ? "Still on this item" : "Your move"}
-            </p>
-            {!teaching && score < 3 ? (
-              <p className="mt-1.5 max-w-[28rem] font-serif text-[0.68rem] font-normal leading-snug tracking-[0.02em] text-white/[0.58] sm:text-[0.72rem]">
-                You didn&apos;t meet the standard on that try — answer again when you&apos;re ready, or use the model
-                if you need a reference.
-              </p>
+      <div className="border-t border-white/[0.06] bg-black/30 px-1 py-2 backdrop-blur-[8px] sm:px-2 sm:py-2.5">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2">
+            <button
+              type="button"
+              onClick={onTryAgain}
+              disabled={!secondaryUnlocked}
+              className={SECONDARY_RAIL_BTN}
+            >
+              Answer again
+            </button>
+            {!teaching ? (
+              <button
+                type="button"
+                onClick={onToggleAnswer}
+                disabled={!secondaryUnlocked}
+                className={SECONDARY_RAIL_BTN}
+              >
+                {showAnswer ? "Hide model answer" : "Show model answer"}
+              </button>
             ) : null}
+            <button
+              type="button"
+              onClick={onReviewLater}
+              disabled={!secondaryUnlocked}
+              className={SECONDARY_RAIL_BTN}
+            >
+              Review later
+            </button>
           </div>
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                <button
-                  type="button"
-                  onClick={onTryAgain}
-                  disabled={!secondaryUnlocked}
-                  className={SECONDARY_RAIL_BTN}
-                >
-                  <RotateCcw
-                    className="size-[15px] shrink-0 text-amber-200/65 opacity-90 transition-colors group-hover:text-amber-100"
-                    strokeWidth={2}
-                    aria-hidden
-                  />
-                  Answer again — same question
-                </button>
-                {!teaching ? (
-                  <button
-                    type="button"
-                    onClick={onToggleAnswer}
-                    disabled={!secondaryUnlocked}
-                    className={SECONDARY_RAIL_BTN}
-                  >
-                    {showAnswer ? (
-                      <EyeOff
-                        className="size-[15px] shrink-0 text-amber-200/65 opacity-90 transition-colors group-hover:text-amber-100"
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                    ) : (
-                      <Eye
-                        className="size-[15px] shrink-0 text-amber-200/65 opacity-90 transition-colors group-hover:text-amber-100"
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                    )}
-                    {showAnswer ? "Hide model" : "Show model"}
-                  </button>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={onReviewLater}
-                disabled={!secondaryUnlocked}
-                className="inline-flex w-fit items-center gap-1.5 pl-1 font-sans text-[0.62rem] font-medium uppercase tracking-[0.16em] text-white/32 transition-colors hover:text-amber-100/48 focus-visible:text-white/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-200/22 disabled:pointer-events-none disabled:opacity-25"
-              >
-                <Bookmark className="size-3 opacity-55" strokeWidth={2} aria-hidden />
-                Park for review
-              </button>
-            </div>
-
-            <div className="flex shrink-0 flex-col items-end gap-1.5 self-stretch sm:self-end">
-              {!continueEnabled ? (
-                <p className="max-w-[14rem] text-right font-sans text-[0.54rem] font-medium uppercase tracking-[0.16em] text-white/28">
-                  Listen for the full debrief
-                </p>
-              ) : null}
-              <span className="sr-only">Primary action</span>
-              <button
-                type="button"
-                onClick={onNextQuestion}
-                disabled={!continueEnabled}
-                className={PRIMARY_RAIL_BTN}
-              >
-                Continue
-                <ArrowRight className="size-[15px] shrink-0 opacity-90" strokeWidth={2.25} aria-hidden />
-              </button>
-            </div>
+          <div className="flex shrink-0 flex-col items-stretch gap-1 sm:items-end">
+            {!continueEnabled ? (
+              <span className="sr-only">Waiting for debrief to finish.</span>
+            ) : null}
+            <button
+              type="button"
+              onClick={onNextQuestion}
+              disabled={!continueEnabled}
+              className={`${PRIMARY_RAIL_BTN} w-full sm:w-auto`}
+            >
+              Continue
+            </button>
           </div>
         </div>
       </div>
-
       {!teaching ? (
-        <p className="border-t border-white/[0.05] px-0 pb-0.5 pt-2 text-center font-sans text-[0.55rem] font-normal tracking-[0.08em] text-white/20">
-          <span className="tabular-nums text-white/30">{`${score}/3`}</span>
-          <span className="mx-2.5 text-white/10">·</span>
-          <span className="font-normal normal-case tracking-normal text-white/24">{scoreMeaning}</span>
+        <p className="sr-only">
+          Score {score} of 3. {scoreMeaning}
         </p>
       ) : null}
     </motion.div>
@@ -1817,58 +1713,6 @@ function JudgmentBackdrop({
   );
 }
 
-function SessionPhaseStrip({
-  phase,
-}: {
-  phase: SessionPhase;
-}) {
-  const steps: readonly { id: SessionPhase; label: string; hint: string }[] = [
-    { id: "respond", label: "Respond", hint: "Your oral answer" },
-    { id: "evaluating", label: "Deliberation", hint: "Examiner review" },
-    { id: "feedback", label: "Debrief", hint: "Structured feedback" },
-  ];
-  const activeIndex =
-    phase === "respond" ? 0 : phase === "evaluating" ? 1 : 2;
-
-  return (
-    <div
-      className="flex flex-wrap items-center gap-y-2 sm:gap-x-1"
-      role="list"
-      aria-label="Session phase"
-    >
-      {steps.map((step, i) => {
-        const active = i === activeIndex;
-        const done = i < activeIndex;
-        return (
-          <span key={step.id} className="flex items-center" role="listitem">
-            {i > 0 ? (
-              <span
-                className="mx-1 hidden text-[0.55rem] text-white/15 sm:inline"
-                aria-hidden
-              >
-                →
-              </span>
-            ) : null}
-            <span
-              className={`oral-phase-pill inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 ${
-                active
-                  ? "oral-phase-pill--active"
-                  : done
-                    ? "oral-phase-pill--done"
-                    : "oral-phase-pill--idle"
-              }`}
-              title={step.hint}
-            >
-              <span className="tabular-nums opacity-80">{i + 1}</span>
-              {step.label}
-            </span>
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
 function BackgroundStack({
   phase,
   justReceived,
@@ -1893,7 +1737,7 @@ function BackgroundStack({
           evaluating
             ? "scale-[1.042] brightness-[0.52] saturate-[0.82]"
             : feedback
-              ? "scale-[1.028] brightness-[0.65] saturate-[0.9]"
+              ? "scale-[1.028] brightness-[0.56] saturate-[0.88]"
               : respond
                 ? "scale-[1.018] brightness-[0.71] saturate-[0.92]"
                 : "brightness-[0.71]"
@@ -2203,9 +2047,10 @@ function withThinkingLead(
   }
   if (index === 3) {
     const closeBridge = [
-      (t: string) => `Bottom line: ${t}`,
-      (t: string) => `What I'm really asking: ${t}`,
       (t: string) => t,
+      (t: string) => t,
+      (t: string) => t,
+      (t: string) => `Bottom line: ${t}`,
     ];
     return closeBridge[mix % closeBridge.length]!(text);
   }
@@ -2232,7 +2077,7 @@ function getFeedbackLines(
         ...splitSpokenChunks(evaluation.why),
       ]),
     ]);
-    return body.slice(0, 5).map((text) => ({
+    return body.slice(0, 4).map((text) => ({
       section: "Review",
       text,
     }));
@@ -2283,13 +2128,14 @@ function getFeedbackLines(
     if (raw.trim()) strongLines.push({ section: strongLabel, text: raw.trim() });
   }
 
-  const maxOut = evaluation.score >= 3 ? 5 : 8;
-  const missCap = evaluation.score >= 3 ? 3 : 7;
+  const maxOut = evaluation.score >= 3 ? 4 : 5;
+  const missCap = evaluation.score >= 3 ? 2 : 4;
+  const strongCap = evaluation.score >= 3 ? 2 : 2;
   const out: FeedbackLineUnit[] = [];
   out.push(...rightLines.slice(0, 1));
   out.push(...missLines.slice(0, missCap));
   const room = maxOut - out.length;
-  out.push(...strongLines.slice(0, Math.max(0, room)));
+  out.push(...strongLines.slice(0, Math.min(strongCap, Math.max(0, room))));
   return out.slice(0, maxOut);
 }
 
@@ -2303,16 +2149,14 @@ function buildCorrectAcknowledgment(
     .filter((s) => s.length > 0);
   if (labels.length === 0) return [];
   if (score >= 3) {
-    return [
-      `You gave me what I needed on the checklist: ${labels.join(", ")}.`,
-    ];
+    if (labels.length === 1) return [`I heard ${labels[0]} — good.`];
+    return [`I heard ${labels.slice(0, 2).join(" and ")}.`];
   }
   if (labels.length === 1) {
-    return [`I did catch ${labels[0]}.`];
+    return [`I caught ${labels[0]}.`];
   }
   const lead = labels.slice(0, 2).join(" and ");
-  const tail = labels.length > 2 ? ` I heard ${labels[2]} too.` : "";
-  return [`I caught ${lead}.${tail}`];
+  return [`I caught ${lead}.`];
 }
 
 function evaluateAnswer(
@@ -2354,24 +2198,78 @@ function normalize(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
+function buildSessionClosingDisposition(
+  oralItems: readonly OralItem[],
+  sessionBestScoreByItemId: Readonly<Record<string, ScoreValue>>,
+): {
+  headline: string;
+  disposition: string;
+  readiness: string;
+  reviewAreas: string[];
+} {
+  const scores = oralItems.map((o) => sessionBestScoreByItemId[o.id] ?? 0);
+  const min = scores.length ? Math.min(...scores) : 0;
+  const weak = oralItems.filter((o) => (sessionBestScoreByItemId[o.id] ?? 0) < 3);
+  const reviewAreas = weak.map((o) => o.contextLabel);
+  const recorded = scores.filter((s) => s > 0).length;
+
+  let headline: string;
+  let disposition: string;
+  let readiness: string;
+
+  if (recorded === 0) {
+    headline = "We're done here.";
+    disposition = "I don't have a graded pass on record from this room.";
+    readiness = "Run it again when you're ready to answer under pressure.";
+  } else if (min <= 1) {
+    headline = "Closing the oral.";
+    disposition = "Not at checkride standard yet — not on what I heard today.";
+    readiness =
+      "I'm not comfortable signing this off yet. You need another pass on this scenario.";
+  } else if (min === 2) {
+    headline = "That's enough for now.";
+    disposition = "Acceptable direction, but incomplete.";
+    readiness =
+      "Your decision-making is improving, but I'm not ready to call this ready off one sitting.";
+  } else {
+    headline = "We're finished.";
+    disposition =
+      "Stronger on the items you cleared — I'd still want another scenario before calling this ready.";
+    readiness =
+      "That response is closer. I don't hand out readiness off one clean pass.";
+  }
+
+  if (oralItems.length === 1 && min >= 3) {
+    disposition =
+      "That meets the standard on this item — repetition under pressure still matters.";
+    readiness = "I'd want another scenario before I call you ready.";
+  }
+
+  return { headline, disposition, readiness, reviewAreas };
+}
+
 /**
- * End-of-session screen — shown after all questions are done.
- * Lists questions the user flagged for review. Feels like the examiner
- * wrapping up the table session, not a results dashboard.
+ * End-of-session — examiner disposition and table close, not module complete.
  */
 function SessionEndScreen({
   oralItems,
   markedItems,
+  sessionBestScoreByItemId,
   onRetryItem,
   onStartOver,
 }: {
   oralItems: readonly OralItem[];
   markedItems: ReadonlySet<string>;
+  sessionBestScoreByItemId: Readonly<Record<string, ScoreValue>>;
   onRetryItem: (id: string) => void;
   onStartOver: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const marked = oralItems.filter((item) => markedItems.has(item.id));
+  const closing = buildSessionClosingDisposition(
+    oralItems,
+    sessionBestScoreByItemId,
+  );
 
   return (
     <motion.div
@@ -2381,39 +2279,56 @@ function SessionEndScreen({
         duration: transitionMs(reduceMotion, 0.8),
         ease: cinematicEase,
       }}
-      className="oral-glass-panel oral-glass-panel--chamber mx-auto w-full max-w-[min(90vw,52rem)] px-8 py-9 sm:px-11 sm:py-10"
+      className="oral-glass-panel oral-glass-panel--chamber oral-chamber--immersive mx-auto w-full max-w-[min(90vw,52rem)] px-8 py-9 sm:px-11 sm:py-10"
     >
-      <p className="font-sans text-[0.56rem] font-semibold uppercase tracking-[0.26em] text-amber-100/38">
-        Session complete
-      </p>
-      <h2 className="mt-2 font-serif text-[1.42rem] font-medium italic leading-[1.2] tracking-[0.02em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.4)] sm:text-[1.52rem]">
-        That covers it.
+      <h2 className="font-serif text-[1.38rem] font-medium italic leading-[1.22] tracking-[0.02em] text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.4)] sm:text-[1.5rem]">
+        {closing.headline}
       </h2>
-      <p className="mt-4 max-w-[36rem] font-sans text-[0.72rem] font-normal leading-relaxed tracking-[0.02em] text-white/45">
-        Save this review for your CFI discussion. This tool builds oral discipline — it does not
-        replace the ACS or your examiner.
+      <p className="mt-4 max-w-[36rem] font-serif text-[0.95rem] font-normal leading-[1.55] tracking-[0.02em] text-white/[0.78] sm:text-[1rem]">
+        {closing.disposition}
+      </p>
+      <p className="mt-3 max-w-[36rem] font-serif text-[0.88rem] font-light italic leading-[1.52] text-white/55 sm:text-[0.92rem]">
+        {closing.readiness}
       </p>
 
+      {closing.reviewAreas.length > 0 ? (
+        <div className="mt-7">
+          <p className="font-serif text-[0.72rem] font-normal tracking-[0.02em] text-white/38">
+            Areas I&apos;d want to see again
+          </p>
+          <ul className="mt-2.5 list-none space-y-1.5 pl-0">
+            {closing.reviewAreas.map((label) => (
+              <li
+                key={label}
+                className="font-serif text-[0.84rem] font-light leading-snug text-white/[0.62]"
+              >
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       <div
-        className="mt-6 h-px w-full max-w-[min(100%,12rem)] bg-gradient-to-r from-amber-200/20 via-white/10 to-transparent"
+        className="mt-8 h-px w-full max-w-[min(100%,14rem)] bg-gradient-to-r from-amber-200/18 via-white/8 to-transparent"
         aria-hidden
       />
 
       {marked.length > 0 ? (
         <div className="mt-8 flex flex-col">
-          <p className="text-[0.62rem] font-normal uppercase tracking-[0.26em] text-white/52">
+          <p className="font-serif text-[0.72rem] font-normal tracking-[0.02em] text-white/40">
             {marked.length === 1
-              ? "1 question set aside"
-              : `${marked.length} questions set aside`}
+              ? "You flagged one item to revisit"
+              : `You flagged ${marked.length} items to revisit`}
           </p>
 
-          <div className="mt-5 flex flex-col gap-7">
+          <div className="mt-4 flex flex-col gap-6">
             {marked.map((item) => (
-              <div key={item.id} className="flex flex-col gap-1.5">
-                <p className="text-[0.6rem] font-normal uppercase tracking-[0.26em] text-white/45">
+              <div key={item.id} className="flex flex-col gap-1">
+                <p className="font-serif text-[0.78rem] text-white/[0.55]">
                   {item.contextLabel}
                 </p>
-                <p className="max-w-[min(100%,30rem)] font-serif text-[0.84rem] font-light italic leading-[1.42] text-white/72 sm:text-[0.88rem]">
+                <p className="max-w-[min(100%,30rem)] font-serif text-[0.82rem] font-light italic leading-[1.42] text-white/68 sm:text-[0.86rem]">
                   {`\u201c${item.promptLine}\u201d`}
                 </p>
                 <button
@@ -2427,13 +2342,9 @@ function SessionEndScreen({
             ))}
           </div>
         </div>
-      ) : (
-        <p className="mt-8 font-serif text-[0.9rem] font-light italic leading-[1.55] text-white/62 sm:text-[0.94rem]">
-          Nothing set aside.
-        </p>
-      )}
+      ) : null}
 
-      <div className="mt-12 flex flex-col gap-6 border-t border-white/[0.06] pt-8">
+      <div className="mt-10 flex flex-col gap-5 border-t border-white/[0.06] pt-7">
         <button
           type="button"
           onClick={onStartOver}
@@ -2442,8 +2353,7 @@ function SessionEndScreen({
           Start over.
         </button>
         <p className="oral-trust-footnote font-sans">
-          Built as a single-purpose oral studio: the clarity of a structured training product, with a
-          darker checkride-style presentation — not a course catalog.
+          Training simulation — not an FAA examination. Discuss with your CFI against the ACS.
         </p>
       </div>
     </motion.div>

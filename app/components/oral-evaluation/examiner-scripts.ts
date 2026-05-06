@@ -180,7 +180,7 @@ function buildEscalatedTurn(
     };
   }
 
-  const gapLines = gapLinesFromTopMisses(missed.slice(0, 2));
+  const gapLines = gapLinesFromTopMisses(missed.slice(0, 2)).slice(0, 1);
   const pressureLine =
     depth >= 3
       ? "Third miss — change how you're saying it or we're not moving."
@@ -190,12 +190,7 @@ function buildEscalatedTurn(
   return {
     judgment: pickEscalationJudgment(depth),
     examinerNote: "",
-    spokenBeats: [
-      pressureLine,
-      ...gapLines,
-      pick(retryPushLostComms),
-      pick(finalRespondChallengePool),
-    ],
+    spokenBeats: [pressureLine, ...gapLines, pick(finalRespondChallengePool)],
   };
 }
 
@@ -207,8 +202,7 @@ const weakJudgmentPool: readonly string[] = [
   "That doesn't pass.",
   "I'm stopping you there.",
   "Not acceptable for this ride.",
-  "Too general — I can't grade that. I need the full sequence, with detail.",
-  "Too general — that's not a pass-level answer. Spell it out, in order.",
+  "Too general — I need the full sequence, in order.",
   "That answer doesn't hold up.",
   "We're not there yet.",
 ];
@@ -268,10 +262,10 @@ const retryPushLostComms: readonly string[] = [
  * (Judgment headline already landed; this carries the table tension forward.)
  */
 const missStandardFramePool: readonly string[] = [
-  "Against the standard I'm using on this one, that answer doesn't clear.",
-  "I'm scoring that as a miss — let me be direct about what I still need.",
-  "You didn't give me a pass-level response. Here's where it broke down.",
-  "That's not to standard yet — listen close, because I'm not moving on for free.",
+  "That's not to standard.",
+  "I'm scoring that as a miss.",
+  "You didn't give me a pass-level answer.",
+  "Listen — I'm not moving on for free.",
 ];
 
 /**
@@ -279,10 +273,10 @@ const missStandardFramePool: readonly string[] = [
  */
 const finalRespondChallengePool: readonly string[] = [
   "Same question — you're up. Answer it again.",
-  "I'm still at the table with you. Try again — full answer, no hedging.",
-  "We stay here until this is passable. Go again.",
-  "Back to the mic. I need a retake that actually meets the bar.",
-  "That's the gap — now respond again, from the top.",
+  "Try again — full answer, no hedging.",
+  "We stay here until this is passable.",
+  "Back to the mic.",
+  "That's the gap — from the top.",
 ];
 
 const weakPressurePool: Record<string, readonly string[]> = {
@@ -326,8 +320,7 @@ export function buildExaminerSpokenTurn(
     const pressurePool =
       adequatePressurePool[itemId] ?? weakPressureFallback;
     const pressure = pick(pressurePool);
-    const gapLines = gapLinesFromTopMisses(missed.slice(0, 2));
-    const retry = pick(retryPushLostComms);
+    const gapLines = gapLinesFromTopMisses(missed.slice(0, 2)).slice(0, 1);
     return {
       judgment: pick(adequateJudgmentPool),
       examinerNote: "",
@@ -335,7 +328,6 @@ export function buildExaminerSpokenTurn(
         pick(missStandardFramePool),
         pressure,
         ...gapLines,
-        retry,
         pick(finalRespondChallengePool),
       ],
     };
@@ -343,8 +335,7 @@ export function buildExaminerSpokenTurn(
 
   const pressurePool = weakPressurePool[itemId] ?? weakPressureFallback;
   const pressure = pick(pressurePool);
-  const gapLines = gapLinesFromTopMisses(missed.slice(0, 2));
-  const retry = pick(retryPushLostComms);
+  const gapLines = gapLinesFromTopMisses(missed.slice(0, 2)).slice(0, 1);
   return {
     judgment: pick(weakJudgmentPool),
     examinerNote: "",
@@ -352,7 +343,6 @@ export function buildExaminerSpokenTurn(
       pick(missStandardFramePool),
       pressure,
       ...gapLines,
-      retry,
       pick(finalRespondChallengePool),
     ],
   };
