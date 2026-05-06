@@ -33,18 +33,20 @@ function pick<T>(arr: readonly T[]): T {
 
 // ---------- Gap phrasing — sharp, oral (no “what about”, no soft asks) ----------
 
-/** Bias toward the client’s two patterns: “I didn’t hear X.” / “Where’s your X?” */
+/** Oral gaps — short, direct, a little uneven on purpose (spoken, not scripted). */
 function gapOne(label: string): string {
   const primary: readonly string[] = [
-    `I didn't hear the ${label} piece.`,
-    `Talk me through your ${label} piece.`,
+    `I didn't hear ${label}.`,
+    `Where's ${label} in what you just said?`,
+    `Walk me through ${label}.`,
   ];
   const secondary: readonly string[] = [
-    `I'm still not hearing ${label}.`,
-    `You skipped ${label}.`,
-    `You're still missing ${label}.`,
+    `${label} didn't really come out.`,
+    `You glossed over ${label}.`,
+    `I'm still waiting on ${label}.`,
+    `We need ${label} — I can't skip it.`,
   ];
-  return Math.random() < 0.62 ? pick(primary) : pick([...primary, ...secondary]);
+  return Math.random() < 0.58 ? pick(primary) : pick([...primary, ...secondary]);
 }
 
 /** Two rubric gaps as **separate** spoken lines (oral cadence, not one compound sentence). */
@@ -54,21 +56,21 @@ function gapLinesFromTopMisses(missed: readonly RubricPoint[]): readonly string[
   if (a && b) {
     if (Math.random() < 0.5) {
       return [
-        `Talk me through your ${a} piece.`,
-        `I still didn't hear the ${b} piece.`,
+        `Start with ${a} — I need that clean.`,
+        `And ${b}? Still not hearing it.`,
       ];
     }
     return [
-      `I still didn't hear the ${a} piece.`,
-      `Now give me the ${b} piece.`,
+      `${a} first. Then we talk about ${b}.`,
+      `${b} — that's the next hole.`,
     ];
   }
   if (a) return [gapOne(a)];
   return [
     pick([
-      "That still isn't enough for me to grade.",
-      "You're close, but I need the exact sequence out loud.",
-      "Spell the full sequence out for me.",
+      "That's still not enough for me to sign off on.",
+      "You're in the neighborhood, but I need the sequence out loud — the real one.",
+      "Say the whole stack. Don't make me pull it out of you.",
     ]),
   ];
 }
@@ -80,6 +82,7 @@ const escalationJudgmentPool: readonly string[] = [
   "Same gap as before.",
   "Not there yet.",
   "You still didn't fix the main miss.",
+  "I'm still not signing off on that.",
 ];
 
 function pickEscalationJudgment(repeatDepth: number): string {
@@ -111,9 +114,14 @@ type EscalationScript = EscalationStructured | EscalationThreeBeat;
 
 function spokenBeatsFromEscalation(script: EscalationScript): readonly string[] {
   if (script.kind === "structured") {
-    return [script.pressure, ...script.orderBeats, script.retry];
+    return [
+      script.pressure,
+      ...script.orderBeats,
+      script.retry,
+      pick(finalRespondChallengePool),
+    ];
   }
-  return [script.pressure, script.gaps, script.retry];
+  return [script.pressure, script.gaps, script.retry, pick(finalRespondChallengePool)];
 }
 
 /**
@@ -124,30 +132,32 @@ const escalationByItem: Record<string, readonly EscalationScript[]> = {
   "lost-comms-vfr": [
     {
       kind: "structured",
-      pressure: "You're still giving me fragments instead of a sequence.",
+      pressure:
+        "Second try, and I'm still getting fragments — not something I can fly in my head.",
       orderBeats: [
-        "Start by confirming the failure and squawking 7600.",
-        "Then stay VFR and walk the route and altitude stack in order.",
+        "Squawk the failure. 7600. First.",
+        "Then stay VFR and walk route and altitude in order — don't skip.",
       ],
-      retry: "Take a breath and run it again from the top.",
+      retry: "Breathe. Top to bottom, out loud, like I'm sitting right here.",
     },
     {
       kind: "structured",
-      pressure: "I need this in flyable order, not just keywords.",
+      pressure:
+        "I can't grade keywords. I need the order you'd actually fly.",
       orderBeats: [
-        "7600 is first.",
-        "Then route, then altitude, then your landing intention.",
+        "7600 first — always.",
+        "Then route, altitude, then what you're doing about landing. In that order.",
       ],
-      retry: "Give it to me again the way you'd brief it.",
+      retry: "Again — same table, same pressure. Go.",
     },
     {
       kind: "structured",
-      pressure: "Third pass now, so I need a complete answer with no blanks.",
+      pressure: "Third time. No holes — or we park on this one.",
       orderBeats: [
-        "State the code, then fly the 91.185 order without skipping steps.",
-        "If you're landing VFR, tell me why that's legal here.",
+        "Code, then the 91.185 stack. Every step.",
+        "If you're landing VFR, say why that's legal here — defend it.",
       ],
-      retry: "Run it now, cleanly and in order.",
+      retry: "Clean. In order. Now.",
     },
   ],
 };
@@ -173,91 +183,121 @@ function buildEscalatedTurn(
   const gapLines = gapLinesFromTopMisses(missed.slice(0, 2));
   const pressureLine =
     depth >= 3
-      ? "Third miss now, so change the structure and make it complete."
+      ? "Third miss — change how you're saying it or we're not moving."
       : depth >= 2
-        ? "You're circling the same gap, so give me a cleaner structure."
-        : "You're still missing the same piece, so I need more detail.";
+        ? "You're circling the same gap. I need a full answer, not another pass at it."
+        : "Same hole as before — dig in; give me something I can actually grade.";
   return {
     judgment: pickEscalationJudgment(depth),
     examinerNote: "",
-    spokenBeats: [pressureLine, ...gapLines, pick(retryPushLostComms)],
+    spokenBeats: [
+      pressureLine,
+      ...gapLines,
+      pick(retryPushLostComms),
+      pick(finalRespondChallengePool),
+    ],
   };
 }
 
 // ---------- Weak judgments (score 1) ----------
+// Short, oral verdicts — examiner stopping you, not UI labels.
 
 const weakJudgmentPool: readonly string[] = [
-  "Not sufficient.",
-  "No.",
-  "Not enough.",
-  "Too general.",
-  "Insufficient.",
-  "That doesn't work yet.",
+  "No — not to standard.",
+  "That doesn't pass.",
+  "I'm stopping you there.",
+  "Not acceptable for this ride.",
+  "Too general — I can't grade that. I need the full sequence, with detail.",
+  "Too general — that's not a pass-level answer. Spell it out, in order.",
+  "That answer doesn't hold up.",
+  "We're not there yet.",
 ];
 
 // ---------- Adequate judgments (score 2) ----------
 
 const adequateJudgmentPool: readonly string[] = [
-  "Incomplete.",
-  "Not yet.",
-  "Not quite.",
-  "Still thin.",
-  "Not enough.",
+  "Incomplete — not yet.",
+  "Not to standard. Close, but no.",
+  "That's thin for what I'm grading.",
+  "Not quite — I need more on the table.",
+  "Still short of the bar.",
 ];
 
 // ---------- Pass judgments (score 3) ----------
 
 const passJudgmentPool: readonly string[] = [
-  "That's sufficient.",
-  "Good.",
-  "That'll do.",
-  "Fine.",
   "Satisfactory.",
+  "That meets the standard.",
+  "Good — that's what I needed.",
+  "Yes. That holds.",
+  "Fine. That'll do.",
 ];
 
 // ---------- Adequate pressure per item (score 2) — short spoken ----------
 
 const adequatePressurePool: Record<string, readonly string[]> = {
   "lost-comms-vfr": [
-    "I can hear the idea, but I still can't grade the order.",
-    "You said the right words, but not in a flyable sequence.",
-    "You're giving me pieces, not the full order I need.",
+    "I hear what you're aiming at, but the order's wrong — I can't pass that, and I'm not pretending I can.",
+    "Right ingredients, wrong recipe. On the ride I don't get to coach you through the sequence.",
+    "You're giving me pieces; I need the stack I'd actually brief — flyable, in order.",
   ],
 };
 
 const passPressurePool: readonly string[] = [
-  "That's a checkride-ready answer.",
-  "That was clean and in order.",
-  "That holds up under pressure.",
-  "That works.",
+  "That's ride-ready — clear and in order.",
+  "Yeah. That's what I was listening for.",
+  "Clean. I'd sign off on that.",
+  "Okay. That works.",
 ];
 
 const passCloserPool: readonly string[] = [
-  "Good. Let's move on.",
-  "All right, next one.",
-  "That's done. Next question.",
-  "We'll move to the next scenario.",
+  "Good. Next item.",
+  "All right — next one.",
+  "We're done here. Move on.",
+  "Let's go to the next scenario.",
 ];
 
 const retryPushLostComms: readonly string[] = [
-  "Go step by step from the first action.",
-  "Run it again in order, out loud.",
-  "Start with your first move and take me through it again.",
+  "Back up — same question. First action, out loud, no shortcuts.",
+  "Clean retake from the top of the stack. I'm not letting you slide on order.",
+  "You're doing it again — start over and don't skip anything I need to hear.",
+];
+
+/**
+ * Opens the miss debrief: standard not met, examiner still in control.
+ * (Judgment headline already landed; this carries the table tension forward.)
+ */
+const missStandardFramePool: readonly string[] = [
+  "Against the standard I'm using on this one, that answer doesn't clear.",
+  "I'm scoring that as a miss — let me be direct about what I still need.",
+  "You didn't give me a pass-level response. Here's where it broke down.",
+  "That's not to standard yet — listen close, because I'm not moving on for free.",
+];
+
+/**
+ * Final beat: unmistakable push to answer again (tension → action).
+ */
+const finalRespondChallengePool: readonly string[] = [
+  "Same question — you're up. Answer it again.",
+  "I'm still at the table with you. Try again — full answer, no hedging.",
+  "We stay here until this is passable. Go again.",
+  "Back to the mic. I need a retake that actually meets the bar.",
+  "That's the gap — now respond again, from the top.",
 ];
 
 const weakPressurePool: Record<string, readonly string[]> = {
   "lost-comms-vfr": [
-    "You jumped to the end without building the sequence.",
-    "That answer is still out of order.",
-    "You went to the landing outcome before setting it up.",
+    "You jumped to the end before you set the failure up — I'm not signing off on that.",
+    "Out of order. I can't credit what I'm hearing, and I'm not going to bluff that I did.",
+    "You reached for landing before you squared the comm loss — that's a hard no from me.",
   ],
 };
 
 const weakPressureFallback: readonly string[] = [
-  "That doesn't hold up yet.",
-  "That answer isn't enough yet.",
-  "It's still too thin for a checkride standard.",
-  "Go again and tighten the structure.",
+  "For the bar I'm holding you to, that's not there yet.",
+  "I'm not trying to be cute — I need a full answer.",
+  "Under oral pressure that still folds. Tighten it.",
+  "Bring it back — I'm listening for structure, not vibes.",
 ];
 
 export function buildExaminerSpokenTurn(
@@ -291,7 +331,13 @@ export function buildExaminerSpokenTurn(
     return {
       judgment: pick(adequateJudgmentPool),
       examinerNote: "",
-      spokenBeats: [pressure, ...gapLines, retry],
+      spokenBeats: [
+        pick(missStandardFramePool),
+        pressure,
+        ...gapLines,
+        retry,
+        pick(finalRespondChallengePool),
+      ],
     };
   }
 
@@ -302,7 +348,13 @@ export function buildExaminerSpokenTurn(
   return {
     judgment: pick(weakJudgmentPool),
     examinerNote: "",
-    spokenBeats: [pressure, ...gapLines, retry],
+    spokenBeats: [
+      pick(missStandardFramePool),
+      pressure,
+      ...gapLines,
+      retry,
+      pick(finalRespondChallengePool),
+    ],
   };
 }
 

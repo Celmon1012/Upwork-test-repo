@@ -61,20 +61,20 @@ function judgmentDispositionAppearance(score: ScoreValue, teaching: boolean) {
   const verdictClass = teaching
     ? "text-white"
     : score <= 1
-      ? "text-[#ffbcb0]"
+      ? "text-[#ffd0c4]"
       : score === 2
         ? "text-[#ffe4b0]"
         : "text-[#ecfdf5]";
   const softShadow =
     score <= 1 && !teaching
-      ? "0 0 28px rgba(255,120,90,0.22), 0 2px 14px rgba(0,0,0,0.55)"
+      ? "0 0 42px rgba(255,95,70,0.35), 0 0 80px rgba(180,40,30,0.18), 0 3px 18px rgba(0,0,0,0.62)"
       : score >= 3 && !teaching
         ? "0 0 36px rgba(52,211,153,0.32), 0 2px 14px rgba(0,0,0,0.45)"
         : score === 2 && !teaching
           ? "0 0 22px rgba(251,191,36,0.16), 0 2px 10px rgba(0,0,0,0.4)"
           : "0 2px 10px rgba(0,0,0,0.35)";
   const verdictEntryDurationS =
-    teaching || score >= 3 ? 0.34 : score === 2 ? 0.4 : 0.48;
+    teaching || score >= 3 ? 0.34 : score === 2 ? 0.4 : 0.56;
   return { verdictClass, softShadow, verdictEntryDurationS };
 }
 
@@ -178,18 +178,29 @@ const ORAL_PANEL_SHELL =
 
 /** Same type ramp for full-screen moment + debrief so layoutId does not “snap” styles. */
 const ORAL_JUDGMENT_HEADLINE_CLASS =
-  "font-serif text-[1.85rem] font-semibold italic leading-[1.14] tracking-[0.02em] sm:text-[2.35rem]";
+  "font-serif text-[1.95rem] font-bold italic leading-[1.12] tracking-wide [font-feature-settings:'liga'_1] sm:text-[2.5rem] sm:tracking-[0.04em]";
 
-const PRIMARY_RAIL_BTN_DISABLED =
-  "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
+/** Weak-score verdict: roman weight reads like a stamped ruling, not soft UI copy. */
+const ORAL_JUDGMENT_HEADLINE_FAIL_CLASS =
+  "font-serif text-[2.12rem] font-extrabold not-italic leading-[1.06] tracking-[0.01em] [font-feature-settings:'liga'_1] sm:text-[2.85rem] sm:tracking-[0.02em]";
 
 /** Subtle tertiary text control */
 const FOOTER_WHISPER =
   "rounded-sm border-0 bg-transparent p-0 text-left font-sans text-[0.74rem] font-normal tracking-[0.06em] text-white/40 outline-none transition-[color] duration-200 ease-out hover:text-white/65 focus-visible:text-white/85 focus-visible:ring-1 focus-visible:ring-amber-200/25";
 
+const PRIMARY_RAIL_BTN_DISABLED =
+  "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
+
 /** Primary Answer — clear and restrained (not quiz chrome) */
 const SUBMIT_ACTION =
   "inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg border border-white/20 bg-gradient-to-b from-white to-slate-100 px-8 py-3 font-sans text-[0.79rem] font-semibold tracking-[0.07em] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_12px_40px_rgba(0,0,0,0.44)] outline-none transition-[transform,box-shadow,filter] duration-200 ease-out hover:from-slate-50 hover:to-slate-100 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_14px_44px_rgba(0,0,0,0.48)] active:translate-y-px focus-visible:ring-2 focus-visible:ring-amber-200/50 sm:text-[0.81rem]";
+
+/** Secondary — single quiet control (icon + label, no extra chrome) */
+const SECONDARY_RAIL_BTN =
+  "group inline-flex h-10 min-h-[42px] items-center gap-2 rounded-[10px] border border-white/[0.12] bg-white/[0.04] px-3.5 font-sans text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-white/[0.88] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] outline-none transition-[border-color,background-color,color,transform,opacity] hover:border-amber-200/30 hover:bg-white/[0.07] hover:text-white active:translate-y-px focus-visible:ring-2 focus-visible:ring-amber-200/35 disabled:pointer-events-none disabled:opacity-30 sm:px-4 sm:tracking-[0.13em]";
+
+const PRIMARY_RAIL_BTN =
+  `inline-flex h-11 min-h-[46px] min-w-[11rem] shrink-0 items-center justify-center gap-2 rounded-[11px] border border-white/22 bg-gradient-to-b from-[#f8f6f1] via-[#ebe8e2] to-[#c9c4bc] px-5 font-serif text-[0.82rem] font-semibold tracking-[0.03em] text-[#1a1816] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_8px_28px_rgba(0,0,0,0.45)] outline-none transition-[transform,box-shadow,filter,opacity] hover:brightness-[1.03] focus-visible:ring-2 focus-visible:ring-amber-200/50 active:translate-y-px sm:min-w-[11.5rem] sm:text-[0.84rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
 
 function OralEvaluationExperienceInner({
   oralItems,
@@ -695,6 +706,11 @@ function OralEvaluationExperienceInner({
     () => judgmentDispositionAppearance(evaluation.score, showMeMode),
     [evaluation.score, showMeMode],
   );
+  const judgmentHeadlineTypography = useMemo(() => {
+    if (showMeMode) return ORAL_JUDGMENT_HEADLINE_CLASS;
+    if (evaluation.score <= 1) return ORAL_JUDGMENT_HEADLINE_FAIL_CLASS;
+    return ORAL_JUDGMENT_HEADLINE_CLASS;
+  }, [evaluation.score, showMeMode]);
 
   useEffect(() => {
     setOralRepeatMissCount(0);
@@ -929,13 +945,26 @@ function OralEvaluationExperienceInner({
   /** Verdict-only beat: nothing else on screen until this advances to "speaking". */
   useEffect(() => {
     if (sessionPhase !== "feedback" || feedbackEvalStage !== "judgment") return;
-    const ms = reduceMotion ? 850 : 2400 + Math.floor(Math.random() * 1000);
+    const weakHold =
+      !showMeMode && evaluation.score <= 1
+        ? 420 + Math.floor(Math.random() * 380)
+        : 0;
+    const ms = reduceMotion
+      ? 850 + (weakHold ? 120 : 0)
+      : 2400 + weakHold + Math.floor(Math.random() * 1000);
     const id = window.setTimeout(() => {
       setRevealedSegments(0);
       setFeedbackEvalStage("speaking");
     }, ms);
     return () => window.clearTimeout(id);
-  }, [sessionPhase, feedbackEvalStage, item.id, reduceMotion]);
+  }, [
+    sessionPhase,
+    feedbackEvalStage,
+    item.id,
+    reduceMotion,
+    evaluation.score,
+    showMeMode,
+  ]);
 
   useEffect(() => {
     if (sessionPhase !== "feedback" || feedbackEvalStage !== "speaking") return;
@@ -990,6 +1019,13 @@ function OralEvaluationExperienceInner({
           spokenFeedbackUnits.length > 1
         ) {
           gap += 200 + Math.floor(Math.random() * 280);
+        }
+        if (
+          i === spokenFeedbackUnits.length - 2 &&
+          evaluation.score < 3 &&
+          !showMeMode
+        ) {
+          gap += 380 + Math.floor(Math.random() * 420);
         }
         cumulative += gap;
       }
@@ -1127,6 +1163,8 @@ function OralEvaluationExperienceInner({
                       <JudgmentBackdrop
                         key={`jb-${item.id}`}
                         reduceMotion={reduceMotion}
+                        score={evaluation.score}
+                        teaching={showMeMode}
                       />
                     ) : null}
                   </AnimatePresence>
@@ -1191,7 +1229,11 @@ function OralEvaluationExperienceInner({
                         className={`oral-scrollbar-modern relative z-[1] mx-auto flex min-h-0 w-full max-w-[min(96vw,960px)] flex-1 flex-col overflow-x-hidden ${
                           feedbackEvalStage === "judgment"
                             ? "overflow-hidden py-0"
-                            : "overflow-y-auto pb-40 sm:pb-44"
+                            : `overflow-y-auto pr-3 sm:pr-5 ${
+                                feedbackEvalStage === "actions"
+                                  ? "pb-52 sm:pb-60"
+                                  : "pb-44 sm:pb-48"
+                              }`
                         }`}
                         role="log"
                         aria-live="polite"
@@ -1217,9 +1259,9 @@ function OralEvaluationExperienceInner({
                           feedbackEvalStage === "judgment" ? "assertive" : undefined
                         }
                         aria-atomic={feedbackEvalStage === "judgment" ? true : undefined}
-                        className={`${ORAL_JUDGMENT_HEADLINE_CLASS} ${judgmentDisposition.verdictClass} ${
+                        className={`${judgmentHeadlineTypography} ${judgmentDisposition.verdictClass} ${
                           feedbackEvalStage === "judgment"
-                            ? "pointer-events-none fixed left-[50%] top-[50%] z-[51] w-[min(92vw,36rem)] max-w-[36rem] -translate-x-1/2 -translate-y-1/2 px-4 text-center"
+                            ? "pointer-events-none fixed left-[50%] top-[50%] z-[51] w-[min(92vw,40rem)] max-w-[40rem] -translate-x-1/2 -translate-y-1/2 px-4 text-center"
                             : "relative z-10 mt-8 w-full min-w-0 border-t border-white/[0.08] pt-8 text-left"
                         }`}
                         style={{ textShadow: judgmentDisposition.softShadow }}
@@ -1244,6 +1286,20 @@ function OralEvaluationExperienceInner({
                           },
                         }}
                       >
+                        {feedbackEvalStage === "judgment" ? (
+                          <span
+                            className={`mb-5 block font-serif text-[0.68rem] font-semibold not-italic sm:mb-6 sm:text-[0.74rem] ${
+                              showMeMode
+                                ? "uppercase tracking-[0.28em] text-amber-100/55"
+                                : evaluation.score <= 1
+                                  ? "tracking-[0.14em] text-amber-100/[0.78]"
+                                  : "tracking-[0.12em] text-amber-100/[0.72]"
+                            }`}
+                            aria-hidden
+                          >
+                            {showMeMode ? "Model track" : "Examiner disposition"}
+                          </span>
+                        ) : null}
                         {judgmentHeadline}
                       </motion.h2>
 
@@ -1253,6 +1309,14 @@ function OralEvaluationExperienceInner({
                             {spokenFeedbackUnits.map((unit, index) => {
                               if (index >= revealedSegments) return null;
                               const duration = segmentDurations[index] ?? 0.88;
+                              const paraRhythm =
+                                index === 0
+                                  ? "mt-0"
+                                  : (index + evaluation.score) % 3 === 0
+                                    ? "mt-7 sm:mt-8"
+                                    : (index + evaluation.score) % 3 === 1
+                                      ? "mt-5 sm:mt-6"
+                                      : "mt-6 sm:mt-7";
                               return (
                                 <motion.p
                                   key={`${item.id}-fb-${index}`}
@@ -1270,13 +1334,8 @@ function OralEvaluationExperienceInner({
                                     times: reduceMotion ? undefined : [0, 0.15, 0.32, 1],
                                     ease: cinematicEase,
                                   }}
-                                  className={`font-serif text-[0.98rem] font-light leading-[1.85] tracking-[0.01em] text-white/[0.92] sm:text-[1.02rem] ${
-                                    index === 0 ? "mt-0" : "mt-7"
-                                  }`}
+                                  className={`max-w-[min(40rem,92vw)] font-serif text-[0.98rem] font-normal leading-[1.72] tracking-[0.004em] text-white/[0.9] sm:text-[1.05rem] sm:leading-[1.76] ${paraRhythm}`}
                                 >
-                                  <span className="mr-2 text-amber-200/45" aria-hidden>
-                                    →
-                                  </span>
                                   {withThinkingLead(unit.text, index, evaluation.score)}
                                 </motion.p>
                               );
@@ -1351,7 +1410,7 @@ function OralEvaluationExperienceInner({
                           duration: transitionMs(reduceMotion, 0.4),
                           ease: cinematicEase,
                         }}
-                        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(0.85rem,env(safe-area-inset-bottom))] pt-2 sm:px-8"
+                        className="pointer-events-none fixed bottom-0 left-0 z-40 pt-2 pb-[max(0.85rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-0 sm:pl-[max(2.5rem,env(safe-area-inset-left))] sm:pr-0 right-[max(14px,env(safe-area-inset-right))] sm:right-[max(18px,env(safe-area-inset-right))]"
                       >
                         <div className="pointer-events-auto mx-auto w-full max-w-[min(96vw,920px)]">
                           <FeedbackCommandRail
@@ -1580,14 +1639,6 @@ function OralEvaluationExperienceInner({
   );
 }
 
-/** Secondary: calm outline, icon-first */
-const SECONDARY_RAIL_BTN =
-  "inline-flex h-9 min-h-[40px] items-center gap-1.5 rounded-md border border-white/[0.12] bg-white/[0.03] px-3.5 font-sans text-[0.73rem] font-medium tracking-[0.04em] text-white/[0.88] outline-none transition-[border-color,background-color,color,transform,opacity] hover:border-amber-200/25 hover:bg-white/[0.06] hover:text-white active:translate-y-px focus-visible:ring-2 focus-visible:ring-amber-200/35 disabled:pointer-events-none disabled:opacity-30 sm:px-4";
-
-/** Primary: decisive forward action */
-const PRIMARY_RAIL_BTN =
-  `inline-flex h-10 min-h-[44px] min-w-[10.25rem] shrink-0 items-center justify-center gap-2 rounded-md border border-white/22 bg-gradient-to-b from-[#fafaf9] via-slate-50 to-slate-200/95 px-5 font-sans text-[0.78rem] font-semibold tracking-[0.06em] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_8px_28px_rgba(0,0,0,0.4)] outline-none transition-[transform,box-shadow,filter,opacity] hover:brightness-[1.03] focus-visible:ring-2 focus-visible:ring-amber-200/50 active:translate-y-px ${PRIMARY_RAIL_BTN_DISABLED}`;
-
 function FeedbackCommandRail({
   score,
   teaching,
@@ -1623,24 +1674,44 @@ function FeedbackCommandRail({
         ease: cinematicEase,
       }}
     >
-      <div className="oral-evaluator-dock-inner px-3 py-1.5 sm:px-4 sm:py-2">
-        <div className="oral-action-dock oral-action-dock--premium relative overflow-hidden rounded-[14px] px-3 py-2.5 backdrop-blur-[2px] sm:px-4 sm:py-3">
+      <div className="oral-evaluator-dock-inner w-full py-1.5 sm:py-2">
+        <div className="oral-action-dock oral-action-dock--premium relative w-full overflow-hidden rounded-[16px] border border-white/[0.08] px-4 py-3 shadow-[0_-28px_80px_rgba(0,0,0,0.55)] backdrop-blur-[8px] sm:px-5 sm:py-3.5">
           <div
-            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+            className="pointer-events-none absolute inset-y-0 left-0 w-[3px] bg-gradient-to-b from-amber-200/55 via-amber-100/25 to-amber-200/35"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent"
             aria-hidden
           />
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="mb-2.5 pl-1 sm:mb-3">
+            <p className="font-sans text-[0.5rem] font-semibold uppercase tracking-[0.34em] text-amber-100/45">
+              {!teaching && score < 3 ? "Still on this item" : "Your move"}
+            </p>
+            {!teaching && score < 3 ? (
+              <p className="mt-1.5 max-w-[28rem] font-serif text-[0.68rem] font-normal leading-snug tracking-[0.02em] text-white/[0.58] sm:text-[0.72rem]">
+                You didn&apos;t meet the standard on that try — answer again when you&apos;re ready, or use the model
+                if you need a reference.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
                 <button
                   type="button"
                   onClick={onTryAgain}
                   disabled={!secondaryUnlocked}
                   className={SECONDARY_RAIL_BTN}
                 >
-                  <RotateCcw className="size-[14px] shrink-0 opacity-80" strokeWidth={2} aria-hidden />
-                  Try Again
+                  <RotateCcw
+                    className="size-[15px] shrink-0 text-amber-200/65 opacity-90 transition-colors group-hover:text-amber-100"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  Answer again — same question
                 </button>
                 {!teaching ? (
                   <button
@@ -1650,11 +1721,19 @@ function FeedbackCommandRail({
                     className={SECONDARY_RAIL_BTN}
                   >
                     {showAnswer ? (
-                      <EyeOff className="size-[14px] shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                      <EyeOff
+                        className="size-[15px] shrink-0 text-amber-200/65 opacity-90 transition-colors group-hover:text-amber-100"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
                     ) : (
-                      <Eye className="size-[14px] shrink-0 opacity-80" strokeWidth={2} aria-hidden />
+                      <Eye
+                        className="size-[15px] shrink-0 text-amber-200/65 opacity-90 transition-colors group-hover:text-amber-100"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
                     )}
-                    {showAnswer ? "Hide answer" : "Show Me Answer"}
+                    {showAnswer ? "Hide model" : "Show model"}
                   </button>
                 ) : null}
               </div>
@@ -1662,17 +1741,17 @@ function FeedbackCommandRail({
                 type="button"
                 onClick={onReviewLater}
                 disabled={!secondaryUnlocked}
-                className="inline-flex w-fit items-center gap-1.5 font-sans text-[0.64rem] font-medium tracking-[0.08em] text-white/28 transition-colors hover:text-amber-100/42 focus-visible:text-white/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-200/22 disabled:pointer-events-none disabled:opacity-25"
+                className="inline-flex w-fit items-center gap-1.5 pl-1 font-sans text-[0.62rem] font-medium uppercase tracking-[0.16em] text-white/32 transition-colors hover:text-amber-100/48 focus-visible:text-white/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-200/22 disabled:pointer-events-none disabled:opacity-25"
               >
-                <Bookmark className="size-3 opacity-50" strokeWidth={2} aria-hidden />
-                Review Later
+                <Bookmark className="size-3 opacity-55" strokeWidth={2} aria-hidden />
+                Park for review
               </button>
             </div>
 
-            <div className="flex shrink-0 flex-col items-end gap-1 self-end sm:self-start">
+            <div className="flex shrink-0 flex-col items-end gap-1.5 self-stretch sm:self-end">
               {!continueEnabled ? (
-                <p className="max-w-[13rem] text-right font-sans text-[0.56rem] font-medium uppercase tracking-[0.14em] text-white/30">
-                  Awaiting debrief
+                <p className="max-w-[14rem] text-right font-sans text-[0.54rem] font-medium uppercase tracking-[0.16em] text-white/28">
+                  Listen for the full debrief
                 </p>
               ) : null}
               <span className="sr-only">Primary action</span>
@@ -1683,7 +1762,7 @@ function FeedbackCommandRail({
                 className={PRIMARY_RAIL_BTN}
               >
                 Continue
-                <ArrowRight className="size-[14px] shrink-0" strokeWidth={2.25} aria-hidden />
+                <ArrowRight className="size-[15px] shrink-0 opacity-90" strokeWidth={2.25} aria-hidden />
               </button>
             </div>
           </div>
@@ -1691,7 +1770,7 @@ function FeedbackCommandRail({
       </div>
 
       {!teaching ? (
-        <p className="border-t border-white/[0.05] px-3 pb-0.5 pt-2 text-center font-sans text-[0.55rem] font-normal tracking-[0.08em] text-white/20 sm:px-5">
+        <p className="border-t border-white/[0.05] px-0 pb-0.5 pt-2 text-center font-sans text-[0.55rem] font-normal tracking-[0.08em] text-white/20">
           <span className="tabular-nums text-white/30">{`${score}/3`}</span>
           <span className="mx-2.5 text-white/10">·</span>
           <span className="font-normal normal-case tracking-normal text-white/24">{scoreMeaning}</span>
@@ -1707,13 +1786,26 @@ function FeedbackCommandRail({
  */
 function JudgmentBackdrop({
   reduceMotion,
+  score,
+  teaching,
 }: {
   reduceMotion: boolean | null;
+  score: ScoreValue;
+  teaching: boolean;
 }) {
+  const inner =
+    teaching || score >= 3
+      ? { a: 0.3, b: 0.88 }
+      : score === 2
+        ? { a: 0.34, b: 0.93 }
+        : { a: 0.44, b: 0.99 };
+  const background = `radial-gradient(ellipse 66%_56%_at_50%_42%, rgba(0,0,0,${inner.a}) 0%, rgba(4,6,14,${inner.b}) 100%)`;
+
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-50 bg-[radial-gradient(ellipse_72%_62%_at_50%_45%,rgba(0,0,0,0.35)_0%,rgba(4,6,14,0.92)_100%)]"
+      className="pointer-events-none fixed inset-0 z-50"
+      style={{ background }}
       initial={reduceMotion ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={reduceMotion ? undefined : { opacity: 0 }}
@@ -1871,14 +1963,14 @@ function JudgmentBlock({
     const verdictClass = teaching
       ? "text-white"
       : value <= 1
-        ? "text-[#ffbcb0]"
+        ? "text-[#ffd0c4]"
         : value === 2
           ? "text-[#ffe4b0]"
           : "text-[#ecfdf5]";
 
     const softShadow =
       value <= 1 && !teaching
-        ? "0 0 24px rgba(255,120,90,0.2), 0 2px 10px rgba(0,0,0,0.52)"
+        ? "0 0 40px rgba(255,95,70,0.32), 0 0 72px rgba(180,40,30,0.16), 0 3px 16px rgba(0,0,0,0.58)"
         : value >= 3 && !teaching
           ? "0 0 32px rgba(52,211,153,0.28), 0 2px 10px rgba(0,0,0,0.42)"
           : value === 2 && !teaching
@@ -1886,12 +1978,18 @@ function JudgmentBlock({
             : "0 2px 8px rgba(0,0,0,0.35)";
 
     const verdictEntryDurationS =
-      teaching || value >= 3 ? 0.34 : value === 2 ? 0.4 : 0.48;
+      teaching || value >= 3 ? 0.34 : value === 2 ? 0.4 : 0.56;
 
     return (
       <div className="oral-verdict-record mt-0 flex shrink-0 flex-col items-stretch px-4 py-4 text-left sm:px-6 sm:py-5">
         <motion.p
-          className="font-sans text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-amber-100/38"
+          className={`font-serif text-[0.66rem] font-semibold not-italic sm:text-[0.7rem] ${
+            teaching
+              ? "uppercase tracking-[0.22em] text-amber-100/38"
+              : value <= 1
+                ? "tracking-[0.14em] text-amber-100/[0.72]"
+                : "tracking-[0.12em] text-amber-100/[0.65]"
+          }`}
           initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{
@@ -1899,11 +1997,15 @@ function JudgmentBlock({
             ease: cinematicEase,
           }}
         >
-          Oral disposition
+          {teaching ? "Model track" : "Examiner disposition"}
         </motion.p>
         <motion.h2
           id={id}
-          className={`mt-2 max-w-[min(100%,36rem)] font-serif text-[1.78rem] font-semibold italic leading-[1.16] tracking-[0.02em] transition-all duration-[700ms] ease-out sm:text-[2.05rem] ${verdictClass} ${
+          className={`mt-2 max-w-[min(100%,36rem)] font-serif transition-all duration-[700ms] ease-out ${
+            !teaching && value <= 1
+              ? "text-[1.95rem] font-extrabold not-italic leading-[1.08] tracking-[0.01em] sm:text-[2.55rem] sm:tracking-[0.02em]"
+              : "text-[1.78rem] font-semibold italic leading-[1.16] tracking-[0.02em] sm:text-[2.05rem]"
+          } ${verdictClass} ${
             settled && !reduceMotion ? "translate-y-px opacity-[0.95]" : ""
           }`}
           initial={reduceMotion ? false : { opacity: 0, y: 5 }}
@@ -2016,8 +2118,8 @@ function splitSpokenChunks(text: string): readonly string[] {
  */
 function refineToShorterLines(
   lines: readonly string[],
-  maxLen = 36,
-  minClause = 8,
+  maxLen = 52,
+  minClause = 12,
 ): string[] {
   const result: string[] = [];
   for (const raw of lines) {
@@ -2040,11 +2142,18 @@ function refineToShorterLines(
   return result;
 }
 
+/** Stable-ish mix per line so bridges vary without feeling random frame-to-frame. */
+function oralLeadMix(index: number, score: ScoreValue, text: string): number {
+  let h = index * 47 + score * 13;
+  const cap = Math.min(text.length, 28);
+  for (let i = 0; i < cap; i++) {
+    h = (h + text.charCodeAt(i) * (i + 3)) % 1009;
+  }
+  return h;
+}
+
 /**
- * Adds occasional spoken hesitation so delivery feels human.
- * - 3: no hesitation (confident, decisive)
- * - 2: light hesitation (one beat)
- * - 0/1: slightly more hesitation, but still concise
+ * Light oral framing — varied bridges, sometimes none (sounds like a person, not a template).
  */
 function withThinkingLead(
   line: string,
@@ -2052,12 +2161,55 @@ function withThinkingLead(
   score: ScoreValue,
 ): string {
   const text = line.trim();
-  if (!text || index === 0 || score >= 3) return text;
-  if (score === 2) {
-    return index === 1 ? `... ${text}` : text;
+  if (!text) return text;
+  if (index === 0) return text;
+
+  const mix = oralLeadMix(index, score, text);
+
+  if (score >= 3) {
+    if (index === 1 && !/^so[\s,—-]/i.test(text)) {
+      const passBridge = [
+        (t: string) => `So — ${t}`,
+        (t: string) => `Okay — ${t}`,
+        (t: string) => `All right — ${t}`,
+        (t: string) => t,
+      ];
+      return passBridge[mix % passBridge.length]!(text);
+    }
+    return text;
   }
-  // score 0/1: add brief pauses on early corrective beats.
-  return index <= 2 && index % 2 === 1 ? `... ${text}` : text;
+
+  if (score === 2) {
+    if (index === 1) {
+      const adeqBridge = [
+        (t: string) => `Here's the gap — ${t}`,
+        (t: string) => `Where I'm stuck — ${t}`,
+        (t: string) => `The piece I still need — ${t}`,
+        (t: string) => t,
+      ];
+      return adeqBridge[mix % adeqBridge.length]!(text);
+    }
+    return text;
+  }
+
+  if (index === 1) {
+    const weakBridge = [
+      (t: string) => `Look — ${t}`,
+      (t: string) => `Listen — ${t}`,
+      (t: string) => `For me — ${t}`,
+      (t: string) => t,
+    ];
+    return weakBridge[mix % weakBridge.length]!(text);
+  }
+  if (index === 3) {
+    const closeBridge = [
+      (t: string) => `Bottom line: ${t}`,
+      (t: string) => `What I'm really asking: ${t}`,
+      (t: string) => t,
+    ];
+    return closeBridge[mix % closeBridge.length]!(text);
+  }
+  return text;
 }
 
 function compactSpokenLines(parts: readonly string[]): string[] {
@@ -2074,7 +2226,7 @@ function getFeedbackLines(
 ): FeedbackLineUnit[] {
   if (teaching) {
     const body = compactSpokenLines([
-      "Here's what I'm listening for.",
+      "So — here's what I'm listening for.",
       ...refineToShorterLines([
         ...splitSpokenChunks(evaluation.stronger),
         ...splitSpokenChunks(evaluation.why),
@@ -2100,7 +2252,7 @@ function getFeedbackLines(
       : evaluation.score >= 3
         ? []
         : [
-            "I didn't hear enough concrete pieces to credit specific checklist items yet.",
+            "I didn't get enough concrete pieces to hang a grade on.",
           ];
 
   for (const raw of rightSource) {
@@ -2111,7 +2263,7 @@ function getFeedbackLines(
   if (evaluation.score >= 3 && rightLines.length === 0) {
     rightLines.unshift({
       section: rightLabel,
-      text: "That meets the standard I was looking for on this item.",
+      text: "That hits what I was looking for on this one.",
     });
   }
 
@@ -2131,12 +2283,14 @@ function getFeedbackLines(
     if (raw.trim()) strongLines.push({ section: strongLabel, text: raw.trim() });
   }
 
+  const maxOut = evaluation.score >= 3 ? 5 : 8;
+  const missCap = evaluation.score >= 3 ? 3 : 7;
   const out: FeedbackLineUnit[] = [];
   out.push(...rightLines.slice(0, 1));
-  out.push(...missLines.slice(0, 3));
-  const room = 5 - out.length;
+  out.push(...missLines.slice(0, missCap));
+  const room = maxOut - out.length;
   out.push(...strongLines.slice(0, Math.max(0, room)));
-  return out.slice(0, 5);
+  return out.slice(0, maxOut);
 }
 
 function buildCorrectAcknowledgment(
@@ -2150,15 +2304,15 @@ function buildCorrectAcknowledgment(
   if (labels.length === 0) return [];
   if (score >= 3) {
     return [
-      `You worked the checklist I needed: ${labels.join(", ")}.`,
+      `You gave me what I needed on the checklist: ${labels.join(", ")}.`,
     ];
   }
   if (labels.length === 1) {
-    return [`What registered: ${labels[0]}.`];
+    return [`I did catch ${labels[0]}.`];
   }
   const lead = labels.slice(0, 2).join(" and ");
-  const tail = labels.length > 2 ? ` I also caught ${labels[2]}.` : "";
-  return [`What registered: ${lead}.${tail}`];
+  const tail = labels.length > 2 ? ` I heard ${labels[2]} too.` : "";
+  return [`I caught ${lead}.${tail}`];
 }
 
 function evaluateAnswer(
@@ -2189,7 +2343,7 @@ function evaluateAnswer(
     judgment: turn.judgment,
     examinerNote: turn.examinerNote,
     correct: [...correct],
-    missed: spoken.length > 0 ? spoken : ["Say it again — I'm listening."],
+    missed: spoken.length > 0 ? spoken : ["Say it again. I'm listening."],
     stronger: item.evaluation.stronger,
     why: item.evaluation.why,
     deeperExplanation: item.evaluation.deeperExplanation,

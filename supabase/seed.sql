@@ -217,8 +217,8 @@ set evaluation = $ev_lost$
     "But the route priority — assigned, expected, filed — you didn't walk me through that stack in a way I can grade.",
     "Same on altitude. Assigned, MEA, expected, and when you take the highest of them. That never came out as a sequence."
   ],
-  "stronger": "Here's what I want. Squawk 7600. Then fly the route under 91.185 in order — assigned, expected, filed — and altitude in the same priority. It should sound like a checklist you've briefed a hundred times, not like you're figuring it out in the chair.",
-  "why": "On the ride I'll hand you a lost-comms scenario and just watch what comes out. Partial recall doesn't cut it when the radios go quiet.",
+  "stronger": "What I want to hear: 7600 first. Then you fly the route under 91.185 — assigned, expected, filed — and altitude the same way. It should sound like something you've briefed a hundred times, not like you're inventing it in the chair.",
+  "why": "On the ride I'll throw lost comms at you and watch what falls out. When the radios go quiet, half-remembered bullets don't cut it.",
   "deeperExplanation": [
     "91.185 is written as a priority list for a reason. When the radios go quiet, you don't have time to re-derive it — you execute it.",
     "Route priority: assigned, expected, filed. Altitude priority: the highest of assigned, MEA, expected. Memorize the shape, not just the words.",
