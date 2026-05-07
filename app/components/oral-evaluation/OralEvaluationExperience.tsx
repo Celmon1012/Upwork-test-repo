@@ -190,16 +190,32 @@ const FOOTER_WHISPER =
 const PRIMARY_RAIL_BTN_DISABLED =
   "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
 
-/** Submit — examiner table, not SaaS primary */
-const SUBMIT_ACTION =
-  "inline-flex min-h-[2.75rem] items-center justify-center rounded-sm border border-white/[0.14] bg-white/[0.04] px-7 py-2.5 font-serif text-[0.8rem] font-medium tracking-[0.04em] text-white/[0.88] outline-none transition-[background-color,border-color,color,opacity] duration-200 ease-out hover:border-white/22 hover:bg-white/[0.07] hover:text-white focus-visible:ring-1 focus-visible:ring-amber-200/35 active:bg-white/[0.05] sm:px-8 sm:text-[0.82rem]";
+/**
+ * Bottom controls — examiner console, not learning-app footer.
+ *
+ * Type system: refined sans for actions (separates from serif transcript so the
+ * controls read as “mechanism”, not “voice”). Light caps + wide tracking on the
+ * primary; lowercase, low-contrast secondaries. No underlines at rest.
+ */
+const ORAL_SECONDARY_ACTION =
+  "rounded-sm border-0 bg-transparent px-0 py-1 font-sans text-[0.7rem] font-normal tracking-[0.06em] text-white/38 outline-none transition-[color,letter-spacing] duration-200 ease-out hover:text-white/82 hover:tracking-[0.075em] focus-visible:text-white/92 focus-visible:ring-1 focus-visible:ring-amber-200/25 disabled:pointer-events-none disabled:opacity-28 sm:text-[0.72rem]";
 
-/** Secondary rail — text-first, low chrome */
-const SECONDARY_RAIL_BTN =
-  "inline-flex min-h-[2.25rem] items-center rounded-sm border-0 bg-transparent px-0 py-1 font-serif text-[0.74rem] font-normal tracking-[0.03em] text-white/42 underline decoration-white/[0.12] underline-offset-[5px] outline-none transition-[color,opacity] hover:text-amber-100/65 hover:decoration-amber-200/25 focus-visible:ring-1 focus-visible:ring-amber-200/30 disabled:pointer-events-none disabled:opacity-28 sm:text-[0.76rem]";
+/** Quiet separator between secondaries */
+const ORAL_SECONDARY_SEP =
+  "select-none px-3 font-sans text-[0.62rem] font-light text-white/14 sm:px-3.5";
 
-const PRIMARY_RAIL_BTN =
-  `inline-flex min-h-[2.5rem] shrink-0 items-center justify-center rounded-sm border border-white/[0.16] bg-white/[0.06] px-5 py-2 font-serif text-[0.8rem] font-medium tracking-[0.04em] text-white/[0.9] outline-none transition-[background-color,border-color,color,opacity] hover:border-white/24 hover:bg-white/[0.09] focus-visible:ring-1 focus-visible:ring-amber-200/35 active:translate-y-px sm:px-6 sm:text-[0.82rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
+/**
+ * Primary control — hairline “engraved” pill in warm amber.
+ * Looks like a precision instrument key, not a SaaS CTA.
+ */
+const ORAL_PRIMARY_ACTION =
+  `inline-flex min-h-[2.4rem] shrink-0 items-center justify-center gap-2.5 rounded-full border border-amber-200/[0.22] bg-transparent px-5 py-2 font-sans text-[0.6rem] font-medium uppercase tracking-[0.28em] text-amber-50/[0.92] outline-none transition-[background-color,border-color,color,letter-spacing] duration-300 ease-out hover:border-amber-200/55 hover:bg-amber-200/[0.06] hover:text-amber-50 hover:tracking-[0.3em] focus-visible:ring-1 focus-visible:ring-amber-200/45 active:translate-y-px sm:px-6 sm:text-[0.62rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
+
+const SUBMIT_ACTION = ORAL_PRIMARY_ACTION;
+
+const PRIMARY_RAIL_BTN = ORAL_PRIMARY_ACTION;
+
+const SECONDARY_RAIL_BTN = ORAL_SECONDARY_ACTION;
 
 function OralEvaluationExperienceInner({
   oralItems,
@@ -886,31 +902,34 @@ function OralEvaluationExperienceInner({
   ]);
 
   /**
-   * When "Show Me Answer" opens: scroll debrief pane twice max (layout + height animation).
-   * Does not re-fire on unrelated deps; does not schedule late scrolls that override manual scrolling.
+   * Show / Hide model answer: track height during the AnimatePresence transition so the
+   * inline command rail keeps its position at the bottom of the viewport. The rail is in
+   * flow now, so this prevents an apparent “jump up” when the model block collapses.
    */
   useEffect(() => {
-    if (!showAnswer) {
-      wasShowAnswerRef.current = false;
-      return;
-    }
     if (
       sessionPhase !== "feedback" ||
       feedbackEvalStage === "judgment" ||
       showMeMode
-    )
+    ) {
+      wasShowAnswerRef.current = showAnswer;
       return;
-    if (wasShowAnswerRef.current) return;
-    wasShowAnswerRef.current = true;
+    }
+    if (wasShowAnswerRef.current === showAnswer) return;
+    wasShowAnswerRef.current = showAnswer;
 
     scrollDebriefToBottom();
-    const t = window.setTimeout(scrollDebriefToBottom, 220);
-    return () => window.clearTimeout(t);
+    const stops = reduceMotion ? [60] : [80, 220, 380, 560];
+    const handles = stops.map((ms) =>
+      window.setTimeout(scrollDebriefToBottom, ms),
+    );
+    return () => handles.forEach((h) => window.clearTimeout(h));
   }, [
     showAnswer,
     sessionPhase,
     feedbackEvalStage,
     showMeMode,
+    reduceMotion,
     scrollDebriefToBottom,
   ]);
 
@@ -1230,11 +1249,7 @@ function OralEvaluationExperienceInner({
                         className={`oral-scrollbar-modern relative z-[1] mx-auto flex min-h-0 w-full max-w-[min(96vw,960px)] flex-1 flex-col overflow-x-hidden ${
                           feedbackEvalStage === "judgment"
                             ? "overflow-hidden py-0"
-                            : `overflow-y-auto pr-3 sm:pr-5 ${
-                                feedbackEvalStage === "actions"
-                                  ? "pb-52 sm:pb-60"
-                                  : "pb-44 sm:pb-48"
-                              }`
+                            : "overflow-y-auto pr-3 sm:pr-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:pb-[max(2.5rem,env(safe-area-inset-bottom))]"
                         }`}
                         role="log"
                         aria-live="polite"
@@ -1379,6 +1394,35 @@ function OralEvaluationExperienceInner({
                         </>
                       ) : null}
 
+                      <AnimatePresence initial={false}>
+                        {feedbackEvalStage === "actions" ? (
+                          <motion.div
+                            key="fb-actions-inline"
+                            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={reduceMotion ? undefined : { opacity: 0, y: 8 }}
+                            transition={{
+                              duration: transitionMs(reduceMotion, 0.42),
+                              ease: cinematicEase,
+                            }}
+                            className="mt-[78px] w-full scroll-mt-6 sm:mt-[86px]"
+                          >
+                            <FeedbackCommandRail
+                              score={evaluation.score}
+                              teaching={showMeMode}
+                              showAnswer={showAnswer}
+                              onToggleAnswer={toggleAnswer}
+                              onTryAgain={tryAgain}
+                              onNextQuestion={advanceFromFeedback}
+                              onReviewLater={reviewLater}
+                              reduceMotion={reduceMotion}
+                              continueEnabled={continueFeedbackEnabled}
+                              secondaryUnlocked
+                            />
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
+
                       <div
                         ref={transcriptEndRef}
                         className="h-4 shrink-0 scroll-mt-6"
@@ -1387,37 +1431,6 @@ function OralEvaluationExperienceInner({
                       </div>
                     </div>
                   </div>
-
-                  <AnimatePresence>
-                    {feedbackEvalStage === "actions" ? (
-                      <motion.div
-                        key="fb-actions"
-                        initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={reduceMotion ? undefined : { opacity: 0, y: 14 }}
-                        transition={{
-                          duration: transitionMs(reduceMotion, 0.4),
-                          ease: cinematicEase,
-                        }}
-                        className="pointer-events-none fixed bottom-0 left-0 right-0 z-40 px-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-2 pb-[max(0.85rem,env(safe-area-inset-bottom))] sm:px-[max(1.5rem,env(safe-area-inset-left))] sm:pr-[max(1.5rem,env(safe-area-inset-right))]"
-                      >
-                        <div className="pointer-events-auto mx-auto w-full max-w-[min(96vw,960px)]">
-                          <FeedbackCommandRail
-                            score={evaluation.score}
-                            teaching={showMeMode}
-                            showAnswer={showAnswer}
-                            onToggleAnswer={toggleAnswer}
-                            onTryAgain={tryAgain}
-                            onNextQuestion={advanceFromFeedback}
-                            onReviewLater={reviewLater}
-                            reduceMotion={reduceMotion}
-                            continueEnabled={continueFeedbackEnabled}
-                            secondaryUnlocked
-                          />
-                        </div>
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
                   </>
                 </LayoutGroup>
               ) : (
@@ -1535,8 +1548,16 @@ function OralEvaluationExperienceInner({
                       </motion.div>
                     </div>
 
-                    <div className="shrink-0 border-t border-white/[0.05] bg-gradient-to-t from-black/35 to-transparent px-3 py-2.5 sm:px-5 sm:py-3">
-                      <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                    <div className="relative shrink-0 px-3 pt-5 pb-3 sm:px-5 sm:pt-6 sm:pb-3.5">
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-black/55 to-transparent sm:-top-14 sm:h-14"
+                      />
+                      <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+                      />
+                      <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
                         <div className="flex min-h-[2.25rem] min-w-0 flex-1 flex-col justify-center gap-2">
                           <span className="sr-only" role="status" aria-live="polite">
                             {evaluating ? "Examiner is evaluating." : ""}
@@ -1546,22 +1567,30 @@ function OralEvaluationExperienceInner({
                               One moment.
                             </p>
                           ) : !evaluating ? (
-                            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                            <div className="flex min-w-0 flex-wrap items-baseline">
                               <button
                                 type="button"
                                 onClick={runShowMe}
-                                className="text-left font-serif text-[0.74rem] font-normal tracking-[0.02em] text-white/38 underline decoration-white/[0.12] underline-offset-[5px] transition-colors hover:text-amber-100/55 hover:decoration-amber-200/25"
+                                className={ORAL_SECONDARY_ACTION}
                               >
                                 Show model answer
                               </button>
                               {markedItems.size > 0 ? (
-                                <button
-                                  type="button"
-                                  onClick={openReviewLaterList}
-                                  className={FOOTER_WHISPER}
-                                >
-                                  Review later ({markedItems.size})
-                                </button>
+                                <>
+                                  <span className={ORAL_SECONDARY_SEP} aria-hidden>
+                                    /
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={openReviewLaterList}
+                                    className={ORAL_SECONDARY_ACTION}
+                                  >
+                                    Review later
+                                    <span className="ml-1 tabular-nums text-white/30">
+                                      ({markedItems.size})
+                                    </span>
+                                  </button>
+                                </>
                               ) : null}
                             </div>
                           ) : null}
@@ -1617,13 +1646,22 @@ function FeedbackCommandRail({
       initial={reduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: transitionMs(reduceMotion, 0.32),
+        duration: transitionMs(reduceMotion, 0.42),
         ease: cinematicEase,
       }}
     >
-      <div className="border-t border-white/[0.06] bg-black/30 px-1 py-2 backdrop-blur-[8px] sm:px-2 sm:py-2.5">
-        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2">
+      {/* Hairline + thin amber accent — quiet authority, not a toolbar */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-0 top-0 h-px w-10 bg-amber-200/30"
+      />
+      <div className="px-0 pt-5 pb-1 sm:pt-6 sm:pb-1.5">
+        <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+          <div className="flex min-w-0 flex-1 flex-wrap items-baseline">
             <button
               type="button"
               onClick={onTryAgain}
@@ -1633,15 +1671,23 @@ function FeedbackCommandRail({
               Answer again
             </button>
             {!teaching ? (
-              <button
-                type="button"
-                onClick={onToggleAnswer}
-                disabled={!secondaryUnlocked}
-                className={SECONDARY_RAIL_BTN}
-              >
-                {showAnswer ? "Hide model answer" : "Show model answer"}
-              </button>
+              <>
+                <span className={ORAL_SECONDARY_SEP} aria-hidden>
+                  /
+                </span>
+                <button
+                  type="button"
+                  onClick={onToggleAnswer}
+                  disabled={!secondaryUnlocked}
+                  className={SECONDARY_RAIL_BTN}
+                >
+                  {showAnswer ? "Hide model answer" : "Show model answer"}
+                </button>
+              </>
             ) : null}
+            <span className={ORAL_SECONDARY_SEP} aria-hidden>
+              /
+            </span>
             <button
               type="button"
               onClick={onReviewLater}
@@ -1662,7 +1708,7 @@ function FeedbackCommandRail({
               disabled={!continueEnabled}
               className={`${PRIMARY_RAIL_BTN} w-full sm:w-auto`}
             >
-              Continue
+              Continue evaluation
             </button>
           </div>
         </div>
