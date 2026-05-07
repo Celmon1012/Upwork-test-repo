@@ -2,6 +2,13 @@
 
 import Image from "next/image";
 import {
+  ArrowRight,
+  Bookmark,
+  Eye,
+  EyeOff,
+  RotateCcw,
+} from "lucide-react";
+import {
   AnimatePresence,
   LayoutGroup,
   motion,
@@ -191,31 +198,23 @@ const PRIMARY_RAIL_BTN_DISABLED =
   "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
 
 /**
- * Bottom controls — examiner console, not learning-app footer.
+ * Decision-strip controls — pill controls bounded inside an examiner console.
  *
- * Type system: refined sans for actions (separates from serif transcript so the
- * controls read as “mechanism”, not “voice”). Light caps + wide tracking on the
- * primary; lowercase, low-contrast secondaries. No underlines at rest.
+ * Both ghost (secondary) and amber (primary) share the same shape, casing,
+ * tracking, and icon language — so left and right read as one cohesive
+ * component. Hierarchy comes from fill, border, and weight, not from CASE.
  */
-const ORAL_SECONDARY_ACTION =
-  "rounded-sm border-0 bg-transparent px-0 py-1 font-sans text-[0.7rem] font-normal tracking-[0.06em] text-white/38 outline-none transition-[color,letter-spacing] duration-200 ease-out hover:text-white/82 hover:tracking-[0.075em] focus-visible:text-white/92 focus-visible:ring-1 focus-visible:ring-amber-200/25 disabled:pointer-events-none disabled:opacity-28 sm:text-[0.72rem]";
+const ORAL_GHOST_PILL =
+  "group inline-flex min-h-[2.25rem] shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.025] px-3 py-1.5 font-sans text-[0.78rem] font-medium tracking-[0.005em] text-white/[0.82] outline-none transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/26 hover:bg-white/[0.07] hover:text-white focus-visible:ring-1 focus-visible:ring-amber-200/30 disabled:pointer-events-none disabled:opacity-40 sm:gap-2 sm:px-3.5 sm:text-[0.82rem]";
 
-/** Quiet separator between secondaries */
-const ORAL_SECONDARY_SEP =
-  "select-none px-3 font-sans text-[0.62rem] font-light text-white/14 sm:px-3.5";
+const ORAL_PRIMARY_PILL =
+  `group inline-flex min-h-[2.5rem] shrink-0 items-center justify-center gap-2 rounded-full border border-amber-200/35 bg-amber-200/[0.09] px-4 py-2 font-sans text-[0.82rem] font-semibold tracking-[0.005em] text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] outline-none transition-[background-color,border-color,color] duration-300 ease-out hover:border-amber-200/60 hover:bg-amber-200/[0.16] hover:text-amber-50 focus-visible:ring-1 focus-visible:ring-amber-200/45 active:translate-y-px sm:px-5 sm:text-[0.86rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
 
-/**
- * Primary control — hairline “engraved” pill in warm amber.
- * Looks like a precision instrument key, not a SaaS CTA.
- */
-const ORAL_PRIMARY_ACTION =
-  `inline-flex min-h-[2.4rem] shrink-0 items-center justify-center gap-2.5 rounded-full border border-amber-200/[0.22] bg-transparent px-5 py-2 font-sans text-[0.6rem] font-medium uppercase tracking-[0.28em] text-amber-50/[0.92] outline-none transition-[background-color,border-color,color,letter-spacing] duration-300 ease-out hover:border-amber-200/55 hover:bg-amber-200/[0.06] hover:text-amber-50 hover:tracking-[0.3em] focus-visible:ring-1 focus-visible:ring-amber-200/45 active:translate-y-px sm:px-6 sm:text-[0.62rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
+const SUBMIT_ACTION = ORAL_PRIMARY_PILL;
 
-const SUBMIT_ACTION = ORAL_PRIMARY_ACTION;
+const PRIMARY_RAIL_BTN = ORAL_PRIMARY_PILL;
 
-const PRIMARY_RAIL_BTN = ORAL_PRIMARY_ACTION;
-
-const SECONDARY_RAIL_BTN = ORAL_SECONDARY_ACTION;
+const SECONDARY_RAIL_BTN = ORAL_GHOST_PILL;
 
 function OralEvaluationExperienceInner({
   oralItems,
@@ -1249,7 +1248,7 @@ function OralEvaluationExperienceInner({
                         className={`oral-scrollbar-modern relative z-[1] mx-auto flex min-h-0 w-full max-w-[min(96vw,960px)] flex-1 flex-col overflow-x-hidden ${
                           feedbackEvalStage === "judgment"
                             ? "overflow-hidden py-0"
-                            : "overflow-y-auto pr-3 sm:pr-5 pb-[max(2rem,env(safe-area-inset-bottom))] sm:pb-[max(2.5rem,env(safe-area-inset-bottom))]"
+                            : "overflow-y-auto pr-3 sm:pr-5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]"
                         }`}
                         role="log"
                         aria-live="polite"
@@ -1405,9 +1404,9 @@ function OralEvaluationExperienceInner({
                               duration: transitionMs(reduceMotion, 0.42),
                               ease: cinematicEase,
                             }}
-                            className="mt-[78px] w-full scroll-mt-6 sm:mt-[86px]"
+                            className="mt-10 w-full scroll-mt-6 sm:mt-12"
                           >
-                            <FeedbackCommandRail
+                            <EvaluationActionStrip
                               score={evaluation.score}
                               teaching={showMeMode}
                               showAnswer={showAnswer}
@@ -1548,59 +1547,69 @@ function OralEvaluationExperienceInner({
                       </motion.div>
                     </div>
 
-                    <div className="relative shrink-0 px-3 pt-5 pb-3 sm:px-5 sm:pt-6 sm:pb-3.5">
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-x-0 -top-12 h-12 bg-gradient-to-t from-black/55 to-transparent sm:-top-14 sm:h-14"
-                      />
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
-                      />
-                      <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-                        <div className="flex min-h-[2.25rem] min-w-0 flex-1 flex-col justify-center gap-2">
-                          <span className="sr-only" role="status" aria-live="polite">
-                            {evaluating ? "Examiner is evaluating." : ""}
+                    <div className="relative shrink-0 px-3 pt-6 pb-3 sm:px-5 sm:pt-7 sm:pb-3.5">
+                      <span className="sr-only" role="status" aria-live="polite">
+                        {evaluating ? "Examiner is evaluating." : ""}
+                      </span>
+                      {evaluating && showThinkingCue ? (
+                        <p className="font-serif text-[0.85rem] font-light italic text-white/45 sm:text-[0.92rem]">
+                          One moment.
+                        </p>
+                      ) : !evaluating ? (
+                        <div className="relative rounded-md border border-white/[0.07] bg-black/30 px-3.5 pb-3.5 pt-4 backdrop-blur-[8px] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_28px_rgba(0,0,0,0.35)] sm:px-5 sm:pb-4 sm:pt-5">
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute -top-[7px] left-4 select-none bg-[#04060c] px-2 font-sans text-[0.55rem] font-semibold uppercase tracking-[0.32em] text-amber-200/55 sm:left-5 sm:text-[0.58rem]"
+                          >
+                            Your answer
                           </span>
-                          {evaluating && showThinkingCue ? (
-                            <p className="font-serif text-[0.72rem] font-normal italic text-white/32">
-                              One moment.
-                            </p>
-                          ) : !evaluating ? (
-                            <div className="flex min-w-0 flex-wrap items-baseline">
+                          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-2.5">
                               <button
                                 type="button"
                                 onClick={runShowMe}
-                                className={ORAL_SECONDARY_ACTION}
+                                className={ORAL_GHOST_PILL}
                               >
-                                Show model answer
+                                <Eye
+                                  className="size-[14px] shrink-0 opacity-85"
+                                  strokeWidth={1.75}
+                                  aria-hidden
+                                />
+                                <span>Show model</span>
                               </button>
                               {markedItems.size > 0 ? (
-                                <>
-                                  <span className={ORAL_SECONDARY_SEP} aria-hidden>
-                                    /
+                                <button
+                                  type="button"
+                                  onClick={openReviewLaterList}
+                                  className={ORAL_GHOST_PILL}
+                                >
+                                  <Bookmark
+                                    className="size-[14px] shrink-0 opacity-85"
+                                    strokeWidth={1.75}
+                                    aria-hidden
+                                  />
+                                  <span>Set aside</span>
+                                  <span className="font-sans text-[0.7rem] font-medium tracking-[0.005em] text-white/50">
+                                    ({markedItems.size})
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={openReviewLaterList}
-                                    className={ORAL_SECONDARY_ACTION}
-                                  >
-                                    Review later
-                                    <span className="ml-1 tabular-nums text-white/30">
-                                      ({markedItems.size})
-                                    </span>
-                                  </button>
-                                </>
+                                </button>
                               ) : null}
                             </div>
-                          ) : null}
+                            <button
+                              type="button"
+                              onClick={runEvaluation}
+                              className={`${ORAL_PRIMARY_PILL} w-full sm:w-auto`}
+                            >
+                              <span>Submit answer</span>
+                              <ArrowRight
+                                className="size-[15px] shrink-0 opacity-90 group-hover:translate-x-0.5 transition-transform"
+                                strokeWidth={1.75}
+                                aria-hidden
+                              />
+                            </button>
+                          </div>
                         </div>
-                        {!evaluating && (
-                          <button type="button" onClick={runEvaluation} className={SUBMIT_ACTION}>
-                            Submit answer
-                          </button>
-                        )}
-                      </div>
+                      ) : null}
                     </div>
                       </motion.div>
                     </AnimatePresence>
@@ -1615,7 +1624,15 @@ function OralEvaluationExperienceInner({
   );
 }
 
-function FeedbackCommandRail({
+/**
+ * EvaluationActionStrip — replaces the prior FeedbackCommandRail.
+ *
+ * A bounded "decision strip" that sits in the document flow after the examiner
+ * has finished. Pill controls (ghost + amber primary) are framed inside a
+ * subtle bordered console with a small caps cue label inset on the top edge —
+ * so the area visibly reads as an oral-evaluation control panel, not a footer.
+ */
+function EvaluationActionStrip({
   score,
   teaching,
   showAnswer,
@@ -1642,7 +1659,7 @@ function FeedbackCommandRail({
 
   return (
     <motion.div
-      className="relative"
+      className="relative w-full"
       initial={reduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -1650,51 +1667,65 @@ function FeedbackCommandRail({
         ease: cinematicEase,
       }}
     >
-      {/* Hairline + thin amber accent — quiet authority, not a toolbar */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-0 top-0 h-px w-10 bg-amber-200/30"
-      />
-      <div className="px-0 pt-5 pb-1 sm:pt-6 sm:pb-1.5">
-        <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-          <div className="flex min-w-0 flex-1 flex-wrap items-baseline">
+      <div className="relative rounded-md border border-white/[0.07] bg-black/30 px-3.5 pb-3.5 pt-4 backdrop-blur-[8px] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_28px_rgba(0,0,0,0.35)] sm:px-5 sm:pb-4 sm:pt-5">
+        {/* inset cue label — examiner console marker, not a section header */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-[7px] left-4 select-none bg-[#04060c] px-2 font-sans text-[0.55rem] font-semibold uppercase tracking-[0.32em] text-amber-200/55 sm:left-5 sm:text-[0.58rem]"
+        >
+          Your decision
+        </span>
+
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-2.5">
             <button
               type="button"
               onClick={onTryAgain}
               disabled={!secondaryUnlocked}
-              className={SECONDARY_RAIL_BTN}
+              className={ORAL_GHOST_PILL}
             >
-              Answer again
+              <RotateCcw
+                className="size-[14px] shrink-0 opacity-85"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span>Answer again</span>
             </button>
             {!teaching ? (
-              <>
-                <span className={ORAL_SECONDARY_SEP} aria-hidden>
-                  /
-                </span>
-                <button
-                  type="button"
-                  onClick={onToggleAnswer}
-                  disabled={!secondaryUnlocked}
-                  className={SECONDARY_RAIL_BTN}
-                >
-                  {showAnswer ? "Hide model answer" : "Show model answer"}
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={onToggleAnswer}
+                disabled={!secondaryUnlocked}
+                className={ORAL_GHOST_PILL}
+              >
+                {showAnswer ? (
+                  <EyeOff
+                    className="size-[14px] shrink-0 opacity-85"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                ) : (
+                  <Eye
+                    className="size-[14px] shrink-0 opacity-85"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                )}
+                <span>{showAnswer ? "Hide model" : "Show model"}</span>
+              </button>
             ) : null}
-            <span className={ORAL_SECONDARY_SEP} aria-hidden>
-              /
-            </span>
             <button
               type="button"
               onClick={onReviewLater}
               disabled={!secondaryUnlocked}
-              className={SECONDARY_RAIL_BTN}
+              className={ORAL_GHOST_PILL}
             >
-              Review later
+              <Bookmark
+                className="size-[14px] shrink-0 opacity-85"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span>Review later</span>
             </button>
           </div>
 
@@ -1706,9 +1737,14 @@ function FeedbackCommandRail({
               type="button"
               onClick={onNextQuestion}
               disabled={!continueEnabled}
-              className={`${PRIMARY_RAIL_BTN} w-full sm:w-auto`}
+              className={`${ORAL_PRIMARY_PILL} w-full sm:w-auto`}
             >
-              Continue evaluation
+              <span>Continue evaluation</span>
+              <ArrowRight
+                className="size-[15px] shrink-0 opacity-90 group-hover:translate-x-0.5 group-disabled:translate-x-0 transition-transform"
+                strokeWidth={1.75}
+                aria-hidden
+              />
             </button>
           </div>
         </div>
