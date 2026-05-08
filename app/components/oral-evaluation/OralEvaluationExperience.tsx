@@ -3,7 +3,6 @@
 import Image from "next/image";
 import {
   ArrowRight,
-  Bookmark,
   Eye,
   EyeOff,
   RotateCcw,
@@ -199,26 +198,26 @@ const PRIMARY_RAIL_BTN_DISABLED =
   "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
 
 /**
- * Garmin Softkey Strip — flat, near-black hardware bar.
+ * Glass Cockpit Strip — fixed bottom, centered max-width, avionics legend bar.
  *
- * Container = thin, low-radius slab. Slight translucency + blur so the
- * cockpit faintly shows through, but the dominant read is "matte panel
- * with a hairline top highlight." Reads as legend strip, not a card.
- * Secondaries = ALL CAPS softkey labels separated by hairline rules.
- * Primary = inverted (light fill, dark text) — the avionics "Alerts"/
- * "Engage" key — clearly the active control.
+ * Dark translucent slab + backdrop blur + hairline top highlight + lift shadow.
+ * Secondaries: quiet title-case labels, optional minimal icons, hairline dividers.
+ * Primary: CONTINUE → dominant, brighter border + inner glow, letter-spaced caps.
  */
 const GLASS_STRIP_FRAME =
-  "relative isolate flex w-full items-stretch justify-between gap-2 rounded-[6px] border border-white/[0.07] bg-[rgba(4,6,10,0.86)] pl-2 pr-1.5 py-[6px] backdrop-blur-[14px] backdrop-saturate-150 shadow-[0_18px_48px_-24px_rgba(0,0,0,0.95),0_1px_0_rgba(255,255,255,0.04)_inset] sm:gap-3 sm:pl-3 sm:pr-2 sm:py-[7px]";
+  "relative isolate flex w-full items-stretch justify-between gap-6 rounded-[6px] border border-white/[0.08] bg-[rgba(4,6,12,0.72)] pl-3 pr-2 py-[8px] backdrop-blur-[18px] backdrop-saturate-150 shadow-[0_24px_56px_-28px_rgba(0,0,0,0.92),0_12px_40px_-24px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.05)_inset] sm:gap-10 sm:pl-4 sm:pr-3 sm:py-[9px]";
 
 const ORAL_GHOST_BTN =
-  "group inline-flex shrink-0 items-center justify-center gap-[6px] rounded-[3px] border border-transparent bg-transparent px-3 py-[7px] font-sans text-[10.5px] font-medium uppercase leading-none tracking-[0.14em] text-white/60 outline-none transition-[color,background-color] duration-150 ease-out hover:text-white hover:bg-white/[0.05] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-white/30 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-30 sm:px-3.5 sm:text-[11px] sm:tracking-[0.16em]";
+  "group inline-flex shrink-0 items-center justify-center gap-[7px] rounded-[3px] border border-transparent bg-transparent px-3.5 py-2 font-sans text-[11px] font-normal leading-none tracking-[0.05em] text-white/48 outline-none transition-[color,background-color] duration-150 ease-out hover:text-white/90 hover:bg-white/[0.05] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-white/25 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-30 sm:px-4 sm:text-[12px]";
 
 const ORAL_GHOST_DIVIDER =
-  "pointer-events-none my-[6px] w-px shrink-0 bg-white/[0.10]";
+  "pointer-events-none my-[7px] w-px shrink-0 bg-white/[0.09]";
+
+const ORAL_PRIMARY_CLUSTER =
+  "flex shrink-0 items-center border-l border-white/[0.09] pl-5 sm:pl-9";
 
 const ORAL_PRIMARY_GLASS =
-  `group relative inline-flex shrink-0 items-center justify-center gap-[8px] rounded-[4px] border border-white/[0.55] bg-white/[0.06] px-[18px] py-[7px] font-sans text-[10.5px] font-bold uppercase leading-none tracking-[0.20em] text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-out shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset,0_1px_0_rgba(255,255,255,0.18)_inset,0_0_18px_-2px_rgba(255,255,255,0.28)] hover:border-white/75 hover:bg-white/[0.10] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.10)_inset,0_1px_0_rgba(255,255,255,0.26)_inset,0_0_28px_-2px_rgba(255,255,255,0.42)] focus-visible:ring-2 focus-visible:ring-white/55 focus-visible:ring-offset-1 focus-visible:ring-offset-black active:translate-y-px sm:px-[22px] sm:text-[11px] sm:tracking-[0.22em] ${PRIMARY_RAIL_BTN_DISABLED}`;
+  `group relative inline-flex shrink-0 items-center justify-center gap-[8px] rounded-[4px] border border-white/[0.52] bg-white/[0.07] px-[20px] py-2 font-sans text-[11px] font-semibold uppercase leading-none tracking-[0.24em] text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-out shadow-[0_0_0_1px_rgba(255,255,255,0.07)_inset,0_1px_0_rgba(255,255,255,0.16)_inset,0_0_20px_-3px_rgba(255,255,255,0.22)] hover:border-white/70 hover:bg-white/[0.11] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.10)_inset,0_1px_0_rgba(255,255,255,0.22)_inset,0_0_28px_-2px_rgba(255,255,255,0.35)] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[rgba(4,6,12,0.9)] active:translate-y-px sm:px-[24px] sm:text-[11.5px] sm:tracking-[0.26em] ${PRIMARY_RAIL_BTN_DISABLED}`;
 
 const SUBMIT_ACTION = ORAL_PRIMARY_GLASS;
 
@@ -1253,7 +1252,9 @@ function OralEvaluationExperienceInner({
                       className={`flex min-h-0 flex-1 flex-col px-5 sm:px-10 ${
                         feedbackEvalStage === "judgment"
                           ? ""
-                          : "pt-6 sm:pt-8"
+                          : feedbackEvalStage === "actions"
+                            ? "pt-6 pb-[170px] sm:pt-8 sm:pb-[190px]"
+                            : "pt-6 sm:pt-8"
                       }`}
                     >
                       <div
@@ -1409,11 +1410,7 @@ function OralEvaluationExperienceInner({
 
                       <div
                         ref={transcriptEndRef}
-                        className={`shrink-0 scroll-mt-6 ${
-                          feedbackEvalStage === "actions"
-                            ? "h-[170px] sm:h-[190px]"
-                            : "h-4"
-                        }`}
+                        className="h-4 shrink-0 scroll-mt-6"
                         aria-hidden
                       />
                       </div>
@@ -1548,16 +1545,16 @@ function OralEvaluationExperienceInner({
                         <div className={GLASS_STRIP_FRAME}>
                           <span
                             aria-hidden
-                            className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent"
+                            className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
                           />
-                          <div className="flex min-w-0 flex-1 items-stretch">
+                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-y-1">
                             <button
                               type="button"
                               onClick={runShowMe}
                               className={ORAL_GHOST_BTN}
                             >
                               <Eye
-                                className="size-[12px] shrink-0 opacity-75"
+                                className="size-[11px] shrink-0 opacity-65"
                                 strokeWidth={1.6}
                                 aria-hidden
                               />
@@ -1571,8 +1568,8 @@ function OralEvaluationExperienceInner({
                                   onClick={openReviewLaterList}
                                   className={ORAL_GHOST_BTN}
                                 >
-                                  <Bookmark
-                                    className="size-[12px] shrink-0 opacity-75"
+                                  <Star
+                                    className="size-[11px] shrink-0 opacity-65"
                                     strokeWidth={1.6}
                                     aria-hidden
                                   />
@@ -1581,13 +1578,14 @@ function OralEvaluationExperienceInner({
                               </>
                             ) : null}
                           </div>
-                          <div className="flex shrink-0 items-center">
+                          <div className={ORAL_PRIMARY_CLUSTER}>
                             <button
                               type="button"
                               onClick={runEvaluation}
                               className={ORAL_PRIMARY_GLASS}
+                              aria-label="Submit answer for evaluation"
                             >
-                              <span>Submit</span>
+                              <span>SUBMIT</span>
                               <ArrowRight
                                 className="size-[13px] shrink-0 group-hover:translate-x-[1px] transition-transform duration-150 ease-out"
                                 strokeWidth={2.25}
@@ -1630,14 +1628,11 @@ function OralEvaluationExperienceInner({
 }
 
 /**
- * EvaluationActionStrip — Glass Cockpit Strip.
+ * EvaluationActionStrip — Glass Cockpit Strip (feedback phase).
  *
- * Fixed at the viewport bottom (centered, max-width), translucent dark slab
- * with backdrop blur, thin top edge highlight, and a soft lift shadow —
- * reads as a Garmin-style avionics control surface. Secondary actions group
- * on the left as quiet ghost controls; CONTINUE is isolated on the right
- * as the dominant glass-bevelled key. Appears 400ms after the debrief
- * finishes with a subtle fade + upward rise.
+ * Fixed bottom, centered max-width. Appears only when `feedbackEvalStage ===
+ * "actions"` after debrief completes; motion wrapper uses ~400ms delay,
+ * fade + slight rise. See GLASS_STRIP_FRAME / ORAL_* constants.
  */
 function EvaluationActionStrip({
   score,
@@ -1666,7 +1661,7 @@ function EvaluationActionStrip({
 
   return (
     <motion.div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(max(env(safe-area-inset-bottom),20px)+30px)] sm:px-8 sm:pb-[calc(1.75rem+30px)]"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(max(env(safe-area-inset-bottom),20px)+100px)] sm:px-8 sm:pb-[calc(1.75rem+100px)]"
       initial={reduceMotion ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 12 }}
@@ -1676,15 +1671,15 @@ function EvaluationActionStrip({
         ease: cinematicEase,
       }}
     >
-      <div className="pointer-events-auto w-full max-w-[840px]">
+      <div className="pointer-events-auto w-full max-w-[min(96vw,820px)]">
         <div className={GLASS_STRIP_FRAME}>
-          {/* Thin top-edge highlight — physical surface cue */}
+          {/* Thin top-edge highlight — physical glass surface */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent"
+            className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
           />
 
-          <div className="flex min-w-0 flex-1 items-stretch">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-y-1">
             <button
               type="button"
               onClick={onTryAgain}
@@ -1692,7 +1687,7 @@ function EvaluationActionStrip({
               className={ORAL_GHOST_BTN}
             >
               <RotateCcw
-                className="size-[12px] shrink-0 opacity-75"
+                className="size-[11px] shrink-0 opacity-65"
                 strokeWidth={1.6}
                 aria-hidden
               />
@@ -1709,13 +1704,13 @@ function EvaluationActionStrip({
                 >
                   {showAnswer ? (
                     <EyeOff
-                      className="size-[12px] shrink-0 opacity-75"
+                      className="size-[11px] shrink-0 opacity-65"
                       strokeWidth={1.6}
                       aria-hidden
                     />
                   ) : (
                     <Eye
-                      className="size-[12px] shrink-0 opacity-75"
+                      className="size-[11px] shrink-0 opacity-65"
                       strokeWidth={1.6}
                       aria-hidden
                     />
@@ -1732,7 +1727,7 @@ function EvaluationActionStrip({
               className={ORAL_GHOST_BTN}
             >
               <Star
-                className="size-[12px] shrink-0 opacity-75"
+                className="size-[11px] shrink-0 opacity-65"
                 strokeWidth={1.6}
                 aria-hidden
               />
@@ -1740,7 +1735,7 @@ function EvaluationActionStrip({
             </button>
           </div>
 
-          <div className="flex shrink-0 items-center">
+          <div className={ORAL_PRIMARY_CLUSTER}>
             {!continueEnabled ? (
               <span className="sr-only">Waiting for debrief to finish.</span>
             ) : null}
@@ -1749,10 +1744,11 @@ function EvaluationActionStrip({
               onClick={onNextQuestion}
               disabled={!continueEnabled}
               className={ORAL_PRIMARY_GLASS}
+              aria-label="Continue to next item"
             >
-              <span>Continue</span>
+              <span>CONTINUE</span>
               <ArrowRight
-                className="size-[13px] shrink-0 group-hover:translate-x-[1px] group-disabled:translate-x-0 transition-transform duration-150 ease-out"
+                className="size-[13px] shrink-0 opacity-95 group-hover:translate-x-[1px] group-disabled:translate-x-0 transition-transform duration-150 ease-out"
                 strokeWidth={2.25}
                 aria-hidden
               />
