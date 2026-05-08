@@ -7,6 +7,7 @@ import {
   Eye,
   EyeOff,
   RotateCcw,
+  Star,
 } from "lucide-react";
 import {
   AnimatePresence,
@@ -198,23 +199,36 @@ const PRIMARY_RAIL_BTN_DISABLED =
   "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
 
 /**
- * Decision-strip controls — pill controls bounded inside an examiner console.
+ * Garmin Softkey Strip — flat, near-black hardware bar.
  *
- * Both ghost (secondary) and amber (primary) share the same shape, casing,
- * tracking, and icon language — so left and right read as one cohesive
- * component. Hierarchy comes from fill, border, and weight, not from CASE.
+ * Container = thin, low-radius slab. Slight translucency + blur so the
+ * cockpit faintly shows through, but the dominant read is "matte panel
+ * with a hairline top highlight." Reads as legend strip, not a card.
+ * Secondaries = ALL CAPS softkey labels separated by hairline rules.
+ * Primary = inverted (light fill, dark text) — the avionics "Alerts"/
+ * "Engage" key — clearly the active control.
  */
-const ORAL_GHOST_PILL =
-  "group inline-flex min-h-[2.25rem] shrink-0 items-center justify-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.025] px-3 py-1.5 font-sans text-[0.78rem] font-medium tracking-[0.005em] text-white/[0.82] outline-none transition-[background-color,border-color,color] duration-200 ease-out hover:border-white/26 hover:bg-white/[0.07] hover:text-white focus-visible:ring-1 focus-visible:ring-amber-200/30 disabled:pointer-events-none disabled:opacity-40 sm:gap-2 sm:px-3.5 sm:text-[0.82rem]";
+const GLASS_STRIP_FRAME =
+  "relative isolate flex w-full items-stretch justify-between gap-2 rounded-[6px] border border-white/[0.07] bg-[rgba(4,6,10,0.86)] pl-2 pr-1.5 py-[6px] backdrop-blur-[14px] backdrop-saturate-150 shadow-[0_18px_48px_-24px_rgba(0,0,0,0.95),0_1px_0_rgba(255,255,255,0.04)_inset] sm:gap-3 sm:pl-3 sm:pr-2 sm:py-[7px]";
 
-const ORAL_PRIMARY_PILL =
-  `group inline-flex min-h-[2.5rem] shrink-0 items-center justify-center gap-2 rounded-full border border-amber-200/35 bg-amber-200/[0.09] px-4 py-2 font-sans text-[0.82rem] font-semibold tracking-[0.005em] text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] outline-none transition-[background-color,border-color,color] duration-300 ease-out hover:border-amber-200/60 hover:bg-amber-200/[0.16] hover:text-amber-50 focus-visible:ring-1 focus-visible:ring-amber-200/45 active:translate-y-px sm:px-5 sm:text-[0.86rem] ${PRIMARY_RAIL_BTN_DISABLED}`;
+const ORAL_GHOST_BTN =
+  "group inline-flex shrink-0 items-center justify-center gap-[6px] rounded-[3px] border border-transparent bg-transparent px-3 py-[7px] font-sans text-[10.5px] font-medium uppercase leading-none tracking-[0.14em] text-white/60 outline-none transition-[color,background-color] duration-150 ease-out hover:text-white hover:bg-white/[0.05] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-white/30 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-30 sm:px-3.5 sm:text-[11px] sm:tracking-[0.16em]";
 
-const SUBMIT_ACTION = ORAL_PRIMARY_PILL;
+const ORAL_GHOST_DIVIDER =
+  "pointer-events-none my-[6px] w-px shrink-0 bg-white/[0.10]";
 
-const PRIMARY_RAIL_BTN = ORAL_PRIMARY_PILL;
+const ORAL_PRIMARY_GLASS =
+  `group relative inline-flex shrink-0 items-center justify-center gap-[8px] rounded-[4px] border border-white/[0.55] bg-white/[0.06] px-[18px] py-[7px] font-sans text-[10.5px] font-bold uppercase leading-none tracking-[0.20em] text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-out shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset,0_1px_0_rgba(255,255,255,0.18)_inset,0_0_18px_-2px_rgba(255,255,255,0.28)] hover:border-white/75 hover:bg-white/[0.10] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.10)_inset,0_1px_0_rgba(255,255,255,0.26)_inset,0_0_28px_-2px_rgba(255,255,255,0.42)] focus-visible:ring-2 focus-visible:ring-white/55 focus-visible:ring-offset-1 focus-visible:ring-offset-black active:translate-y-px sm:px-[22px] sm:text-[11px] sm:tracking-[0.22em] ${PRIMARY_RAIL_BTN_DISABLED}`;
 
-const SECONDARY_RAIL_BTN = ORAL_GHOST_PILL;
+const SUBMIT_ACTION = ORAL_PRIMARY_GLASS;
+
+const PRIMARY_RAIL_BTN = ORAL_PRIMARY_GLASS;
+
+const SECONDARY_RAIL_BTN = ORAL_GHOST_BTN;
+
+// Back-compat aliases so existing call sites keep compiling without renames.
+const ORAL_GHOST_PILL = ORAL_GHOST_BTN;
+const ORAL_PRIMARY_PILL = ORAL_PRIMARY_GLASS;
 
 function OralEvaluationExperienceInner({
   oralItems,
@@ -1393,38 +1407,13 @@ function OralEvaluationExperienceInner({
                         </>
                       ) : null}
 
-                      <AnimatePresence initial={false}>
-                        {feedbackEvalStage === "actions" ? (
-                          <motion.div
-                            key="fb-actions-inline"
-                            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={reduceMotion ? undefined : { opacity: 0, y: 8 }}
-                            transition={{
-                              duration: transitionMs(reduceMotion, 0.42),
-                              ease: cinematicEase,
-                            }}
-                            className="mt-10 w-full scroll-mt-6 sm:mt-12"
-                          >
-                            <EvaluationActionStrip
-                              score={evaluation.score}
-                              teaching={showMeMode}
-                              showAnswer={showAnswer}
-                              onToggleAnswer={toggleAnswer}
-                              onTryAgain={tryAgain}
-                              onNextQuestion={advanceFromFeedback}
-                              onReviewLater={reviewLater}
-                              reduceMotion={reduceMotion}
-                              continueEnabled={continueFeedbackEnabled}
-                              secondaryUnlocked
-                            />
-                          </motion.div>
-                        ) : null}
-                      </AnimatePresence>
-
                       <div
                         ref={transcriptEndRef}
-                        className="h-4 shrink-0 scroll-mt-6"
+                        className={`shrink-0 scroll-mt-6 ${
+                          feedbackEvalStage === "actions"
+                            ? "h-[170px] sm:h-[190px]"
+                            : "h-4"
+                        }`}
                         aria-hidden
                       />
                       </div>
@@ -1556,54 +1545,52 @@ function OralEvaluationExperienceInner({
                           One moment.
                         </p>
                       ) : !evaluating ? (
-                        <div className="relative rounded-md border border-white/[0.07] bg-black/30 px-3.5 pb-3.5 pt-4 backdrop-blur-[8px] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_28px_rgba(0,0,0,0.35)] sm:px-5 sm:pb-4 sm:pt-5">
+                        <div className={GLASS_STRIP_FRAME}>
                           <span
                             aria-hidden
-                            className="pointer-events-none absolute -top-[7px] left-4 select-none bg-[#04060c] px-2 font-sans text-[0.55rem] font-semibold uppercase tracking-[0.32em] text-amber-200/55 sm:left-5 sm:text-[0.58rem]"
-                          >
-                            Your answer
-                          </span>
-                          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-2.5">
-                              <button
-                                type="button"
-                                onClick={runShowMe}
-                                className={ORAL_GHOST_PILL}
-                              >
-                                <Eye
-                                  className="size-[14px] shrink-0 opacity-85"
-                                  strokeWidth={1.75}
-                                  aria-hidden
-                                />
-                                <span>Show model</span>
-                              </button>
-                              {markedItems.size > 0 ? (
+                            className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent"
+                          />
+                          <div className="flex min-w-0 flex-1 items-stretch">
+                            <button
+                              type="button"
+                              onClick={runShowMe}
+                              className={ORAL_GHOST_BTN}
+                            >
+                              <Eye
+                                className="size-[12px] shrink-0 opacity-75"
+                                strokeWidth={1.6}
+                                aria-hidden
+                              />
+                              <span>Show Me Answer</span>
+                            </button>
+                            {markedItems.size > 0 ? (
+                              <>
+                                <span aria-hidden className={ORAL_GHOST_DIVIDER} />
                                 <button
                                   type="button"
                                   onClick={openReviewLaterList}
-                                  className={ORAL_GHOST_PILL}
+                                  className={ORAL_GHOST_BTN}
                                 >
                                   <Bookmark
-                                    className="size-[14px] shrink-0 opacity-85"
-                                    strokeWidth={1.75}
+                                    className="size-[12px] shrink-0 opacity-75"
+                                    strokeWidth={1.6}
                                     aria-hidden
                                   />
-                                  <span>Set aside</span>
-                                  <span className="font-sans text-[0.7rem] font-medium tracking-[0.005em] text-white/50">
-                                    ({markedItems.size})
-                                  </span>
+                                  <span>Review Later ({markedItems.size})</span>
                                 </button>
-                              ) : null}
-                            </div>
+                              </>
+                            ) : null}
+                          </div>
+                          <div className="flex shrink-0 items-center">
                             <button
                               type="button"
                               onClick={runEvaluation}
-                              className={`${ORAL_PRIMARY_PILL} w-full sm:w-auto`}
+                              className={ORAL_PRIMARY_GLASS}
                             >
-                              <span>Submit answer</span>
+                              <span>Submit</span>
                               <ArrowRight
-                                className="size-[15px] shrink-0 opacity-90 group-hover:translate-x-0.5 transition-transform"
-                                strokeWidth={1.75}
+                                className="size-[13px] shrink-0 group-hover:translate-x-[1px] transition-transform duration-150 ease-out"
+                                strokeWidth={2.25}
                                 aria-hidden
                               />
                             </button>
@@ -1620,17 +1607,37 @@ function OralEvaluationExperienceInner({
           </AnimatePresence>
         </div>
       </div>
+
+      <AnimatePresence initial={false}>
+        {sessionPhase === "feedback" && feedbackEvalStage === "actions" ? (
+          <EvaluationActionStrip
+            key="fb-actions-fixed"
+            score={evaluation.score}
+            teaching={showMeMode}
+            showAnswer={showAnswer}
+            onToggleAnswer={toggleAnswer}
+            onTryAgain={tryAgain}
+            onNextQuestion={advanceFromFeedback}
+            onReviewLater={reviewLater}
+            reduceMotion={reduceMotion}
+            continueEnabled={continueFeedbackEnabled}
+            secondaryUnlocked
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
 
 /**
- * EvaluationActionStrip — replaces the prior FeedbackCommandRail.
+ * EvaluationActionStrip — Glass Cockpit Strip.
  *
- * A bounded "decision strip" that sits in the document flow after the examiner
- * has finished. Pill controls (ghost + amber primary) are framed inside a
- * subtle bordered console with a small caps cue label inset on the top edge —
- * so the area visibly reads as an oral-evaluation control panel, not a footer.
+ * Fixed at the viewport bottom (centered, max-width), translucent dark slab
+ * with backdrop blur, thin top edge highlight, and a soft lift shadow —
+ * reads as a Garmin-style avionics control surface. Secondary actions group
+ * on the left as quiet ghost controls; CONTINUE is isolated on the right
+ * as the dominant glass-bevelled key. Appears 400ms after the debrief
+ * finishes with a subtle fade + upward rise.
  */
 function EvaluationActionStrip({
   score,
@@ -1659,77 +1666,81 @@ function EvaluationActionStrip({
 
   return (
     <motion.div
-      className="relative w-full"
-      initial={reduceMotion ? false : { opacity: 0, y: 6 }}
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(max(env(safe-area-inset-bottom),20px)+30px)] sm:px-8 sm:pb-[calc(1.75rem+30px)]"
+      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: 12 }}
       transition={{
-        duration: transitionMs(reduceMotion, 0.42),
+        duration: transitionMs(reduceMotion, 0.55),
+        delay: reduceMotion ? 0 : 0.4,
         ease: cinematicEase,
       }}
     >
-      <div className="relative rounded-md border border-white/[0.07] bg-black/30 px-3.5 pb-3.5 pt-4 backdrop-blur-[8px] shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_28px_rgba(0,0,0,0.35)] sm:px-5 sm:pb-4 sm:pt-5">
-        {/* inset cue label — examiner console marker, not a section header */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -top-[7px] left-4 select-none bg-[#04060c] px-2 font-sans text-[0.55rem] font-semibold uppercase tracking-[0.32em] text-amber-200/55 sm:left-5 sm:text-[0.58rem]"
-        >
-          Your decision
-        </span>
+      <div className="pointer-events-auto w-full max-w-[840px]">
+        <div className={GLASS_STRIP_FRAME}>
+          {/* Thin top-edge highlight — physical surface cue */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent"
+          />
 
-        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-2.5">
+          <div className="flex min-w-0 flex-1 items-stretch">
             <button
               type="button"
               onClick={onTryAgain}
               disabled={!secondaryUnlocked}
-              className={ORAL_GHOST_PILL}
+              className={ORAL_GHOST_BTN}
             >
               <RotateCcw
-                className="size-[14px] shrink-0 opacity-85"
-                strokeWidth={1.75}
+                className="size-[12px] shrink-0 opacity-75"
+                strokeWidth={1.6}
                 aria-hidden
               />
-              <span>Answer again</span>
+              <span>Try Again</span>
             </button>
             {!teaching ? (
-              <button
-                type="button"
-                onClick={onToggleAnswer}
-                disabled={!secondaryUnlocked}
-                className={ORAL_GHOST_PILL}
-              >
-                {showAnswer ? (
-                  <EyeOff
-                    className="size-[14px] shrink-0 opacity-85"
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                ) : (
-                  <Eye
-                    className="size-[14px] shrink-0 opacity-85"
-                    strokeWidth={1.75}
-                    aria-hidden
-                  />
-                )}
-                <span>{showAnswer ? "Hide model" : "Show model"}</span>
-              </button>
+              <>
+                <span aria-hidden className={ORAL_GHOST_DIVIDER} />
+                <button
+                  type="button"
+                  onClick={onToggleAnswer}
+                  disabled={!secondaryUnlocked}
+                  className={ORAL_GHOST_BTN}
+                >
+                  {showAnswer ? (
+                    <EyeOff
+                      className="size-[12px] shrink-0 opacity-75"
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  ) : (
+                    <Eye
+                      className="size-[12px] shrink-0 opacity-75"
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  )}
+                  <span>{showAnswer ? "Hide Answer" : "Show Me Answer"}</span>
+                </button>
+              </>
             ) : null}
+            <span aria-hidden className={ORAL_GHOST_DIVIDER} />
             <button
               type="button"
               onClick={onReviewLater}
               disabled={!secondaryUnlocked}
-              className={ORAL_GHOST_PILL}
+              className={ORAL_GHOST_BTN}
             >
-              <Bookmark
-                className="size-[14px] shrink-0 opacity-85"
-                strokeWidth={1.75}
+              <Star
+                className="size-[12px] shrink-0 opacity-75"
+                strokeWidth={1.6}
                 aria-hidden
               />
-              <span>Review later</span>
+              <span>Review Later</span>
             </button>
           </div>
 
-          <div className="flex shrink-0 flex-col items-stretch gap-1 sm:items-end">
+          <div className="flex shrink-0 items-center">
             {!continueEnabled ? (
               <span className="sr-only">Waiting for debrief to finish.</span>
             ) : null}
@@ -1737,12 +1748,12 @@ function EvaluationActionStrip({
               type="button"
               onClick={onNextQuestion}
               disabled={!continueEnabled}
-              className={`${ORAL_PRIMARY_PILL} w-full sm:w-auto`}
+              className={ORAL_PRIMARY_GLASS}
             >
-              <span>Continue evaluation</span>
+              <span>Continue</span>
               <ArrowRight
-                className="size-[15px] shrink-0 opacity-90 group-hover:translate-x-0.5 group-disabled:translate-x-0 transition-transform"
-                strokeWidth={1.75}
+                className="size-[13px] shrink-0 group-hover:translate-x-[1px] group-disabled:translate-x-0 transition-transform duration-150 ease-out"
+                strokeWidth={2.25}
                 aria-hidden
               />
             </button>
