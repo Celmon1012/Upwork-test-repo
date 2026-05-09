@@ -201,10 +201,10 @@ const PRIMARY_RAIL_BTN_DISABLED =
  * divider, or border, so the examiner moment stays emotionally dominant.
  */
 const ORAL_GHOST_LINK =
-  "group inline-flex shrink-0 items-baseline rounded-sm border-0 bg-transparent px-0 py-1.5 font-serif text-[15px] font-light italic leading-none tracking-[0.005em] text-white/[0.66] outline-none transition-[color] duration-300 ease-out hover:text-white/95 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-white/25 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-30 sm:text-[16px] [text-shadow:0_1px_3px_rgba(0,0,0,0.55)]";
+  "group inline-flex shrink-0 items-baseline rounded-sm border-0 bg-transparent px-0 py-1.5 font-serif text-[15px] font-normal italic leading-none tracking-[0.005em] text-white/[0.78] underline decoration-1 decoration-transparent underline-offset-[6px] outline-none transition-[color,text-decoration-color] duration-300 ease-out hover:text-white/[0.98] hover:decoration-amber-200/40 focus-visible:text-white focus-visible:decoration-amber-200/55 focus-visible:ring-1 focus-visible:ring-amber-200/30 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-30 sm:text-[16px] [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]";
 
 const ORAL_PRIMARY_AMBER =
-  `group relative inline-flex shrink-0 items-center gap-[10px] rounded-sm border-0 bg-transparent px-1 py-1.5 font-sans text-[12px] font-semibold uppercase leading-none tracking-[0.34em] text-amber-100 outline-none transition-[color,letter-spacing,text-shadow] duration-300 ease-out hover:tracking-[0.38em] hover:text-amber-50 focus-visible:ring-1 focus-visible:ring-amber-200/40 active:translate-y-px [text-shadow:0_0_24px_rgba(255,219,158,0.30),0_1px_2px_rgba(0,0,0,0.65)] hover:[text-shadow:0_0_36px_rgba(255,219,158,0.50),0_1px_2px_rgba(0,0,0,0.65)] sm:text-[12.5px] sm:tracking-[0.36em] ${PRIMARY_RAIL_BTN_DISABLED}`;
+  `group relative inline-flex shrink-0 items-center gap-[12px] rounded-sm border-0 bg-transparent px-1 py-1.5 font-sans text-[13px] font-bold uppercase leading-none tracking-[0.32em] text-amber-50 outline-none transition-[color,letter-spacing,text-shadow] duration-300 ease-out hover:tracking-[0.38em] hover:text-amber-50 focus-visible:ring-1 focus-visible:ring-amber-200/45 active:translate-y-px [text-shadow:0_0_30px_rgba(255,219,158,0.42),0_1px_2px_rgba(0,0,0,0.7)] hover:[text-shadow:0_0_46px_rgba(255,219,158,0.68),0_1px_2px_rgba(0,0,0,0.7)] sm:text-[13.5px] sm:tracking-[0.34em] ${PRIMARY_RAIL_BTN_DISABLED}`;
 
 const SUBMIT_ACTION = ORAL_PRIMARY_AMBER;
 
@@ -1278,7 +1278,7 @@ function OralEvaluationExperienceInner({
                         className={`${judgmentHeadlineTypography} ${judgmentDisposition.verdictClass} ${
                           feedbackEvalStage === "judgment"
                             ? "pointer-events-none fixed left-[50%] top-[50%] z-[51] w-[min(92vw,40rem)] max-w-[40rem] -translate-x-1/2 -translate-y-1/2 px-4 text-center"
-                            : "relative z-10 mt-8 w-full min-w-0 border-t border-white/[0.08] pt-8 text-left"
+                            : "relative z-10 mt-12 w-full min-w-0 text-left sm:mt-14"
                         }`}
                         style={{ textShadow: judgmentDisposition.softShadow }}
                         initial={reduceMotion ? false : { opacity: 0, y: 12 }}
@@ -1312,7 +1312,7 @@ function OralEvaluationExperienceInner({
 
                       {feedbackEvalStage !== "judgment" ? (
                         <>
-                          <div className="mt-10 w-full min-w-0">
+                          <div className="mt-10 w-full min-w-0 sm:mt-12">
                             {spokenFeedbackUnits.map((unit, index) => {
                               if (index >= revealedSegments) return null;
                               const duration = segmentDurations[index] ?? 0.88;
@@ -1320,10 +1320,10 @@ function OralEvaluationExperienceInner({
                                 index === 0
                                   ? "mt-0"
                                   : (index + evaluation.score) % 3 === 0
-                                    ? "mt-7 sm:mt-8"
+                                    ? "mt-5 sm:mt-6"
                                     : (index + evaluation.score) % 3 === 1
-                                      ? "mt-5 sm:mt-6"
-                                      : "mt-6 sm:mt-7";
+                                      ? "mt-3.5 sm:mt-4"
+                                      : "mt-4 sm:mt-5";
                               return (
                                 <motion.p
                                   key={`${item.id}-fb-${index}`}
@@ -1341,7 +1341,7 @@ function OralEvaluationExperienceInner({
                                     times: reduceMotion ? undefined : [0, 0.15, 0.32, 1],
                                     ease: cinematicEase,
                                   }}
-                                  className={`max-w-[min(40rem,92vw)] font-serif text-[0.98rem] font-normal leading-[1.72] tracking-[0.004em] text-white/[0.9] sm:text-[1.05rem] sm:leading-[1.76] ${paraRhythm}`}
+                                  className={`max-w-[min(40rem,92vw)] font-serif text-[0.98rem] font-normal leading-[1.66] tracking-[0.004em] text-white/[0.92] sm:text-[1.05rem] sm:leading-[1.7] ${paraRhythm}`}
                                 >
                                   {withThinkingLead(unit.text, index, evaluation.score)}
                                 </motion.p>
@@ -1559,8 +1559,8 @@ function OralEvaluationExperienceInner({
                             >
                               <span>Submit</span>
                               <ArrowRight
-                                className="size-[14px] shrink-0 opacity-95 group-hover:translate-x-[1px] transition-transform duration-300 ease-out"
-                                strokeWidth={1.8}
+                                className="size-[16px] shrink-0 opacity-100 group-hover:translate-x-[2px] transition-transform duration-300 ease-out"
+                                strokeWidth={2}
                                 aria-hidden
                               />
                             </button>
@@ -1716,8 +1716,8 @@ function EvaluationActionStrip({
           >
             <span>Continue</span>
             <ArrowRight
-              className="size-[14px] shrink-0 opacity-95 group-hover:translate-x-[1px] group-disabled:translate-x-0 transition-transform duration-300 ease-out"
-              strokeWidth={1.8}
+              className="size-[16px] shrink-0 opacity-100 group-hover:translate-x-[2px] group-disabled:translate-x-0 transition-transform duration-300 ease-out"
+              strokeWidth={2}
               aria-hidden
             />
           </button>
