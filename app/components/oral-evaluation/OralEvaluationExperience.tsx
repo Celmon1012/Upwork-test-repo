@@ -1,13 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  RotateCcw,
-  Star,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import {
   AnimatePresence,
   LayoutGroup,
@@ -198,36 +192,31 @@ const PRIMARY_RAIL_BTN_DISABLED =
   "disabled:pointer-events-none disabled:opacity-38 disabled:saturate-[0.85]";
 
 /**
- * Glass Cockpit Strip — fixed bottom, centered max-width, avionics legend bar.
+ * Premium Interaction Layer — no dock, no toolbar, no frame.
  *
- * Dark translucent slab + backdrop blur + hairline top highlight + lift shadow.
- * Secondaries: quiet title-case labels, optional minimal icons, hairline dividers.
- * Primary: CONTINUE → dominant, brighter border + inner glow, letter-spaced caps.
+ * Controls emerge from the scene over a soft atmospheric scrim. Secondaries
+ * are written in the examiner's voice: serif italic, mid-contrast, no
+ * background. Primary is a warm amber small-caps cue with a soft glow —
+ * the examiner's gesture, not a website CTA. There is no enclosing box,
+ * divider, or border, so the examiner moment stays emotionally dominant.
  */
-const GLASS_STRIP_FRAME =
-  "relative isolate flex w-full items-stretch justify-between gap-6 rounded-[6px] border border-white/[0.08] bg-[rgba(4,6,12,0.72)] pl-3 pr-2 py-[8px] backdrop-blur-[18px] backdrop-saturate-150 shadow-[0_24px_56px_-28px_rgba(0,0,0,0.92),0_12px_40px_-24px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.05)_inset] sm:gap-10 sm:pl-4 sm:pr-3 sm:py-[9px]";
+const ORAL_GHOST_LINK =
+  "group inline-flex shrink-0 items-baseline rounded-sm border-0 bg-transparent px-0 py-1.5 font-serif text-[15px] font-light italic leading-none tracking-[0.005em] text-white/[0.66] outline-none transition-[color] duration-300 ease-out hover:text-white/95 focus-visible:text-white focus-visible:ring-1 focus-visible:ring-white/25 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-30 sm:text-[16px] [text-shadow:0_1px_3px_rgba(0,0,0,0.55)]";
 
-const ORAL_GHOST_BTN =
-  "group inline-flex shrink-0 items-center justify-center gap-[7px] rounded-[3px] border border-transparent bg-transparent px-3.5 py-2 font-sans text-[11px] font-normal leading-none tracking-[0.05em] text-white/48 outline-none transition-[color,background-color] duration-150 ease-out hover:text-white/90 hover:bg-white/[0.05] focus-visible:text-white focus-visible:ring-1 focus-visible:ring-white/25 active:translate-y-[0.5px] disabled:pointer-events-none disabled:opacity-30 sm:px-4 sm:text-[12px]";
+const ORAL_PRIMARY_AMBER =
+  `group relative inline-flex shrink-0 items-center gap-[10px] rounded-sm border-0 bg-transparent px-1 py-1.5 font-sans text-[12px] font-semibold uppercase leading-none tracking-[0.34em] text-amber-100 outline-none transition-[color,letter-spacing,text-shadow] duration-300 ease-out hover:tracking-[0.38em] hover:text-amber-50 focus-visible:ring-1 focus-visible:ring-amber-200/40 active:translate-y-px [text-shadow:0_0_24px_rgba(255,219,158,0.30),0_1px_2px_rgba(0,0,0,0.65)] hover:[text-shadow:0_0_36px_rgba(255,219,158,0.50),0_1px_2px_rgba(0,0,0,0.65)] sm:text-[12.5px] sm:tracking-[0.36em] ${PRIMARY_RAIL_BTN_DISABLED}`;
 
-const ORAL_GHOST_DIVIDER =
-  "pointer-events-none my-[7px] w-px shrink-0 bg-white/[0.09]";
+const SUBMIT_ACTION = ORAL_PRIMARY_AMBER;
 
-const ORAL_PRIMARY_CLUSTER =
-  "flex shrink-0 items-center border-l border-white/[0.09] pl-5 sm:pl-9";
+const PRIMARY_RAIL_BTN = ORAL_PRIMARY_AMBER;
 
-const ORAL_PRIMARY_GLASS =
-  `group relative inline-flex shrink-0 items-center justify-center gap-[8px] rounded-[4px] border border-white/[0.52] bg-white/[0.07] px-[20px] py-2 font-sans text-[11px] font-semibold uppercase leading-none tracking-[0.24em] text-white outline-none transition-[background-color,border-color,box-shadow] duration-150 ease-out shadow-[0_0_0_1px_rgba(255,255,255,0.07)_inset,0_1px_0_rgba(255,255,255,0.16)_inset,0_0_20px_-3px_rgba(255,255,255,0.22)] hover:border-white/70 hover:bg-white/[0.11] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.10)_inset,0_1px_0_rgba(255,255,255,0.22)_inset,0_0_28px_-2px_rgba(255,255,255,0.35)] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[rgba(4,6,12,0.9)] active:translate-y-px sm:px-[24px] sm:text-[11.5px] sm:tracking-[0.26em] ${PRIMARY_RAIL_BTN_DISABLED}`;
+const SECONDARY_RAIL_BTN = ORAL_GHOST_LINK;
 
-const SUBMIT_ACTION = ORAL_PRIMARY_GLASS;
-
-const PRIMARY_RAIL_BTN = ORAL_PRIMARY_GLASS;
-
-const SECONDARY_RAIL_BTN = ORAL_GHOST_BTN;
-
-// Back-compat aliases so existing call sites keep compiling without renames.
-const ORAL_GHOST_PILL = ORAL_GHOST_BTN;
-const ORAL_PRIMARY_PILL = ORAL_PRIMARY_GLASS;
+// Back-compat aliases so any out-of-band callers continue to compile.
+const ORAL_GHOST_BTN = ORAL_GHOST_LINK;
+const ORAL_GHOST_PILL = ORAL_GHOST_LINK;
+const ORAL_PRIMARY_GLASS = ORAL_PRIMARY_AMBER;
+const ORAL_PRIMARY_PILL = ORAL_PRIMARY_AMBER;
 
 function OralEvaluationExperienceInner({
   oralItems,
@@ -1253,7 +1242,7 @@ function OralEvaluationExperienceInner({
                         feedbackEvalStage === "judgment"
                           ? ""
                           : feedbackEvalStage === "actions"
-                            ? "pt-6 pb-[170px] sm:pt-8 sm:pb-[190px]"
+                            ? "pt-6 pb-[150px] sm:pt-8 sm:pb-[170px]"
                             : "pt-6 sm:pt-8"
                       }`}
                     >
@@ -1542,53 +1531,36 @@ function OralEvaluationExperienceInner({
                           One moment.
                         </p>
                       ) : !evaluating ? (
-                        <div className={GLASS_STRIP_FRAME}>
-                          <span
-                            aria-hidden
-                            className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
-                          />
-                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-y-1">
+                        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
+                          <div className="flex min-w-0 flex-wrap items-baseline gap-x-7 gap-y-2 sm:gap-x-9">
                             <button
                               type="button"
                               onClick={runShowMe}
-                              className={ORAL_GHOST_BTN}
+                              className={ORAL_GHOST_LINK}
                             >
-                              <Eye
-                                className="size-[11px] shrink-0 opacity-65"
-                                strokeWidth={1.6}
-                                aria-hidden
-                              />
-                              <span>Show Me Answer</span>
+                              Show me the answer
                             </button>
                             {markedItems.size > 0 ? (
-                              <>
-                                <span aria-hidden className={ORAL_GHOST_DIVIDER} />
-                                <button
-                                  type="button"
-                                  onClick={openReviewLaterList}
-                                  className={ORAL_GHOST_BTN}
-                                >
-                                  <Star
-                                    className="size-[11px] shrink-0 opacity-65"
-                                    strokeWidth={1.6}
-                                    aria-hidden
-                                  />
-                                  <span>Review Later ({markedItems.size})</span>
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                onClick={openReviewLaterList}
+                                className={ORAL_GHOST_LINK}
+                              >
+                                Review later ({markedItems.size})
+                              </button>
                             ) : null}
                           </div>
-                          <div className={ORAL_PRIMARY_CLUSTER}>
+                          <div className="flex shrink-0 items-center self-end sm:self-auto">
                             <button
                               type="button"
                               onClick={runEvaluation}
-                              className={ORAL_PRIMARY_GLASS}
+                              className={ORAL_PRIMARY_AMBER}
                               aria-label="Submit answer for evaluation"
                             >
-                              <span>SUBMIT</span>
+                              <span>Submit</span>
                               <ArrowRight
-                                className="size-[13px] shrink-0 group-hover:translate-x-[1px] transition-transform duration-150 ease-out"
-                                strokeWidth={2.25}
+                                className="size-[14px] shrink-0 opacity-95 group-hover:translate-x-[1px] transition-transform duration-300 ease-out"
+                                strokeWidth={1.8}
                                 aria-hidden
                               />
                             </button>
@@ -1632,7 +1604,7 @@ function OralEvaluationExperienceInner({
  *
  * Fixed bottom, centered max-width. Appears only when `feedbackEvalStage ===
  * "actions"` after debrief completes; motion wrapper uses ~400ms delay,
- * fade + slight rise. See GLASS_STRIP_FRAME / ORAL_* constants.
+ * fade + slight rise. See ORAL_GHOST_LINK / ORAL_PRIMARY_AMBER.
  */
 function EvaluationActionStrip({
   score,
@@ -1661,100 +1633,95 @@ function EvaluationActionStrip({
 
   return (
     <motion.div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(max(env(safe-area-inset-bottom),20px)+100px)] sm:px-8 sm:pb-[calc(1.75rem+100px)]"
-      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={reduceMotion ? undefined : { opacity: 0, y: 12 }}
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4 sm:px-8"
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reduceMotion ? undefined : { opacity: 0 }}
       transition={{
-        duration: transitionMs(reduceMotion, 0.55),
+        duration: transitionMs(reduceMotion, 0.6),
         delay: reduceMotion ? 0 : 0.4,
         ease: cinematicEase,
       }}
     >
-      <div className="pointer-events-auto w-full max-w-[min(96vw,820px)]">
-        <div className={GLASS_STRIP_FRAME}>
-          {/* Thin top-edge highlight — physical glass surface */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent"
-          />
+      {/*
+        Atmospheric scrim — controls emerge from the cinematic scene rather
+        than sit inside a dock. Tall gradient pulls the page atmosphere
+        downward so the controls feel embedded, not stamped on top.
+      */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-[1] h-[280px] sm:h-[320px] bg-gradient-to-t from-[#04060c] via-[#04060c]/72 to-transparent"
+      />
 
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-y-1">
+      <div className="pointer-events-auto relative mx-auto flex w-full max-w-[min(92vw,820px)] flex-col gap-3 pb-[calc(max(env(safe-area-inset-bottom),20px)+72px)] sm:flex-row sm:items-baseline sm:justify-between sm:gap-12 sm:pb-[calc(1.75rem+72px)]">
+        {/* Secondary actions — examiner's quiet offer of options */}
+        <motion.div
+          className="flex min-w-0 flex-wrap items-baseline gap-x-7 gap-y-2 sm:gap-x-9"
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: transitionMs(reduceMotion, 0.65),
+            delay: reduceMotion ? 0 : 0.45,
+            ease: cinematicEase,
+          }}
+        >
+          <button
+            type="button"
+            onClick={onTryAgain}
+            disabled={!secondaryUnlocked}
+            className={ORAL_GHOST_LINK}
+          >
+            Try again
+          </button>
+          {!teaching ? (
             <button
               type="button"
-              onClick={onTryAgain}
+              onClick={onToggleAnswer}
               disabled={!secondaryUnlocked}
-              className={ORAL_GHOST_BTN}
+              className={ORAL_GHOST_LINK}
             >
-              <RotateCcw
-                className="size-[11px] shrink-0 opacity-65"
-                strokeWidth={1.6}
-                aria-hidden
-              />
-              <span>Try Again</span>
+              {showAnswer ? "Hide the answer" : "Show me the answer"}
             </button>
-            {!teaching ? (
-              <>
-                <span aria-hidden className={ORAL_GHOST_DIVIDER} />
-                <button
-                  type="button"
-                  onClick={onToggleAnswer}
-                  disabled={!secondaryUnlocked}
-                  className={ORAL_GHOST_BTN}
-                >
-                  {showAnswer ? (
-                    <EyeOff
-                      className="size-[11px] shrink-0 opacity-65"
-                      strokeWidth={1.6}
-                      aria-hidden
-                    />
-                  ) : (
-                    <Eye
-                      className="size-[11px] shrink-0 opacity-65"
-                      strokeWidth={1.6}
-                      aria-hidden
-                    />
-                  )}
-                  <span>{showAnswer ? "Hide Answer" : "Show Me Answer"}</span>
-                </button>
-              </>
-            ) : null}
-            <span aria-hidden className={ORAL_GHOST_DIVIDER} />
-            <button
-              type="button"
-              onClick={onReviewLater}
-              disabled={!secondaryUnlocked}
-              className={ORAL_GHOST_BTN}
-            >
-              <Star
-                className="size-[11px] shrink-0 opacity-65"
-                strokeWidth={1.6}
-                aria-hidden
-              />
-              <span>Review Later</span>
-            </button>
-          </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={onReviewLater}
+            disabled={!secondaryUnlocked}
+            className={ORAL_GHOST_LINK}
+          >
+            Review later
+          </button>
+        </motion.div>
 
-          <div className={ORAL_PRIMARY_CLUSTER}>
-            {!continueEnabled ? (
-              <span className="sr-only">Waiting for debrief to finish.</span>
-            ) : null}
-            <button
-              type="button"
-              onClick={onNextQuestion}
-              disabled={!continueEnabled}
-              className={ORAL_PRIMARY_GLASS}
-              aria-label="Continue to next item"
-            >
-              <span>CONTINUE</span>
-              <ArrowRight
-                className="size-[13px] shrink-0 opacity-95 group-hover:translate-x-[1px] group-disabled:translate-x-0 transition-transform duration-150 ease-out"
-                strokeWidth={2.25}
-                aria-hidden
-              />
-            </button>
-          </div>
-        </div>
+        {/* Primary cue — examiner's gesture forward, not a CTA */}
+        <motion.div
+          className="flex shrink-0 items-center self-end sm:self-auto"
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: transitionMs(reduceMotion, 0.7),
+            delay: reduceMotion ? 0 : 0.62,
+            ease: cinematicEase,
+          }}
+        >
+          {!continueEnabled ? (
+            <span className="sr-only">Waiting for debrief to finish.</span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onNextQuestion}
+            disabled={!continueEnabled}
+            className={ORAL_PRIMARY_AMBER}
+            aria-label="Continue to next item"
+          >
+            <span>Continue</span>
+            <ArrowRight
+              className="size-[14px] shrink-0 opacity-95 group-hover:translate-x-[1px] group-disabled:translate-x-0 transition-transform duration-300 ease-out"
+              strokeWidth={1.8}
+              aria-hidden
+            />
+          </button>
+        </motion.div>
       </div>
       {!teaching ? (
         <p className="sr-only">
