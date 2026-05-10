@@ -1312,18 +1312,30 @@ function OralEvaluationExperienceInner({
 
                       {feedbackEvalStage !== "judgment" ? (
                         <>
-                          <div className="mt-10 w-full min-w-0 sm:mt-12">
+                          <div className="mt-10 w-full min-w-0 [font-feature-settings:'liga'_1,'kern'_1,'onum'_1,'pnum'_1] sm:mt-12">
                             {spokenFeedbackUnits.map((unit, index) => {
                               if (index >= revealedSegments) return null;
                               const duration = segmentDurations[index] ?? 0.88;
-                              const paraRhythm =
-                                index === 0
-                                  ? "mt-0"
+                              const isOpening = index === 0;
+                              const isClosing =
+                                segmentCount > 1 && index === segmentCount - 1;
+                              const isExaminerNote = unit.section === "examiner";
+                              const paraRhythm = isOpening
+                                ? "mt-0"
+                                : index === 1
+                                  ? "mt-6 sm:mt-7"
                                   : (index + evaluation.score) % 3 === 0
                                     ? "mt-5 sm:mt-6"
                                     : (index + evaluation.score) % 3 === 1
                                       ? "mt-3.5 sm:mt-4"
                                       : "mt-4 sm:mt-5";
+                              const typography = isOpening
+                                ? `font-serif text-[1.06rem] font-medium leading-[1.55] tracking-[0.002em] text-white/[0.96] sm:text-[1.13rem] sm:leading-[1.58] ${
+                                    isExaminerNote ? "italic" : "not-italic"
+                                  }`
+                                : isClosing
+                                  ? "font-serif text-[1rem] font-normal italic leading-[1.66] tracking-[0.005em] text-white/[0.88] sm:text-[1.06rem] sm:leading-[1.7]"
+                                  : "font-serif text-[0.98rem] font-normal leading-[1.66] tracking-[0.004em] text-white/[0.94] sm:text-[1.05rem] sm:leading-[1.7]";
                               return (
                                 <motion.p
                                   key={`${item.id}-fb-${index}`}
@@ -1341,7 +1353,7 @@ function OralEvaluationExperienceInner({
                                     times: reduceMotion ? undefined : [0, 0.15, 0.32, 1],
                                     ease: cinematicEase,
                                   }}
-                                  className={`max-w-[min(40rem,92vw)] font-serif text-[0.98rem] font-normal leading-[1.66] tracking-[0.004em] text-white/[0.92] sm:text-[1.05rem] sm:leading-[1.7] ${paraRhythm}`}
+                                  className={`max-w-[min(40rem,92vw)] ${typography} ${paraRhythm}`}
                                 >
                                   {withThinkingLead(unit.text, index, evaluation.score)}
                                 </motion.p>
@@ -1531,39 +1543,45 @@ function OralEvaluationExperienceInner({
                           One moment.
                         </p>
                       ) : !evaluating ? (
-                        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
-                          <div className="flex min-w-0 flex-wrap items-baseline gap-x-7 gap-y-2 sm:gap-x-9">
-                            <button
-                              type="button"
-                              onClick={runShowMe}
-                              className={ORAL_GHOST_LINK}
-                            >
-                              Show me the answer
-                            </button>
-                            {markedItems.size > 0 ? (
+                        <div className="flex w-full flex-col">
+                          <span
+                            aria-hidden
+                            className="mx-auto mb-7 block h-[1px] w-12 bg-gradient-to-r from-amber-200/0 via-amber-200/40 to-amber-200/0 [box-shadow:0_0_10px_rgba(255,219,158,0.28)] sm:mb-9 sm:w-16"
+                          />
+                          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
+                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-9 gap-y-2 sm:gap-x-12">
                               <button
                                 type="button"
-                                onClick={openReviewLaterList}
+                                onClick={runShowMe}
                                 className={ORAL_GHOST_LINK}
                               >
-                                Review later ({markedItems.size})
+                                Show me the answer
                               </button>
-                            ) : null}
-                          </div>
-                          <div className="flex shrink-0 items-center self-end sm:self-auto">
-                            <button
-                              type="button"
-                              onClick={runEvaluation}
-                              className={ORAL_PRIMARY_AMBER}
-                              aria-label="Submit answer for evaluation"
-                            >
-                              <span>Submit</span>
-                              <ArrowRight
-                                className="size-[16px] shrink-0 opacity-100 group-hover:translate-x-[2px] transition-transform duration-300 ease-out"
-                                strokeWidth={2}
-                                aria-hidden
-                              />
-                            </button>
+                              {markedItems.size > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={openReviewLaterList}
+                                  className={ORAL_GHOST_LINK}
+                                >
+                                  Review later ({markedItems.size})
+                                </button>
+                              ) : null}
+                            </div>
+                            <div className="flex shrink-0 items-center self-end sm:self-auto">
+                              <button
+                                type="button"
+                                onClick={runEvaluation}
+                                className={ORAL_PRIMARY_AMBER}
+                                aria-label="Submit answer for evaluation"
+                              >
+                                <span>Submit</span>
+                                <ArrowRight
+                                  className="size-[16px] shrink-0 opacity-100 group-hover:translate-x-[2px] transition-transform duration-300 ease-out"
+                                  strokeWidth={2}
+                                  aria-hidden
+                                />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ) : null}
@@ -1653,75 +1671,94 @@ function EvaluationActionStrip({
         className="pointer-events-none absolute inset-x-0 bottom-0 -z-[1] h-[280px] sm:h-[320px] bg-gradient-to-t from-[#04060c] via-[#04060c]/72 to-transparent"
       />
 
-      <div className="pointer-events-auto relative mx-auto flex w-full max-w-[min(92vw,820px)] flex-col gap-3 pb-[calc(max(env(safe-area-inset-bottom),20px)+72px)] sm:flex-row sm:items-baseline sm:justify-between sm:gap-12 sm:pb-[calc(1.75rem+72px)]">
-        {/* Secondary actions — examiner's quiet offer of options */}
-        <motion.div
-          className="flex min-w-0 flex-wrap items-baseline gap-x-7 gap-y-2 sm:gap-x-9"
-          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+      <div className="pointer-events-auto relative mx-auto w-full max-w-[min(92vw,820px)] pb-[calc(max(env(safe-area-inset-bottom),20px)+72px)] sm:pb-[calc(1.75rem+72px)]">
+        {/*
+          Editorial scene-break — a short amber rule that gives the action
+          layer its own typographic identity and signals "moment of decision"
+          in print/editorial fashion, without re-introducing a dock or frame.
+        */}
+        <motion.span
+          aria-hidden
+          className="mx-auto mb-7 block h-[1px] w-12 bg-gradient-to-r from-amber-200/0 via-amber-200/40 to-amber-200/0 [box-shadow:0_0_10px_rgba(255,219,158,0.28)] sm:mb-9 sm:w-16"
+          initial={reduceMotion ? false : { opacity: 0, scaleX: 0.6 }}
+          animate={{ opacity: 1, scaleX: 1 }}
           transition={{
-            duration: transitionMs(reduceMotion, 0.65),
-            delay: reduceMotion ? 0 : 0.45,
+            duration: transitionMs(reduceMotion, 0.7),
+            delay: reduceMotion ? 0 : 0.4,
             ease: cinematicEase,
           }}
-        >
-          <button
-            type="button"
-            onClick={onTryAgain}
-            disabled={!secondaryUnlocked}
-            className={ORAL_GHOST_LINK}
+        />
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
+          {/* Secondary actions — examiner's quiet offer of options */}
+          <motion.div
+            className="flex min-w-0 flex-wrap items-baseline gap-x-9 gap-y-2 sm:gap-x-12"
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: transitionMs(reduceMotion, 0.65),
+              delay: reduceMotion ? 0 : 0.5,
+              ease: cinematicEase,
+            }}
           >
-            Try again
-          </button>
-          {!teaching ? (
             <button
               type="button"
-              onClick={onToggleAnswer}
+              onClick={onTryAgain}
               disabled={!secondaryUnlocked}
               className={ORAL_GHOST_LINK}
             >
-              {showAnswer ? "Hide the answer" : "Show me the answer"}
+              Try again
             </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={onReviewLater}
-            disabled={!secondaryUnlocked}
-            className={ORAL_GHOST_LINK}
-          >
-            Review later
-          </button>
-        </motion.div>
+            {!teaching ? (
+              <button
+                type="button"
+                onClick={onToggleAnswer}
+                disabled={!secondaryUnlocked}
+                className={ORAL_GHOST_LINK}
+              >
+                {showAnswer ? "Hide the answer" : "Show me the answer"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onReviewLater}
+              disabled={!secondaryUnlocked}
+              className={ORAL_GHOST_LINK}
+            >
+              Review later
+            </button>
+          </motion.div>
 
-        {/* Primary cue — examiner's gesture forward, not a CTA */}
-        <motion.div
-          className="flex shrink-0 items-center self-end sm:self-auto"
-          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: transitionMs(reduceMotion, 0.7),
-            delay: reduceMotion ? 0 : 0.62,
-            ease: cinematicEase,
-          }}
-        >
-          {!continueEnabled ? (
-            <span className="sr-only">Waiting for debrief to finish.</span>
-          ) : null}
-          <button
-            type="button"
-            onClick={onNextQuestion}
-            disabled={!continueEnabled}
-            className={ORAL_PRIMARY_AMBER}
-            aria-label="Continue to next item"
+          {/* Primary cue — examiner's gesture forward, not a CTA */}
+          <motion.div
+            className="flex shrink-0 items-center self-end sm:self-auto"
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              duration: transitionMs(reduceMotion, 0.7),
+              delay: reduceMotion ? 0 : 0.66,
+              ease: cinematicEase,
+            }}
           >
-            <span>Continue</span>
-            <ArrowRight
-              className="size-[16px] shrink-0 opacity-100 group-hover:translate-x-[2px] group-disabled:translate-x-0 transition-transform duration-300 ease-out"
-              strokeWidth={2}
-              aria-hidden
-            />
-          </button>
-        </motion.div>
+            {!continueEnabled ? (
+              <span className="sr-only">Waiting for debrief to finish.</span>
+            ) : null}
+            <button
+              type="button"
+              onClick={onNextQuestion}
+              disabled={!continueEnabled}
+              className={ORAL_PRIMARY_AMBER}
+              aria-label="Continue to next item"
+            >
+              <span>Continue</span>
+              <ArrowRight
+                className="size-[16px] shrink-0 opacity-100 group-hover:translate-x-[2px] group-disabled:translate-x-0 transition-transform duration-300 ease-out"
+                strokeWidth={2}
+                aria-hidden
+              />
+            </button>
+          </motion.div>
+        </div>
       </div>
       {!teaching ? (
         <p className="sr-only">
