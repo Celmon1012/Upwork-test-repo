@@ -1323,19 +1323,21 @@ function OralEvaluationExperienceInner({
                               const paraRhythm = isOpening
                                 ? "mt-0"
                                 : index === 1
-                                  ? "mt-6 sm:mt-7"
+                                  ? "mt-7 sm:mt-9"
                                   : (index + evaluation.score) % 3 === 0
                                     ? "mt-5 sm:mt-6"
                                     : (index + evaluation.score) % 3 === 1
                                       ? "mt-3.5 sm:mt-4"
                                       : "mt-4 sm:mt-5";
                               const typography = isOpening
-                                ? `font-serif text-[1.06rem] font-medium leading-[1.55] tracking-[0.002em] text-white/[0.96] sm:text-[1.13rem] sm:leading-[1.58] ${
-                                    isExaminerNote ? "italic" : "not-italic"
+                                ? `font-serif text-[1.06rem] font-medium leading-[1.52] tracking-[0.002em] [text-wrap:balance] sm:text-[1.14rem] sm:leading-[1.56] ${
+                                    isExaminerNote
+                                      ? "italic text-amber-50/[0.94] [text-shadow:0_0_22px_rgba(255,219,158,0.18)]"
+                                      : "not-italic text-white/[0.96]"
                                   }`
                                 : isClosing
-                                  ? "font-serif text-[1rem] font-normal italic leading-[1.66] tracking-[0.005em] text-white/[0.88] sm:text-[1.06rem] sm:leading-[1.7]"
-                                  : "font-serif text-[0.98rem] font-normal leading-[1.66] tracking-[0.004em] text-white/[0.94] sm:text-[1.05rem] sm:leading-[1.7]";
+                                  ? "font-serif text-[1rem] font-normal italic leading-[1.64] tracking-[0.012em] text-white/[0.86] [text-wrap:balance] sm:text-[1.06rem] sm:leading-[1.68]"
+                                  : "font-serif text-[0.98rem] font-normal leading-[1.66] tracking-[0.004em] text-white/[0.95] [text-wrap:pretty] sm:text-[1.05rem] sm:leading-[1.7]";
                               return (
                                 <motion.p
                                   key={`${item.id}-fb-${index}`}
@@ -1546,8 +1548,12 @@ function OralEvaluationExperienceInner({
                         <div className="flex w-full flex-col">
                           <span
                             aria-hidden
-                            className="mx-auto mb-7 block h-[1px] w-12 bg-gradient-to-r from-amber-200/0 via-amber-200/40 to-amber-200/0 [box-shadow:0_0_10px_rgba(255,219,158,0.28)] sm:mb-9 sm:w-16"
-                          />
+                            className="mx-auto mb-8 flex w-fit items-center justify-center gap-3 sm:mb-10 sm:gap-3.5"
+                          >
+                            <span className="block h-[1px] w-10 bg-gradient-to-r from-amber-200/0 to-amber-200/45 sm:w-14" />
+                            <span className="block size-[3.5px] rounded-full bg-amber-200/80 [box-shadow:0_0_14px_rgba(255,219,158,0.85),0_0_4px_rgba(255,219,158,1)]" />
+                            <span className="block h-[1px] w-10 bg-gradient-to-l from-amber-200/0 to-amber-200/45 sm:w-14" />
+                          </span>
                           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
                             <div className="flex min-w-0 flex-wrap items-baseline gap-x-9 gap-y-2 sm:gap-x-12">
                               <button
@@ -1670,24 +1676,40 @@ function EvaluationActionStrip({
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 -z-[1] h-[280px] sm:h-[320px] bg-gradient-to-t from-[#04060c] via-[#04060c]/72 to-transparent"
       />
+      {/*
+        Self-emanating amber halo — gives the action layer its own warm
+        atmosphere so it reads as premium even when the cockpit background
+        is muted. This is the layer's own "examiner warmth" radiating from
+        underneath the controls.
+      */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-[-15%] bottom-[-4%] -z-[1] h-[420px] bg-[radial-gradient(ellipse_55%_55%_at_50%_85%,rgba(255,200,140,0.07),rgba(255,200,140,0)_72%)] sm:h-[480px]"
+      />
 
       <div className="pointer-events-auto relative mx-auto w-full max-w-[min(92vw,820px)] pb-[calc(max(env(safe-area-inset-bottom),20px)+72px)] sm:pb-[calc(1.75rem+72px)]">
         {/*
-          Editorial scene-break — a short amber rule that gives the action
-          layer its own typographic identity and signals "moment of decision"
-          in print/editorial fashion, without re-introducing a dock or frame.
+          Editorial scene-break — classic print/editorial " ─── · ─── " mark.
+          A short amber rule, a luminous amber dot, another short amber rule.
+          Gives the action layer a distinctive typographic identity that
+          stands on its own without needing the cockpit background to carry
+          atmosphere, and reads as "moment of decision" in print typography.
         */}
         <motion.span
           aria-hidden
-          className="mx-auto mb-7 block h-[1px] w-12 bg-gradient-to-r from-amber-200/0 via-amber-200/40 to-amber-200/0 [box-shadow:0_0_10px_rgba(255,219,158,0.28)] sm:mb-9 sm:w-16"
-          initial={reduceMotion ? false : { opacity: 0, scaleX: 0.6 }}
+          className="mx-auto mb-8 flex w-fit items-center justify-center gap-3 sm:mb-10 sm:gap-3.5"
+          initial={reduceMotion ? false : { opacity: 0, scaleX: 0.7 }}
           animate={{ opacity: 1, scaleX: 1 }}
           transition={{
-            duration: transitionMs(reduceMotion, 0.7),
+            duration: transitionMs(reduceMotion, 0.75),
             delay: reduceMotion ? 0 : 0.4,
             ease: cinematicEase,
           }}
-        />
+        >
+          <span className="block h-[1px] w-10 bg-gradient-to-r from-amber-200/0 to-amber-200/45 sm:w-14" />
+          <span className="block size-[3.5px] rounded-full bg-amber-200/80 [box-shadow:0_0_14px_rgba(255,219,158,0.85),0_0_4px_rgba(255,219,158,1)]" />
+          <span className="block h-[1px] w-10 bg-gradient-to-l from-amber-200/0 to-amber-200/45 sm:w-14" />
+        </motion.span>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-12">
           {/* Secondary actions — examiner's quiet offer of options */}
