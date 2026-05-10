@@ -1,6 +1,6 @@
 import { AuthNav } from "@/app/components/AuthNav";
-import { OralEvaluationExperience } from "@/app/components/oral-evaluation/OralEvaluationExperience";
-import { loadOralCatalog } from "@/lib/oral/loadOralItems";
+import { PracticeEntry } from "@/app/practice/PracticeEntry";
+import { getPracticeEntryState } from "@/lib/oral/practiceEntryState";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -15,12 +15,12 @@ export default async function PracticePage() {
     redirect("/auth");
   }
 
-  const { items: oralItems, error: loadError } = await loadOralCatalog(supabase);
+  const entry = await getPracticeEntryState(supabase, user.id);
 
   return (
     <>
       <AuthNav />
-      <OralEvaluationExperience oralItems={oralItems} loadError={loadError} />
+      <PracticeEntry email={user.email ?? ""} entry={entry} />
     </>
   );
 }

@@ -13,7 +13,7 @@ export type OralCatalogResult = {
   items: OralItem[];
   /**
    * When `items` is empty, explains why (RLS, missing set, query error, etc.).
-   * Shown on `/practice` so failures are not silent.
+   * Shown on `/practice/session` so failures are not silent.
    */
   error: string | null;
 };
