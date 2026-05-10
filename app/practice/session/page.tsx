@@ -1,5 +1,6 @@
 import { AuthNav } from "@/app/components/AuthNav";
 import { OralEvaluationExperience } from "@/app/components/oral-evaluation/OralEvaluationExperience";
+import type { SessionMode } from "@/app/components/oral-evaluation/SessionFrame";
 import { loadOralCatalog } from "@/lib/oral/loadOralItems";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -41,8 +42,10 @@ export default async function PracticeSessionPage({
   }
 
   let oralItems = allItems;
+  const sessionMode: SessionMode =
+    params.mode === "bookmarks" ? "bookmarks" : "exam";
 
-  if (params.mode === "bookmarks") {
+  if (sessionMode === "bookmarks") {
     if (ids.length === 0) {
       oralItems = [];
     } else {
@@ -58,20 +61,11 @@ export default async function PracticeSessionPage({
   }
 
   const bookmarksEmpty =
-    params.mode === "bookmarks" && oralItems.length === 0 && ids.length > 0;
+    sessionMode === "bookmarks" && oralItems.length === 0 && ids.length > 0;
 
   return (
     <>
       <AuthNav />
-      <div className="pointer-events-none fixed left-0 top-[4.25rem] z-[55] px-4 sm:left-6 sm:top-[4.5rem]">
-        <Link
-          href="/practice"
-          className="pointer-events-auto inline-flex items-center gap-2 rounded-lg border border-white/15 bg-black/40 px-3 py-2 font-sans text-[0.72rem] font-medium uppercase tracking-[0.14em] text-white/70 backdrop-blur-sm transition hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25"
-        >
-          ← Practice home
-        </Link>
-      </div>
-
       {bookmarksEmpty ? (
         <div className="flex min-h-dvh w-full items-center justify-center bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(255,200,140,0.06)_0%,transparent_55%),linear-gradient(180deg,#070a12_0%,#04060c_100%)] px-6 pb-24 pt-24">
           <div className="max-w-md text-center">
@@ -89,7 +83,11 @@ export default async function PracticeSessionPage({
           </div>
         </div>
       ) : (
-        <OralEvaluationExperience oralItems={oralItems} loadError={loadError} />
+        <OralEvaluationExperience
+          oralItems={oralItems}
+          loadError={loadError}
+          sessionMode={sessionMode}
+        />
       )}
     </>
   );

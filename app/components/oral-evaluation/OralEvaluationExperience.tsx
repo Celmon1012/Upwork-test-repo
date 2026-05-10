@@ -26,6 +26,11 @@ import {
   compactSpokenBeats,
 } from "./examiner-scripts";
 import { createClient as createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  SessionFrame,
+  type SessionMode,
+} from "@/app/components/oral-evaluation/SessionFrame";
+import { SessionBriefing } from "@/app/components/oral-evaluation/SessionBriefing";
 
 type SessionPhase = "respond" | "evaluating" | "feedback";
 /** Staged debrief: verdict alone → spoken lines → command rail (not one card). */
@@ -220,8 +225,10 @@ const ORAL_PRIMARY_PILL = ORAL_PRIMARY_AMBER;
 
 function OralEvaluationExperienceInner({
   oralItems,
+  sessionMode = "exam",
 }: {
   oralItems: readonly OralItem[];
+  sessionMode?: SessionMode;
 }) {
   const reduceMotion = useReducedMotion();
   const [sessionPhase, setSessionPhase] = useState<SessionPhase>("respond");
@@ -238,6 +245,8 @@ function OralEvaluationExperienceInner({
   const [sessionDone, setSessionDone] = useState(false);
   const [fromReview, setFromReview] = useState(false);
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({});
+  /** One-time briefing overlay before the evaluator first appears each visit. */
+  const [briefingDismissed, setBriefingDismissed] = useState(false);
 
   const [showMeMode, setShowMeMode] = useState(false);
   const [showAnswer, setShowAnswer] = useState(false);
@@ -1139,8 +1148,40 @@ function OralEvaluationExperienceInner({
 
   if (!resumeReady) {
     return (
+      <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col items-center justify-center overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
+        <BackgroundStack phase="respond" justReceived={false} />
+        <div className="relative z-10 flex flex-col items-center gap-3" role="status" aria-live="polite">
+          <span className="inline-block size-7 animate-spin rounded-full border-2 border-white/15 border-t-amber-200/85" aria-hidden />
+          <p className="font-serif text-[0.92rem] font-light italic text-white/55">
+            Preparing your session…
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Determine the most accurate briefing tone:
+   *  - resume: a partial, non-finished session is being picked up
+   *  - else: caller-provided mode (exam / bookmarks)
+   */
+  const briefingMode: SessionMode =
+    sessionMode === "bookmarks"
+      ? "bookmarks"
+      : itemIndex > 0 && !sessionDone
+        ? "resume"
+        : "exam";
+
+  if (!briefingDismissed && !sessionDone) {
+    return (
       <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
         <BackgroundStack phase="respond" justReceived={false} />
+        <SessionBriefing
+          mode={briefingMode}
+          total={oralItems.length}
+          startIndex={itemIndex}
+          onBegin={() => setBriefingDismissed(true)}
+        />
       </div>
     );
   }
@@ -1149,6 +1190,12 @@ function OralEvaluationExperienceInner({
     return (
       <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
         <BackgroundStack phase="respond" justReceived={false} />
+        <SessionFrame
+          mode={sessionMode}
+          currentIndex={oralItems.length - 1}
+          total={oralItems.length}
+          hideForJudgment={false}
+        />
         <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden">
           <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center overflow-x-hidden overflow-y-auto px-4 py-6 sm:px-10 sm:py-8">
             <SessionEndScreen
@@ -1167,6 +1214,14 @@ function OralEvaluationExperienceInner({
   return (
     <div className="fixed inset-0 flex h-dvh max-h-dvh w-full max-w-full flex-col overflow-hidden overscroll-none bg-[radial-gradient(ellipse_120%_80%_at_50%_0%,rgba(30,58,95,0.22)_0%,transparent_50%),linear-gradient(180deg,#070a12_0%,#04060c_100%)]">
       <BackgroundStack phase={sessionPhase} justReceived={justReceived} />
+      <SessionFrame
+        mode={sessionMode}
+        currentIndex={itemIndex}
+        total={oralItems.length}
+        hideForJudgment={
+          sessionPhase === "feedback" && feedbackEvalStage === "judgment"
+        }
+      />
       {sessionPhase === "evaluating" ? (
         <span className="sr-only" aria-live="polite">
           Please wait.
@@ -2478,10 +2533,12 @@ function SessionEndScreen({
 export function OralEvaluationExperience({
   oralItems,
   loadError = null,
+  sessionMode = "exam",
 }: {
   oralItems: readonly OralItem[];
   /** Server-side fetch diagnostic when `oralItems` is empty */
   loadError?: string | null;
+  sessionMode?: SessionMode;
 }) {
   if (oralItems.length === 0) {
     return (
@@ -2505,5 +2562,10 @@ export function OralEvaluationExperience({
       </div>
     );
   }
-  return <OralEvaluationExperienceInner oralItems={oralItems} />;
+  return (
+    <OralEvaluationExperienceInner
+      oralItems={oralItems}
+      sessionMode={sessionMode}
+    />
+  );
 }
